@@ -106,7 +106,7 @@ function TokenNode({
   }
 
   const canDrag = interactive && !token.locked
-  const showLabel = (isGm && showLabels) || selected
+  const showLabel = showLabels || selected
   const labelWidth = Math.max(token.width, 80)
 
   return (
