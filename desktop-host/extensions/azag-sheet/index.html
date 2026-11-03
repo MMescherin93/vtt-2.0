@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AZAG — лист персонажа</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand"><b>AZAG</b><span>лист персонажа</span></div>
+
+    <div class="controls">
+      <label class="ctrl-label" for="charSelect">Персонаж</label>
+      <select id="charSelect" class="select"></select>
+      <button type="button" id="btnNew" class="btn">＋ Новый</button>
+      <button type="button" id="btnDelete" class="btn danger">Удалить</button>
+    </div>
+
+    <div id="status" class="status">подключение…</div>
+  </header>
+
+  <main class="sheetWrap" id="sheetWrap">
+    <div class="sheetFrame" id="sheetFrame">
+      <div class="sheet" id="sheet">
+        <img class="sheetBg" src="sheet.png" alt="Лист персонажа AZAG" draggable="false">
+        <div class="fields" id="fields"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

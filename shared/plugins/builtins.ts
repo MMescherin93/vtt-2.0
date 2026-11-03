@@ -11,6 +11,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     id: 'troika',
     title: 'Тройка!',
     description: 'Модули для системы «Тройка!»: инициатива и листы персонажей'
+  },
+  {
+    id: 'azag',
+    title: 'AZAG',
+    description: 'Модули для игры AZAG (Dank Dungeons)'
   }
 ]
 
@@ -84,6 +89,19 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     panel: true,
     playerWritable: true,
     metaKey: 'com.troika.sheet/state'
+  },
+  {
+    id: 'azag-sheet',
+    title: 'Лист персонажа AZAG',
+    description:
+      'Редактируемый лист персонажа AZAG: оружие, броня, навыки, магические и обычные предметы. Любой участник может менять листы',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'azag',
+    icon: '/extensions/azag-sheet/icon.png',
+    panel: true,
+    playerWritable: true,
+    metaKey: 'com.azag.sheet/state'
   }
 ]
 

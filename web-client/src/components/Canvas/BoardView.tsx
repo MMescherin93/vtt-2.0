@@ -49,6 +49,8 @@ export function BoardView() {
   const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
   const sheetEnabled = extensions['troika-sheet'] ?? false
   const sheetOpen = sheetEnabled && (modulePanels['troika-sheet'] ?? false)
+  const azagEnabled = extensions['azag-sheet'] ?? false
+  const azagOpen = azagEnabled && (modulePanels['azag-sheet'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -140,6 +142,26 @@ export function BoardView() {
           height={720}
           storageKey="vtt.player.panel.sheet"
           defaultPosition={{ x: 240, y: 40 }}
+        />
+      )}
+
+      {azagOpen && (
+        <ExtensionFrame
+          title="Лист персонажа AZAG"
+          src={`${hostUrl}/extensions/azag-sheet/index.html`}
+          extensionId="azag-sheet"
+          role="player"
+          allowPlayerWrite
+          metaKey="com.azag.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
+          state={session.extensionState['azag-sheet'] ?? null}
+          onChange={(next) => publishExtensionState('azag-sheet', next)}
+          onClose={() => toggleModulePanel('azag-sheet', false)}
+          width={1000}
+          height={760}
+          storageKey="vtt.player.panel.azag"
+          defaultPosition={{ x: 180, y: 24 }}
         />
       )}
 

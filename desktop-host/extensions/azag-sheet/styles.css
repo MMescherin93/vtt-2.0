@@ -1,0 +1,259 @@
+:root {
+  --ink: #111;
+  --paper: #f6f3ea;
+  --chrome: #ece8dd;
+  --line: #cfc8b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--chrome);
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* ---------- Панель управления ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 14px;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+  flex: 0 0 auto;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.brand b {
+  font-family: 'Segoe Print', 'Comic Sans MS', cursive;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+}
+
+.brand span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6b6353;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ctrl-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6353;
+}
+
+.select {
+  min-width: 180px;
+  max-width: 320px;
+  padding: 5px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.btn {
+  padding: 5px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.btn:hover {
+  background: #f0ead9;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.danger:hover {
+  background: #f7d9d4;
+}
+
+.status {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #6b6353;
+  white-space: nowrap;
+}
+
+/* ---------- Лист ---------- */
+
+.sheetWrap {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 16px;
+  background:
+    radial-gradient(circle at 20% 10%, #f1ede2 0, #e6e0d1 60%, #ddd5c4 100%);
+}
+
+.sheetFrame {
+  position: relative;
+  margin: 0 auto;
+}
+
+.sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1123.2px;
+  height: 793.6px;
+  transform-origin: top left;
+  box-shadow: 0 10px 30px rgba(30, 24, 12, 0.18);
+  background: #fff;
+}
+
+.sheetBg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  pointer-events: none;
+}
+
+.fields {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- Поля ---------- */
+
+.field {
+  position: absolute;
+  margin: 0;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #111;
+  font-family: 'Segoe Print', 'Comic Sans MS', 'Bradley Hand', cursive;
+  line-height: 1.15;
+  outline: none;
+  overflow: hidden;
+}
+
+.field:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.field:focus {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.35);
+}
+
+.field.area {
+  resize: none;
+  line-height: 1.35;
+  padding-top: 2px;
+}
+
+.field.check {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.field.check:hover {
+  background: rgba(17, 17, 17, 0.08);
+}
+
+.field.check:checked {
+  background: rgba(17, 17, 17, 0.88);
+}
+
+.field.check:checked::after {
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  font-family: 'Segoe Print', 'Comic Sans MS', cursive;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ---------- Уведомление ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.9);
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: opacity 160ms ease;
+  z-index: 10;
+}
+
+.toast.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Узкий экран: панель управления переносится */
+@media (max-width: 720px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .controls {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

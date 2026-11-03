@@ -63,6 +63,8 @@ export function BoardView() {
   const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
   const sheetEnabled = extensions['troika-sheet'] ?? false
   const sheetOpen = sheetEnabled && (modulePanels['troika-sheet'] ?? false)
+  const azagEnabled = extensions['azag-sheet'] ?? false
+  const azagOpen = azagEnabled && (modulePanels['azag-sheet'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -205,6 +207,25 @@ export function BoardView() {
           height={720}
           storageKey="vtt.gm.panel.sheet"
           defaultPosition={{ x: 240, y: 40 }}
+        />
+      )}
+
+      {azagOpen && (
+        <ExtensionFrame
+          title="Лист персонажа AZAG"
+          src={`${assetsBaseUrl}/extensions/azag-sheet/index.html`}
+          extensionId="azag-sheet"
+          role="gm"
+          metaKey="com.azag.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
+          state={session.extensionState['azag-sheet'] ?? null}
+          onChange={(next) => void setExtensionState('azag-sheet', next)}
+          onClose={() => toggleModulePanel('azag-sheet', false)}
+          width={1000}
+          height={760}
+          storageKey="vtt.gm.panel.azag"
+          defaultPosition={{ x: 180, y: 24 }}
         />
       )}
 

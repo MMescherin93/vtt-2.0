@@ -1,0 +1,15 @@
+{
+  "name": "Лист персонажа AZAG",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "description": "Редактируемый лист персонажа для игры AZAG (Dank Dungeons): общий для стола, с независимым выбором листа у каждого участника.",
+  "author": "MMescherin93",
+  "icon": "/extensions/azag-sheet/icon.png",
+  "action": {
+    "title": "Лист персонажа AZAG",
+    "icon": "/extensions/azag-sheet/icon.png",
+    "popover": "/extensions/azag-sheet/index.html",
+    "width": 1000,
+    "height": 760
+  }
+}

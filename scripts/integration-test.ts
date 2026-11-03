@@ -9,6 +9,7 @@ import { SessionManager } from '../desktop-host/src/main/session'
 import { startVttServer } from '../desktop-host/src/main/server'
 import { normalizeSession, SessionStorage } from '../desktop-host/src/main/storage'
 import { mergeWithBaseline } from '../shared/ui/extensionState'
+import { FIELDS as AZAG_FIELDS } from '../desktop-host/extensions/azag-sheet/fields.generated.js'
 
 const PORT = Number(process.env.VTT_TEST_PORT ?? 3999)
 const DATA_DIR = '.tmp/test-data'
@@ -133,6 +134,11 @@ async function main(): Promise<void> {
     EXTENSION_CATEGORIES.some((category) => category.id === 'troika') &&
       BUILT_IN_EXTENSIONS.every((definition) => categories.has(definition.category ?? 'basic')),
     'все расширения разложены по разделам каталога'
+  )
+  check(
+    AZAG_FIELDS.length === 61 &&
+      AZAG_FIELDS.filter((field) => field.kind === 'checkbox').length === 3,
+    'лист AZAG: 61 поле формы, включая 3 чекбокса'
   )
 
   const layout = layoutMaps([
@@ -277,6 +283,36 @@ async function main(): Promise<void> {
       sheetHtml.includes('#btnPublish') &&
       !sheetHtml.includes('cdn.jsdelivr.net'),
     'в отдаваемом index.html листа скрыты лишние кнопки (исходник не изменён)'
+  )
+
+  const azagApp = await fetch(`http://localhost:${PORT}/extensions/azag-sheet/app.js`)
+  const azagSource = await azagApp.text()
+  check(
+    azagApp.status === 200 &&
+      azagSource.includes('/extensions/azag-sheet/obr-shim.js') &&
+      !azagSource.includes('cdn.jsdelivr.net'),
+    'лист AZAG отдаётся с локальным адаптером SDK'
+  )
+  const azagFields = await fetch(
+    `http://localhost:${PORT}/extensions/azag-sheet/fields.generated.js`
+  )
+  check(azagFields.status === 200, 'данные полей листа AZAG доступны')
+  const azagSheet = await fetch(`http://localhost:${PORT}/extensions/azag-sheet/sheet.png`)
+  check(azagSheet.status === 200, 'фон листа AZAG доступен')
+
+  const azagUpdatePromise = watch<{ extensionId: string; state: unknown }>(
+    client,
+    'extension:update'
+  )
+  client.emit('extension:update', {
+    extensionId: 'azag-sheet',
+    state: { currentId: 'c1', chars: [{ id: 'c1', fields: { 'chr name': 'Азаг' } }] }
+  })
+  const azagUpdate = await azagUpdatePromise
+  check(
+    azagUpdate.extensionId === 'azag-sheet' &&
+      Array.isArray((azagUpdate.state as { chars?: unknown[] }).chars),
+    'игрок может сохранить лист AZAG'
   )
 
   // Лист персонажа может сохранять любой игрок
