@@ -218,6 +218,16 @@ async function main(): Promise<void> {
     'лист персонажа отдаётся с локальным адаптером SDK'
   )
 
+  const sheetIndex = await fetch(`http://localhost:${PORT}/extensions/troika-sheet/index.html`)
+  const sheetHtml = await sheetIndex.text()
+  check(
+    sheetIndex.status === 200 &&
+      sheetHtml.includes('id="vtt-adapter"') &&
+      sheetHtml.includes('#btnPublish') &&
+      !sheetHtml.includes('cdn.jsdelivr.net'),
+    'в отдаваемом index.html листа скрыты лишние кнопки (исходник не изменён)'
+  )
+
   // Лист персонажа может сохранять любой игрок
   const sheetPromise = watch<{ extensionId: string; state: unknown }>(client, 'extension:update')
   client.emit('extension:update', {

@@ -143,7 +143,7 @@ export function ExtensionFrame({
         title={title}
         className="block w-full border-0 bg-[#14161f]"
         style={{ height }}
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
         allow="clipboard-write"
       />
     </FloatingPanel>

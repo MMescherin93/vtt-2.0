@@ -180,6 +180,18 @@ export function startVttServer(options: VttServerOptions): VttServer {
   /** CDN-адрес OBR SDK, который подменяем на локальный адаптер при отдаче app.js */
   const OBR_SDK_URL = 'https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm'
 
+  /**
+   * Правки интерфейса модулей при отдаче (файлы на диске не меняются).
+   * troika-sheet: в VTT состояние и так общее для сессии, поэтому экспорт,
+   * печать, импорт и публикация в «комнату» не нужны — скрываем их.
+   */
+  const EXTENSION_HTML_PATCHES: Record<string, string> = {
+    'troika-sheet': `<style id="vtt-adapter">
+#btnPublish, #btnPrint, #btnExport, #btnImport, #btnLink { display: none !important; }
+.toolbar-right { display: none !important; }
+</style>`
+  }
+
   const status = (): ServerStatus => ({
     port,
     listening: httpServer.listening,
@@ -265,6 +277,10 @@ export function startVttServer(options: VttServerOptions): VttServer {
         // Исходники расширения не меняем: подменяем только URL импорта SDK
         const source = await readFile(filePath, 'utf-8')
         body = source.split(OBR_SDK_URL).join(`/extensions/${name}/obr-shim.js`)
+      } else if (relativePath === 'index.html' && EXTENSION_HTML_PATCHES[name]) {
+        // Скрываем ненужные в VTT кнопки, не меняя исходный index.html
+        const source = await readFile(filePath, 'utf-8')
+        body = source.replace('</head>', `${EXTENSION_HTML_PATCHES[name]}</head>`)
       } else {
         body = await readFile(filePath)
       }
