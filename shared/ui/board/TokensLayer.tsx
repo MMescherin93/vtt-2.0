@@ -17,6 +17,8 @@ interface TokenNodeProps {
   sessionId: string
   assetsBaseUrl: string
   interactive: boolean
+  /** Показывать подпись токена (расширение «Подписи токенов») */
+  showLabels: boolean
   selected: boolean
   isGm: boolean
   mapWidth: number
@@ -31,6 +33,7 @@ function TokenNode({
   sessionId,
   assetsBaseUrl,
   interactive,
+  showLabels,
   selected,
   isGm,
   mapWidth,
@@ -103,7 +106,7 @@ function TokenNode({
   }
 
   const canDrag = interactive && !token.locked
-  const showLabel = isGm || selected
+  const showLabel = (isGm && showLabels) || selected
   const labelWidth = Math.max(token.width, 80)
 
   return (
@@ -203,6 +206,8 @@ export interface TokensLayerProps {
   height: number
   /** Разрешено ли взаимодействие (инструмент «выбор») */
   interactive: boolean
+  /** Показывать подписи токенов */
+  showLabels: boolean
   selectedTokenId: string | null
   onSelect: (tokenId: string | null) => void
   onMove: (tokenId: string, x: number, y: number, final: boolean) => void
@@ -217,6 +222,7 @@ export function TokensLayer({
   width,
   height,
   interactive,
+  showLabels,
   selectedTokenId,
   onSelect,
   onMove,
@@ -234,6 +240,7 @@ export function TokensLayer({
           sessionId={session.id}
           assetsBaseUrl={assetsBaseUrl}
           interactive={interactive}
+          showLabels={showLabels}
           selected={token.id === selectedTokenId}
           isGm={isGm}
           mapWidth={width}

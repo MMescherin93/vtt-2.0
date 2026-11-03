@@ -16,6 +16,11 @@ import type {
   TokenPatchInput
 } from '../../../shared/ipc'
 import type { DrawStyle, FogTool, Tool } from '@vtt/shared/ui'
+import {
+  BUILT_IN_EXTENSIONS,
+  defaultExtensionValues,
+  type ExtensionValues
+} from '@vtt/shared/plugins'
 
 export type HostScreen = 'sessions' | 'table'
 
@@ -26,6 +31,7 @@ export interface HostPanels {
   map: boolean
   invite: boolean
   players: boolean
+  extensions: boolean
 }
 
 interface HostState {
@@ -46,6 +52,8 @@ interface HostState {
   showFogPreview: boolean
   selectedTokenId: string | null
   panels: HostPanels
+  /** Включённость расширений (см. shared/plugins) */
+  extensions: ExtensionValues
 
   setStatus: (status: ServerStatus) => void
   setScreen: (screen: HostScreen) => void
@@ -66,6 +74,7 @@ interface HostState {
   toggleFogPreview: () => void
   setSelectedToken: (tokenId: string | null) => void
   togglePanel: (panel: keyof HostPanels) => void
+  toggleExtension: (extensionId: string, enabled: boolean) => void
 
   updateSessionPatch: (patch: SessionPatch) => Promise<void>
   uploadMap: (file: File) => Promise<void>
@@ -77,6 +86,8 @@ interface HostState {
     data: { x: number; y: number; width: number; height: number; rotation: number }
   ) => void
   updateToken: (patch: TokenPatchInput) => Promise<void>
+  /** Переименование токена (Мастер) */
+  renameToken: (tokenId: string, name: string) => void
   removeToken: (tokenId: string) => Promise<void>
   addTokenFromFile: (file: File, x: number, y: number) => Promise<void>
   addQuickToken: (name: string, x?: number, y?: number) => Promise<Token | null>
@@ -104,7 +115,7 @@ const DRAW_COLORS = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#f8
 
 type PersistedHostUi = Pick<
   HostState,
-  'tool' | 'drawStyle' | 'fogTool' | 'fogBrushSize' | 'showFogPreview' | 'panels'
+  'tool' | 'drawStyle' | 'fogTool' | 'fogBrushSize' | 'showFogPreview' | 'panels' | 'extensions'
 >
 
 export const useHostStore = create<HostState>()(
@@ -132,8 +143,10 @@ export const useHostStore = create<HostState>()(
         tokens: true,
         map: false,
         invite: false,
-        players: false
+        players: false,
+        extensions: false
       },
+      extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
 
       setStatus: (status) => set({ status }),
       setScreen: (screen) => set({ screen }),
@@ -266,6 +279,24 @@ export const useHostStore = create<HostState>()(
       setSelectedToken: (selectedTokenId) => set({ selectedTokenId }),
       togglePanel: (panel) => set({ panels: { ...get().panels, [panel]: !get().panels[panel] } }),
 
+      toggleExtension: (extensionId, enabled) => {
+        const extensions = { ...get().extensions, [extensionId]: enabled }
+        const patch: Partial<HostState> = { extensions }
+        // Если выключили расширение, активный инструмент из него сбрасываем
+        const tool = get().tool
+        if (extensionId === 'fog' && !enabled && tool === 'fog') patch.tool = 'select'
+        if (extensionId === 'drawing' && !enabled && (tool === 'draw' || tool === 'erase')) {
+          patch.tool = 'select'
+        }
+        if (extensionId === 'chat' && !enabled) {
+          patch.panels = { ...get().panels, chat: false }
+        }
+        if (extensionId === 'dice' && !enabled) {
+          patch.panels = { ...get().panels, dice: false }
+        }
+        set(patch)
+      },
+
       updateSessionPatch: async (patch) => {
         try {
           await window.hostApi.updateSession(patch)
@@ -305,6 +336,13 @@ export const useHostStore = create<HostState>()(
 
       updateToken: async (patch) => {
         await window.hostApi.updateToken(patch)
+      },
+
+      renameToken: (tokenId, name) => {
+        const value = name.trim().slice(0, 80)
+        if (!value) return
+        set({ session: patchToken(get().session, tokenId, { name: value }) })
+        void window.hostApi.updateToken({ tokenId, name: value })
       },
 
       removeToken: async (tokenId) => {
@@ -378,7 +416,8 @@ export const useHostStore = create<HostState>()(
         fogTool: state.fogTool,
         fogBrushSize: state.fogBrushSize,
         showFogPreview: state.showFogPreview,
-        panels: state.panels
+        panels: state.panels,
+        extensions: state.extensions
       })
     }
   )

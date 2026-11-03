@@ -295,3 +295,23 @@ export function CloudIcon(props: IconProps) {
     </Icon>
   )
 }
+
+export function PuzzleIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+      <path d="M13.5 17.25h7.5M17.25 13.5v7.5" />
+    </Icon>
+  )
+}
+
+export function EditIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z" />
+      <path d="M13.5 6.5l3 3" />
+    </Icon>
+  )
+}

@@ -44,5 +44,7 @@ export interface BoardProps {
   onFogChange: (fog: FogOfWarData) => void
   /** Перетаскивание файлов на карту (GM: загрузка карты или токена в точку сброса) */
   onFilesDropped?: (files: File[], world: { x: number; y: number }) => void
+  /** Показывать имена токенов (расширение «Подписи токенов») */
+  showTokenLabels?: boolean
   disabled?: boolean
 }

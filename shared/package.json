@@ -9,6 +9,7 @@
     ".": "./types/index.ts",
     "./types": "./types/index.ts",
     "./utils": "./utils/index.ts",
+    "./plugins": "./plugins/index.ts",
     "./ui": "./ui/index.ts",
     "./ui/*": "./ui/*.tsx"
   },

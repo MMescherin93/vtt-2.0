@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import {
   ChatIcon,
   CursorIcon,
   DiceIcon,
+  EditIcon,
   EraserIcon,
   EyeIcon,
   EyeOffIcon,
@@ -40,8 +42,28 @@ export function HostToolbar() {
   const panels = useHostStore((state) => state.panels)
   const togglePanel = useHostStore((state) => state.togglePanel)
   const selectedTokenId = useHostStore((state) => state.selectedTokenId)
+  const extensions = useHostStore((state) => state.extensions)
+  const renameToken = useHostStore((state) => state.renameToken)
   const tokens = session?.tokens ?? []
   const selectedToken = tokens.find((token) => token.id === selectedTokenId) ?? null
+
+  const drawingEnabled = extensions['drawing'] ?? true
+  const fogEnabled = extensions['fog'] ?? true
+  const chatEnabled = extensions['chat'] ?? true
+  const diceEnabled = extensions['dice'] ?? true
+
+  const [renameDraft, setRenameDraft] = useState<string | null>(null)
+
+  // При смене выбранного токена редактор имени закрывается
+  useEffect(() => {
+    setRenameDraft(null)
+  }, [selectedTokenId])
+
+  const commitRename = (): void => {
+    if (!selectedToken || renameDraft === null) return
+    if (renameDraft.trim()) renameToken(selectedToken.id, renameDraft)
+    setRenameDraft(null)
+  }
 
   return (
     <div className="pointer-events-none fixed left-1/2 top-3 z-20 flex -translate-x-1/2 flex-col items-center">
@@ -58,24 +80,30 @@ export function HostToolbar() {
           active={tool === 'pan'}
           onClick={() => setTool('pan')}
         />
-        <ToolbarButton
-          label="Рисование (P)"
-          icon={<PencilIcon size={18} />}
-          active={tool === 'draw'}
-          onClick={() => setTool('draw')}
-        />
-        <ToolbarButton
-          label="Ластик (E)"
-          icon={<EraserIcon size={18} />}
-          active={tool === 'erase'}
-          onClick={() => setTool('erase')}
-        />
-        <ToolbarButton
-          label="Туман войны (F)"
-          icon={<FogIcon size={18} />}
-          active={tool === 'fog'}
-          onClick={() => setTool('fog')}
-        />
+        {drawingEnabled && (
+          <>
+            <ToolbarButton
+              label="Рисование (P)"
+              icon={<PencilIcon size={18} />}
+              active={tool === 'draw'}
+              onClick={() => setTool('draw')}
+            />
+            <ToolbarButton
+              label="Ластик (E)"
+              icon={<EraserIcon size={18} />}
+              active={tool === 'erase'}
+              onClick={() => setTool('erase')}
+            />
+          </>
+        )}
+        {fogEnabled && (
+          <ToolbarButton
+            label="Туман войны (F)"
+            icon={<FogIcon size={18} />}
+            active={tool === 'fog'}
+            onClick={() => setTool('fog')}
+          />
+        )}
 
         <span className="mx-1 h-6 w-px bg-white/10" />
 
@@ -92,18 +120,22 @@ export function HostToolbar() {
           active={panels.map}
           onClick={() => togglePanel('map')}
         />
-        <ToolbarButton
-          label="Чат"
-          icon={<ChatIcon size={18} />}
-          active={panels.chat}
-          onClick={() => togglePanel('chat')}
-        />
-        <ToolbarButton
-          label="Кубики"
-          icon={<DiceIcon size={18} />}
-          active={panels.dice}
-          onClick={() => togglePanel('dice')}
-        />
+        {chatEnabled && (
+          <ToolbarButton
+            label="Чат"
+            icon={<ChatIcon size={18} />}
+            active={panels.chat}
+            onClick={() => togglePanel('chat')}
+          />
+        )}
+        {diceEnabled && (
+          <ToolbarButton
+            label="Кубики"
+            icon={<DiceIcon size={18} />}
+            active={panels.dice}
+            onClick={() => togglePanel('dice')}
+          />
+        )}
         <ToolbarButton
           label="Участники"
           icon={<UsersIcon size={18} />}
@@ -119,7 +151,7 @@ export function HostToolbar() {
         />
       </div>
 
-      {(tool === 'draw' || tool === 'erase') && (
+      {drawingEnabled && (tool === 'draw' || tool === 'erase') && (
         <div className="pointer-events-auto mt-1.5 flex items-center gap-3 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-2 shadow-xl backdrop-blur-xl">
           <div className="flex items-center gap-1.5">
             {DRAW_COLORS.map((color) => (
@@ -152,7 +184,7 @@ export function HostToolbar() {
         </div>
       )}
 
-      {tool === 'fog' && (
+      {fogEnabled && tool === 'fog' && (
         <div className="pointer-events-auto mt-1.5 flex items-center gap-3 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-2 shadow-xl backdrop-blur-xl">
           <div className="flex items-center gap-1">
             {(
@@ -202,7 +234,31 @@ export function HostToolbar() {
 
       {selectedToken && (
         <div className="pointer-events-auto mt-1.5 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-1.5 text-xs text-gray-300 shadow-xl backdrop-blur-xl">
-          <span className="max-w-40 truncate font-medium text-gray-100">{selectedToken.name}</span>
+          {renameDraft === null ? (
+            <button
+              type="button"
+              onClick={() => setRenameDraft(selectedToken.name)}
+              title="Переименовать токен"
+              className="flex max-w-44 items-center gap-1 rounded-md px-1 py-1 font-medium text-gray-100 transition hover:bg-white/10"
+            >
+              <span className="truncate">{selectedToken.name}</span>
+              <EditIcon size={12} className="shrink-0 text-gray-500" />
+            </button>
+          ) : (
+            <input
+              value={renameDraft}
+              autoFocus
+              maxLength={80}
+              onChange={(event) => setRenameDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') commitRename()
+                if (event.key === 'Escape') setRenameDraft(null)
+              }}
+              onBlur={commitRename}
+              className="w-40 rounded-md border border-indigo-400/60 bg-black/50 px-1.5 py-0.5 text-xs text-gray-100 outline-none"
+              aria-label="Новое имя токена"
+            />
+          )}
           <button
             type="button"
             onClick={() =>

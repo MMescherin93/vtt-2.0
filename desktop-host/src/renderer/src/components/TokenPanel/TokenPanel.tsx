@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import type { Token } from '@vtt/shared'
 import {
   assetUrl,
+  EditIcon,
   FloatingPanel,
   EyeIcon,
   EyeOffIcon,
@@ -22,6 +23,7 @@ export function TokenPanel() {
   const selectedTokenId = useHostStore((state) => state.selectedTokenId)
   const setSelectedToken = useHostStore((state) => state.setSelectedToken)
   const updateToken = useHostStore((state) => state.updateToken)
+  const renameToken = useHostStore((state) => state.renameToken)
   const removeToken = useHostStore((state) => state.removeToken)
   const addQuickToken = useHostStore((state) => state.addQuickToken)
   const addTokenFromFile = useHostStore((state) => state.addTokenFromFile)
@@ -143,6 +145,7 @@ export function TokenPanel() {
                 assetsBaseUrl={assetsBaseUrl}
                 selected={token.id === selectedTokenId}
                 onSelect={() => setSelectedToken(token.id)}
+                onRename={(name) => renameToken(token.id, name)}
                 onToggleHidden={() =>
                   void updateToken({ tokenId: token.id, hidden: !token.hidden })
                 }
@@ -168,6 +171,7 @@ interface TokenRowProps {
   assetsBaseUrl: string
   selected: boolean
   onSelect: () => void
+  onRename: (name: string) => void
   onToggleHidden: () => void
   onToggleLocked: () => void
   onRemove: () => void
@@ -179,10 +183,24 @@ function TokenRow({
   assetsBaseUrl,
   selected,
   onSelect,
+  onRename,
   onToggleHidden,
   onToggleLocked,
   onRemove
 }: TokenRowProps) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(token.name)
+
+  const startEditing = (): void => {
+    setDraft(token.name)
+    setEditing(true)
+  }
+
+  const commit = (): void => {
+    onRename(draft)
+    setEditing(false)
+  }
+
   return (
     <li
       className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 transition ${
@@ -191,11 +209,7 @@ function TokenRow({
           : 'border-transparent hover:border-white/10 hover:bg-white/5'
       }`}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        className="flex min-w-0 flex-1 items-center gap-2 text-left"
-      >
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         {token.imageUrl ? (
           <img
             src={assetUrl(assetsBaseUrl, sessionId, token.imageUrl)}
@@ -207,15 +221,51 @@ function TokenRow({
             {token.name.slice(0, 1).toUpperCase()}
           </span>
         )}
-        <span className="min-w-0">
-          <span className="block truncate text-xs font-medium text-gray-200">{token.name}</span>
-          <span className="block text-[10px] text-gray-600">
-            {Math.round(token.width)}×{Math.round(token.height)}
-            {token.hidden ? ' · скрыт' : ''}
-          </span>
-        </span>
-      </button>
 
+        {editing ? (
+          <div className="min-w-0 flex-1">
+            <input
+              value={draft}
+              autoFocus
+              maxLength={80}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') commit()
+                if (event.key === 'Escape') setEditing(false)
+              }}
+              onBlur={commit}
+              className="w-full rounded-md border border-indigo-400/60 bg-black/50 px-1.5 py-0.5 text-xs text-gray-100 outline-none"
+              aria-label="Имя токена"
+            />
+            <span className="mt-0.5 block text-[10px] text-gray-600">
+              Enter — сохранить, Esc — отмена
+            </span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onSelect}
+            onDoubleClick={startEditing}
+            className="min-w-0 flex-1 text-left"
+            title="Двойной клик — переименовать"
+          >
+            <span className="block truncate text-xs font-medium text-gray-200">{token.name}</span>
+            <span className="block text-[10px] text-gray-600">
+              {Math.round(token.width)}×{Math.round(token.height)}
+              {token.hidden ? ' · скрыт' : ''}
+            </span>
+          </button>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={startEditing}
+        title="Переименовать токен"
+        className="flex h-6 w-6 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white"
+      >
+        <EditIcon size={14} />
+      </button>
       <button
         type="button"
         onClick={onToggleHidden}

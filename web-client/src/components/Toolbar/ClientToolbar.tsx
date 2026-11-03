@@ -19,6 +19,11 @@ export function ClientToolbar() {
   const setDrawStyle = useClientStore((state) => state.setDrawStyle)
   const panels = useClientStore((state) => state.panels)
   const togglePanel = useClientStore((state) => state.togglePanel)
+  const extensions = useClientStore((state) => state.extensions)
+
+  const drawingEnabled = extensions['drawing'] ?? true
+  const chatEnabled = extensions['chat'] ?? true
+  const diceEnabled = extensions['dice'] ?? true
 
   return (
     <div className="pointer-events-none fixed left-1/2 top-3 z-20 flex -translate-x-1/2 flex-col items-center">
@@ -35,36 +40,44 @@ export function ClientToolbar() {
           active={tool === 'pan'}
           onClick={() => setTool('pan')}
         />
-        <ToolbarButton
-          label="Рисование"
-          icon={<PencilIcon size={18} />}
-          active={tool === 'draw'}
-          onClick={() => setTool('draw')}
-        />
-        <ToolbarButton
-          label="Ластик"
-          icon={<EraserIcon size={18} />}
-          active={tool === 'erase'}
-          onClick={() => setTool('erase')}
-        />
+        {drawingEnabled && (
+          <>
+            <ToolbarButton
+              label="Рисование"
+              icon={<PencilIcon size={18} />}
+              active={tool === 'draw'}
+              onClick={() => setTool('draw')}
+            />
+            <ToolbarButton
+              label="Ластик"
+              icon={<EraserIcon size={18} />}
+              active={tool === 'erase'}
+              onClick={() => setTool('erase')}
+            />
+          </>
+        )}
 
         <span className="mx-1 h-6 w-px bg-white/10" />
 
-        <ToolbarButton
-          label="Чат"
-          icon={<ChatIcon size={18} />}
-          active={panels.chat}
-          onClick={() => togglePanel('chat')}
-        />
-        <ToolbarButton
-          label="Кубики"
-          icon={<DiceIcon size={18} />}
-          active={panels.dice}
-          onClick={() => togglePanel('dice')}
-        />
+        {chatEnabled && (
+          <ToolbarButton
+            label="Чат"
+            icon={<ChatIcon size={18} />}
+            active={panels.chat}
+            onClick={() => togglePanel('chat')}
+          />
+        )}
+        {diceEnabled && (
+          <ToolbarButton
+            label="Кубики"
+            icon={<DiceIcon size={18} />}
+            active={panels.dice}
+            onClick={() => togglePanel('dice')}
+          />
+        )}
       </div>
 
-      {(tool === 'draw' || tool === 'erase') && (
+      {drawingEnabled && (tool === 'draw' || tool === 'erase') && (
         <div className="pointer-events-auto mt-1.5 flex items-center gap-3 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-2 shadow-xl backdrop-blur-xl">
           <div className="flex items-center gap-1.5">
             {DRAW_COLORS.map((color) => (

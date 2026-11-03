@@ -12,6 +12,11 @@ import type {
   TokenPatch
 } from '@vtt/shared'
 import { newId } from '@vtt/shared/utils'
+import {
+  BUILT_IN_EXTENSIONS,
+  defaultExtensionValues,
+  type ExtensionValues
+} from '@vtt/shared/plugins'
 import type { DrawStyle, Tool } from '@vtt/shared/ui'
 import { SESSION_ID, socket } from '../socket'
 
@@ -33,7 +38,9 @@ interface ClientState {
   tool: Tool
   drawStyle: DrawStyle
   selectedTokenId: string | null
-  panels: { chat: boolean; dice: boolean }
+  panels: { chat: boolean; dice: boolean; extensions: boolean }
+  /** Включённость расширений (см. shared/plugins) */
+  extensions: ExtensionValues
 
   setStatus: (status: ClientStatus) => void
   setJoined: (joined: boolean, selfId?: string) => void
@@ -65,7 +72,8 @@ interface ClientState {
   setTool: (tool: Tool) => void
   setDrawStyle: (style: Partial<DrawStyle>) => void
   setSelectedToken: (tokenId: string | null) => void
-  togglePanel: (panel: 'chat' | 'dice') => void
+  togglePanel: (panel: 'chat' | 'dice' | 'extensions') => void
+  toggleExtension: (extensionId: string, enabled: boolean) => void
 }
 
 function withTokenPatch(session: Session | null, patch: TokenPatch): Session | null {
@@ -87,7 +95,7 @@ function withTokenPatch(session: Session | null, patch: TokenPatch): Session | n
   }
 }
 
-type PersistedClientUi = Pick<ClientState, 'tool' | 'drawStyle' | 'panels'>
+type PersistedClientUi = Pick<ClientState, 'tool' | 'drawStyle' | 'panels' | 'extensions'>
 
 export const useClientStore = create<ClientState>()(
   persist<ClientState, [], [], PersistedClientUi>(
@@ -105,7 +113,8 @@ export const useClientStore = create<ClientState>()(
       tool: 'select',
       drawStyle: { color: '#38bdf8', size: 6 },
       selectedTokenId: null,
-      panels: { chat: true, dice: false },
+      panels: { chat: true, dice: false, extensions: false },
+      extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
 
       setStatus: (status) => set({ status }),
       setJoined: (joined, selfId) =>
@@ -217,14 +226,31 @@ export const useClientStore = create<ClientState>()(
       setTool: (tool) => set({ tool }),
       setDrawStyle: (style) => set({ drawStyle: { ...get().drawStyle, ...style } }),
       setSelectedToken: (selectedTokenId) => set({ selectedTokenId }),
-      togglePanel: (panel) => set({ panels: { ...get().panels, [panel]: !get().panels[panel] } })
+      togglePanel: (panel) => set({ panels: { ...get().panels, [panel]: !get().panels[panel] } }),
+
+      toggleExtension: (extensionId, enabled) => {
+        const extensions = { ...get().extensions, [extensionId]: enabled }
+        const patch: Partial<ClientState> = { extensions }
+        const tool = get().tool
+        if (extensionId === 'drawing' && !enabled && (tool === 'draw' || tool === 'erase')) {
+          patch.tool = 'select'
+        }
+        if (extensionId === 'chat' && !enabled) {
+          patch.panels = { ...get().panels, chat: false }
+        }
+        if (extensionId === 'dice' && !enabled) {
+          patch.panels = { ...get().panels, dice: false }
+        }
+        set(patch)
+      }
     }),
     {
       name: 'vtt.player.ui',
       partialize: (state) => ({
         tool: state.tool,
         drawStyle: state.drawStyle,
-        panels: state.panels
+        panels: state.panels,
+        extensions: state.extensions
       })
     }
   )

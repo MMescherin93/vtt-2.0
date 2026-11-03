@@ -90,6 +90,7 @@ export function Board({
   onAddDrawing,
   onFogChange,
   onFilesDropped,
+  showTokenLabels = true,
   disabled = false
 }: BoardProps) {
   const field = useMemo<Size>(
@@ -406,6 +407,7 @@ export function Board({
             height={field.height}
             interactive={tool === 'select' && !disabled}
             selectedTokenId={selectedTokenId}
+            showLabels={showTokenLabels}
             onSelect={onSelectToken}
             onMove={onMoveToken}
             onTransform={onTransformToken}

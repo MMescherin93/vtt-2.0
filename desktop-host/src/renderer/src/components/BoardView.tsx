@@ -1,5 +1,13 @@
 import { useEffect } from 'react'
-import { Board, ChatPanel, DicePanel, ChevronIcon } from '@vtt/shared/ui'
+import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
+import {
+  Board,
+  ChatPanel,
+  DicePanel,
+  ChevronIcon,
+  ExtensionsPanel,
+  PuzzleIcon
+} from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
 import { useHostStore } from '../store/useHostStore'
 import { HostToolbar } from './Toolbar/HostToolbar'
@@ -35,6 +43,12 @@ export function BoardView() {
   const setNotice = useHostStore((state) => state.setNotice)
   const error = useHostStore((state) => state.error)
   const setError = useHostStore((state) => state.setError)
+  const extensions = useHostStore((state) => state.extensions)
+  const toggleExtension = useHostStore((state) => state.toggleExtension)
+
+  const chatEnabled = extensions['chat'] ?? true
+  const diceEnabled = extensions['dice'] ?? true
+  const labelsEnabled = extensions['token-labels'] ?? true
 
   const assetsBaseUrl = useAssetsBaseUrl()
 
@@ -66,6 +80,7 @@ export function BoardView() {
         onTransformToken={transformToken}
         onAddDrawing={addDrawing}
         onFogChange={changeFog}
+        showTokenLabels={labelsEnabled}
         onFilesDropped={(files, world) => {
           const image = files.find((file) => file.type.startsWith('image/'))
           if (!image) {
@@ -99,7 +114,7 @@ export function BoardView() {
 
       <HostToolbar />
 
-      {panels.chat && (
+      {chatEnabled && panels.chat && (
         <ChatPanel
           messages={session.chatLog}
           currentUserId="gm"
@@ -110,7 +125,7 @@ export function BoardView() {
           defaultPosition={{ x: 24, y: 320 }}
         />
       )}
-      {panels.dice && (
+      {diceEnabled && panels.dice && (
         <DicePanel
           history={session.rollLog}
           onRoll={rollDice}
@@ -123,6 +138,32 @@ export function BoardView() {
       <MapPanel />
       <InvitePanel />
       <PlayersPanel />
+
+      {panels.extensions && (
+        <ExtensionsPanel
+          definitions={BUILT_IN_EXTENSIONS}
+          values={extensions}
+          role="gm"
+          onToggle={toggleExtension}
+          onClose={() => togglePanel('extensions')}
+          storageKey="vtt.gm.panel.extensions"
+          defaultPosition={{ x: 380, y: 380 }}
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={() => togglePanel('extensions')}
+        title="Расширения"
+        aria-label="Расширения"
+        className={`fixed bottom-4 right-16 z-20 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
+          panels.extensions
+            ? 'border-indigo-400/60 bg-indigo-500/30 text-indigo-100'
+            : 'border-white/10 bg-[#14161f]/85 text-gray-300 hover:bg-white/10 hover:text-white'
+        }`}
+      >
+        <PuzzleIcon size={18} />
+      </button>
 
       {notice && (
         <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-100 shadow-xl backdrop-blur">

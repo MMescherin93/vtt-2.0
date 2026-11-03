@@ -34,12 +34,31 @@
 | `server-command`    | IPC-команда главного процесса со своей валидацией                     | `desktop-host/src/main/index.ts`  |
 | `socket-event`      | обработчик события сокета (валидация + рассылка)                      | `desktop-host/src/main/server.ts` |
 | `session-migration` | миграция схемы JSON при загрузке сессии                               | `storage.normalizeSession`        |
+| `extension`         | модуль, который пользователь включает в панели «Расширения»           | `shared/plugins/builtins.ts`      |
+
+### Расширения (пользовательские модули)
+
+Манифест: `ExtensionDefinition { id, title, description, scope, defaultEnabled }`
+в `shared/plugins/types.ts`, реестр — `shared/plugins/builtins.ts`.
+Панель `ExtensionsPanel` показывает модули по роли и хранит включённость в
+`localStorage` клиента. Ядро спрашивает `isExtensionEnabled(...)` и не содержит
+`if (extension === ...)`.
+
+Правило: новая пользовательская фича = новый модуль + строка в реестре + проверки
+в точках интеграции (тулбар, панель, слой). Выключение расширения не должно
+ломать ядро.
 
 ### Контракт плагина (целевой, вынести в `shared/plugins/types.ts` при первом рефакторинге)
 
 ```ts
 export type PluginSlot =
-  'tool' | 'panel' | 'board-layer' | 'server-command' | 'socket-event' | 'session-migration'
+  | 'tool'
+  | 'panel'
+  | 'board-layer'
+  | 'server-command'
+  | 'socket-event'
+  | 'session-migration'
+  | 'extension'
 
 export interface PluginContext {
   role: 'gm' | 'player'
@@ -58,6 +77,9 @@ export interface PluginDefinition {
 }
 ```
 
+Контракт расширений уже реализован в `shared/plugins/types.ts`
+(`ExtensionDefinition`, `ExtensionValues`, `isExtensionEnabled`).
+
 ### Встроенные плагины v1.0
 
 - `tool`: выбор, перемещение, рисование, ластик, туман войны (только GM)
@@ -67,6 +89,8 @@ export interface PluginDefinition {
 - `socket-event`: `client:join`, `session:request`, `token:move`, `token:update`,
   `chat:send`, `dice:roll`, `drawing:add`, `fog:update`
 - `session-migration`: нормализация полей сессии и версии схемы
+- `extension`: кубики, чат, рисование, туман войны, подписи токенов
+  (см. `shared/plugins/builtins.ts`)
 
 ### Как добавить фичу (обязательный порядок)
 
