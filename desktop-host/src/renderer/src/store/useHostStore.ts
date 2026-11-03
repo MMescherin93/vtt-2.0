@@ -16,6 +16,7 @@ import type {
   TokenPatchInput
 } from '../../../shared/ipc'
 import type { DrawStyle, FogTool, Tool } from '@vtt/shared/ui'
+import { worldCenter } from '@vtt/shared/utils'
 import {
   BUILT_IN_EXTENSIONS,
   defaultExtensionValues,
@@ -78,6 +79,7 @@ interface HostState {
 
   updateSessionPatch: (patch: SessionPatch) => Promise<void>
   uploadMap: (file: File) => Promise<void>
+  removeMap: (mapId: string) => Promise<void>
   clearMap: () => Promise<void>
 
   moveToken: (tokenId: string, x: number, y: number) => void
@@ -312,16 +314,20 @@ export const useHostStore = create<HostState>()(
           const asset = await window.hostApi.addAsset({ fileName: file.name, data, kind: 'map' })
           if (!asset) return
           await window.hostApi.updateSession({
-            map: { imageUrl: asset.relativePath, width: asset.width, height: asset.height }
+            addMap: { imageUrl: asset.relativePath, width: asset.width, height: asset.height }
           })
-          set({ notice: `Карта «${file.name}» загружена` })
+          set({ notice: `Карта «${file.name}» добавлена на полотно` })
         } catch (error) {
           set({ error: `Не удалось загрузить карту: ${String(error)}` })
         }
       },
 
+      removeMap: async (mapId) => {
+        await window.hostApi.updateSession({ removeMapId: mapId })
+      },
+
       clearMap: async () => {
-        await window.hostApi.updateSession({ clearMap: true })
+        await window.hostApi.updateSession({ clearMaps: true })
       },
 
       moveToken: (tokenId, x, y) => {
@@ -371,8 +377,9 @@ export const useHostStore = create<HostState>()(
       addQuickToken: async (name, x, y) => {
         const session = get().session
         if (!session) return null
-        const centerX = x ?? (session.map.width ? session.map.width / 2 : 960)
-        const centerY = y ?? (session.map.height ? session.map.height / 2 : 540)
+        const center = worldCenter(session.maps)
+        const centerX = x ?? center.x
+        const centerY = y ?? center.y
         try {
           return await window.hostApi.addToken({
             name: name || 'Токен',

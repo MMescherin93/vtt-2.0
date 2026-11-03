@@ -66,6 +66,16 @@ export class SessionManager {
       console.error(`[session] не удалось загрузить сессию ${id}`)
       return null
     }
+
+    // Сразу фиксируем миграцию схемы на диске (например, map -> maps),
+    // не дожидаясь первого изменения сессии.
+    try {
+      await this.storage.write(session)
+      this.lastSaveAt = Date.now()
+    } catch (error) {
+      console.error('[session] не удалось сохранить миграцию сессии:', error)
+    }
+
     this.activeSession = session
     this.onChange?.(session)
     return session

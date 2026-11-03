@@ -2,8 +2,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { extname, join, resolve, sep } from 'node:path'
 import type { Session, SessionSummary } from '@vtt/shared'
-import type { Drawing, FogOfWarData, MapSettings, Token } from '@vtt/shared'
-import { createSessionState, sanitizeFog } from '@vtt/shared/utils'
+import type { Drawing, FogOfWarData, MapAsset, MapSettings, Token } from '@vtt/shared'
+import { createSessionState, newId, sanitizeFog } from '@vtt/shared/utils'
 
 const SESSION_FILE = 'session.json'
 const ASSETS_DIR = 'assets'
@@ -62,7 +62,7 @@ export class SessionStorage {
           createdAt: session.createdAt,
           updatedAt: session.updatedAt,
           tokenCount: session.tokens.length,
-          hasMap: session.map.width > 0 && session.map.height > 0
+          hasMap: session.maps.length > 0
         })
       } catch (error) {
         console.error(`[storage] пропускаю повреждённую сессию "${entry}":`, error)
@@ -200,6 +200,31 @@ function normalizeDrawing(raw: unknown): Drawing | null {
   }
 }
 
+function normalizeMap(raw: unknown): MapAsset | null {
+  if (!raw || typeof raw !== 'object') return null
+  const map = raw as Partial<MapAsset>
+  const imageUrl = typeof map.imageUrl === 'string' ? map.imageUrl : ''
+  const width = isFiniteNumber(map.width) && map.width > 0 ? Math.round(map.width) : 0
+  const height = isFiniteNumber(map.height) && map.height > 0 ? Math.round(map.height) : 0
+  if (!imageUrl || width <= 0 || height <= 0) return null
+  return {
+    id: typeof map.id === 'string' && map.id ? map.id : newId('map'),
+    imageUrl,
+    width,
+    height
+  }
+}
+
+/** Карты сессии; v1-сессия с одной картой мигрирует в массив */
+function normalizeMaps(source: Partial<Session>): MapAsset[] {
+  if (Array.isArray(source.maps)) {
+    return source.maps.map(normalizeMap).filter((map): map is MapAsset => map !== null)
+  }
+  const legacy = (source as { map?: unknown }).map
+  const migrated = normalizeMap(legacy)
+  return migrated ? [migrated] : []
+}
+
 /**
  * Приводит JSON с диска к актуальной схеме (старые/частично битые файлы
  * не должны ломать приложение).
@@ -213,7 +238,7 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
     isFiniteNumber(source.createdAt) ? source.createdAt : Date.now()
   )
 
-  const map = source.map ?? base.map
+  const maps = normalizeMaps(source)
   const settings: MapSettings = {
     gridType:
       source.settings?.gridType === 'hex' || source.settings?.gridType === 'none'
@@ -230,15 +255,11 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
 
   return {
     ...base,
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: base.id,
     createdAt: base.createdAt,
     updatedAt: isFiniteNumber(source.updatedAt) ? source.updatedAt : base.updatedAt,
-    map: {
-      imageUrl: typeof map.imageUrl === 'string' ? map.imageUrl : '',
-      width: isFiniteNumber(map.width) && map.width > 0 ? map.width : 0,
-      height: isFiniteNumber(map.height) && map.height > 0 ? map.height : 0
-    },
+    maps,
     settings,
     tokens: Array.isArray(source.tokens)
       ? source.tokens.map(normalizeToken).filter((token): token is Token => token !== null)

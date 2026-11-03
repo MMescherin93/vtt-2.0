@@ -13,6 +13,7 @@ import {
   UploadIcon
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../../lib/host'
+import { worldCenter } from '@vtt/shared/utils'
 import { useHostStore } from '../../store/useHostStore'
 
 /** Панель токенов (ТЗ, п.3): загрузка PNG, список, GM-only скрытие/закрепление */
@@ -36,8 +37,9 @@ export function TokenPanel() {
   if (!session || !panels.tokens) return null
 
   const uploadFiles = (files: File[]): void => {
-    const centerX = session.map.width ? session.map.width / 2 : 960
-    const centerY = session.map.height ? session.map.height / 2 : 540
+    const center = worldCenter(session.maps)
+    const centerX = center.x
+    const centerY = center.y
     files
       .filter((file) => file.type.startsWith('image/'))
       .forEach((file, index) => {

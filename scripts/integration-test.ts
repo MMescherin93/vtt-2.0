@@ -2,11 +2,11 @@
 import { rm } from 'node:fs/promises'
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents, Session, Token } from '@vtt/shared'
-import { newId } from '@vtt/shared/utils'
+import { layoutMaps, newId } from '@vtt/shared/utils'
 import type { HostServerEvent } from '../desktop-host/src/shared/ipc'
 import { SessionManager } from '../desktop-host/src/main/session'
 import { startVttServer } from '../desktop-host/src/main/server'
-import { SessionStorage } from '../desktop-host/src/main/storage'
+import { normalizeSession, SessionStorage } from '../desktop-host/src/main/storage'
 
 const PORT = Number(process.env.VTT_TEST_PORT ?? 3999)
 const DATA_DIR = '.tmp/test-data'
@@ -64,9 +64,33 @@ async function main(): Promise<void> {
 
   const session = await manager.create('Проклятые земли', 'Тестовая сессия')
   check(session.id.length > 0, 'сессия создана')
-  check(session.schemaVersion === 1, 'у сессии выставлена версия схемы')
+  check(session.schemaVersion === 2, 'у сессии выставлена версия схемы 2')
+  check(session.maps.length === 0, 'новая сессия без карт')
   check(session.settings.gridType === 'square', 'настройки сетки по умолчанию')
   check((await manager.list()).length === 1, 'список сессий содержит созданную')
+
+  const legacy = normalizeSession(
+    {
+      schemaVersion: 1,
+      id: 'legacy',
+      name: 'Старая сессия',
+      map: { imageUrl: 'assets/old.png', width: 640, height: 480 }
+    },
+    'legacy'
+  )
+  check(
+    legacy.schemaVersion === 2 && legacy.maps.length === 1 && legacy.maps[0]?.width === 640,
+    'миграция v1: одна карта превращается в maps'
+  )
+
+  const layout = layoutMaps([
+    { id: 'a', imageUrl: 'a.png', width: 100, height: 50 },
+    { id: 'b', imageUrl: 'b.png', width: 200, height: 80 }
+  ])
+  check(
+    layout.items[1]?.x === 220 && layout.world.width === 420 && layout.world.height === 80,
+    'карты раскладываются с зазором 120 px'
+  )
 
   const client: Client = io(`http://localhost:${PORT}`, { transports: ['websocket'] })
   await new Promise<void>((resolve, reject) => {
@@ -176,7 +200,7 @@ async function main(): Promise<void> {
   const asset = await manager.addAsset('map.png', new Uint8Array(PNG_1X1), 'map')
   check(asset !== null && asset.width === 1 && asset.height === 1, 'размер картинки определён')
   manager.update((current) => {
-    current.map = { imageUrl: asset!.relativePath, width: 1, height: 1 }
+    current.maps = [{ id: newId('map'), imageUrl: asset!.relativePath, width: 1, height: 1 }]
   })
   const assetResponse = await fetch(
     `http://localhost:${PORT}/session-assets/${session.id}/${asset!.relativePath}`

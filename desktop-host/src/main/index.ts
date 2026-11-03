@@ -19,7 +19,8 @@ import {
   newId,
   rollDice,
   sanitizeFog,
-  trimLog
+  trimLog,
+  worldSize
 } from '@vtt/shared/utils'
 import {
   IPC,
@@ -201,14 +202,18 @@ function registerIpc(): void {
       if (patch.description !== undefined) {
         current.description = String(patch.description).slice(0, 4000)
       }
-      if (patch.clearMap) {
-        current.map = { imageUrl: '', width: 0, height: 0 }
+      if (patch.clearMaps) {
+        current.maps = []
       }
-      if (patch.map) {
-        current.map = {
-          imageUrl: String(patch.map.imageUrl ?? ''),
-          width: Math.max(0, Math.round(Number(patch.map.width) || 0)),
-          height: Math.max(0, Math.round(Number(patch.map.height) || 0))
+      if (patch.removeMapId) {
+        current.maps = current.maps.filter((map) => map.id !== patch.removeMapId)
+      }
+      if (patch.addMap) {
+        const width = Math.max(0, Math.round(Number(patch.addMap.width) || 0))
+        const height = Math.max(0, Math.round(Number(patch.addMap.height) || 0))
+        const imageUrl = String(patch.addMap.imageUrl ?? '')
+        if (imageUrl && width > 0 && height > 0) {
+          current.maps.push({ id: newId('map'), imageUrl, width, height })
         }
       }
       if (patch.settings) {
@@ -250,6 +255,7 @@ function registerIpc(): void {
     }
 
     const size = Math.min(4000, Math.max(20, Math.round(Number(input.size) || 70)))
+    const world = worldSize(session.maps)
     const token: Token = {
       id: newId('tok'),
       name:
@@ -257,8 +263,8 @@ function registerIpc(): void {
           .trim()
           .slice(0, 80) || 'Токен',
       imageUrl: imagePath,
-      x: Math.min(session.map.width || 10000, Math.max(0, Number(input.x) || 0)),
-      y: Math.min(session.map.height || 10000, Math.max(0, Number(input.y) || 0)),
+      x: Math.min(world.width || 10000, Math.max(0, Number(input.x) || 0)),
+      y: Math.min(world.height || 10000, Math.max(0, Number(input.y) || 0)),
       width: size,
       height: size,
       rotation: 0,

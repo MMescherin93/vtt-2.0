@@ -11,6 +11,7 @@ export function MapPanel() {
   const togglePanel = useHostStore((state) => state.togglePanel)
   const updateSessionPatch = useHostStore((state) => state.updateSessionPatch)
   const uploadMap = useHostStore((state) => state.uploadMap)
+  const removeMap = useHostStore((state) => state.removeMap)
   const clearMap = useHostStore((state) => state.clearMap)
   const changeFog = useHostStore((state) => state.changeFog)
   const fogBrushSize = useHostStore((state) => state.fogBrushSize)
@@ -40,20 +41,39 @@ export function MapPanel() {
       <div className="space-y-4 p-3">
         <section>
           <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-            <ImageIcon size={13} /> Карта
+            <ImageIcon size={13} /> Карты · {session.maps.length}
           </h3>
 
-          {session.map.width > 0 ? (
-            <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2 text-xs text-gray-400">
-              <div className="truncate text-gray-200">{session.map.imageUrl.split('/').pop()}</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">
-                {session.map.width} × {session.map.height} px
-              </div>
-            </div>
-          ) : (
+          {session.maps.length === 0 ? (
             <p className="rounded-lg border border-dashed border-white/10 px-2.5 py-2 text-[11px] text-gray-500">
-              Карта не загружена — сетка и токены работают на виртуальном столе 1920×1080
+              Карт нет — сетка и токены работают на виртуальном столе 1920×1080
             </p>
+          ) : (
+            <ul className="space-y-1">
+              {session.maps.map((map) => (
+                <li
+                  key={map.id}
+                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs text-gray-200">
+                      {map.imageUrl.split('/').pop()}
+                    </div>
+                    <div className="text-[10px] text-gray-500">
+                      {map.width} × {map.height} px
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void removeMap(map.id)}
+                    title="Удалить карту"
+                    className="flex h-6 w-6 items-center justify-center rounded text-gray-500 transition hover:bg-red-500/15 hover:text-red-300"
+                  >
+                    <TrashIcon size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
 
           <div className="mt-2 flex gap-2">
@@ -63,19 +83,23 @@ export function MapPanel() {
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-2 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-500"
             >
               <UploadIcon size={14} />
-              {session.map.width > 0 ? 'Заменить карту' : 'Загрузить карту'}
+              Загрузить карту
             </button>
-            {session.map.width > 0 && (
+            {session.maps.length > 0 && (
               <button
                 type="button"
                 onClick={() => void clearMap()}
-                title="Убрать карту"
+                title="Убрать все карты"
                 className="rounded-lg border border-white/10 px-2 text-gray-400 transition hover:bg-red-500/15 hover:text-red-300"
               >
                 <TrashIcon size={14} />
               </button>
             )}
           </div>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-gray-600">
+            Карты лежат слева направо с зазором 120 px. Переключение — перетаскивание полотна;
+            токены можно переносить между картами.
+          </p>
           <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFile} />
         </section>
 

@@ -1,43 +1,94 @@
 import { Image as KonvaImage, Layer, Rect, Text } from 'react-konva'
+import type { MapPlacement } from '../../utils/maps'
+import { assetUrl } from '../assets'
 import { useImage } from '../useImage'
 
 export interface MapLayerProps {
-  imageUrl: string
+  sessionId: string
+  assetsBaseUrl: string
+  /** Карты, разложенные по общему полотну (слева направо через зазор) */
+  placements: MapPlacement[]
   width: number
   height: number
-  /** Загружена ли карта в сессии (иначе рисуем заглушку) */
-  hasMap: boolean
+  /** Есть ли хотя бы одна карта (иначе рисуем заглушку) */
+  hasMaps: boolean
   /** Есть ли право загрузить карту (GM) — влияет на текст подсказки */
   canUpload: boolean
 }
 
-/** Слой изображения карты (ТЗ, п.2) */
-export function MapLayer({ imageUrl, width, height, hasMap, canUpload }: MapLayerProps) {
-  const { image } = useImage(imageUrl)
+function MapImage({
+  placement,
+  sessionId,
+  assetsBaseUrl
+}: {
+  placement: MapPlacement
+  sessionId: string
+  assetsBaseUrl: string
+}) {
+  const { map, x, y } = placement
+  const url = assetUrl(assetsBaseUrl, sessionId, map.imageUrl)
+  const { image, error } = useImage(url)
 
   return (
-    <Layer listening={false}>
-      <Rect x={0} y={0} width={width} height={height} fill="#0b0d12" />
-      {image && <KonvaImage image={image} x={0} y={0} width={width} height={height} />}
-      {hasMap && !image && (
+    <>
+      <Rect x={x} y={y} width={map.width} height={map.height} fill="#10131b" />
+      {image && <KonvaImage image={image} x={x} y={y} width={map.width} height={map.height} />}
+      {!image && (
         <Text
-          x={0}
-          y={height / 2 - 12}
-          width={width}
+          x={x}
+          y={y + map.height / 2 - 10}
+          width={map.width}
           align="center"
-          text="Загрузка карты…"
-          fontSize={18}
+          text={error ? 'Не удалось загрузить карту' : 'Загрузка карты…'}
+          fontSize={16}
           fill="#6b7280"
         />
       )}
-      {!hasMap && (
+      {/* Тонкая рамка, чтобы карты читались на тёмном полотне */}
+      <Rect
+        x={x}
+        y={y}
+        width={map.width}
+        height={map.height}
+        stroke="rgba(255, 255, 255, 0.08)"
+        strokeWidth={2}
+        listening={false}
+      />
+    </>
+  )
+}
+
+/** Слой карт: все карты сессии на общем тёмном полотне с зазорами */
+export function MapLayer({
+  sessionId,
+  assetsBaseUrl,
+  placements,
+  width,
+  height,
+  hasMaps,
+  canUpload
+}: MapLayerProps) {
+  return (
+    <Layer listening={false}>
+      <Rect x={0} y={0} width={width} height={height} fill="#0b0d12" />
+
+      {placements.map((placement) => (
+        <MapImage
+          key={placement.map.id}
+          placement={placement}
+          sessionId={sessionId}
+          assetsBaseUrl={assetsBaseUrl}
+        />
+      ))}
+
+      {!hasMaps && (
         <>
           <Text
             x={0}
             y={height / 2 - 56}
             width={width}
             align="center"
-            text="Карта не загружена"
+            text="Карты не загружены"
             fontSize={28}
             fontStyle="bold"
             fill="#374151"

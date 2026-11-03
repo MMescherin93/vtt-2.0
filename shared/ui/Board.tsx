@@ -21,7 +21,7 @@ import {
   type Size
 } from '../utils/camera'
 import { appendFogOp } from '../utils/fog'
-import { assetUrl } from './assets'
+import { layoutMaps } from '../utils/maps'
 import { FitIcon, ZoomInIcon, ZoomOutIcon } from './icons'
 import { useElementSize } from './useElementSize'
 import { DrawingsLayer } from './board/DrawingsLayer'
@@ -93,14 +93,14 @@ export function Board({
   showTokenLabels = true,
   disabled = false
 }: BoardProps) {
-  const field = useMemo<Size>(
-    () =>
-      session.map.width > 0 && session.map.height > 0
-        ? { width: session.map.width, height: session.map.height }
-        : EMPTY_FIELD,
-    [session.map.width, session.map.height]
-  )
-  const hasMap = session.map.width > 0 && session.map.height > 0
+  const layout = useMemo(() => layoutMaps(session.maps), [session.maps])
+  const hasMap = session.maps.length > 0
+  const field = useMemo<Size>(() => {
+    if (layout.world.width > 0 && layout.world.height > 0) {
+      return { width: layout.world.width, height: layout.world.height }
+    }
+    return EMPTY_FIELD
+  }, [layout])
 
   const { ref: containerRef, size: viewport } = useElementSize<HTMLDivElement>()
   const storageKey = `${cameraKey}:${field.width}x${field.height}`
@@ -334,8 +334,6 @@ export function Board({
         : 'cursor-grab'
       : 'cursor-default'
 
-  const mapImageUrl = hasMap ? assetUrl(assetsBaseUrl, session.id, session.map.imageUrl) : ''
-
   const handleDrop = (event: ReactDragEvent<HTMLDivElement>): void => {
     event.preventDefault()
     setDragOver(false)
@@ -382,10 +380,12 @@ export function Board({
           onMouseLeave={handleMouseUp}
         >
           <MapLayer
-            imageUrl={mapImageUrl}
+            sessionId={session.id}
+            assetsBaseUrl={assetsBaseUrl}
+            placements={layout.items}
             width={field.width}
             height={field.height}
-            hasMap={hasMap}
+            hasMaps={hasMap}
             canUpload={isGm}
           />
 

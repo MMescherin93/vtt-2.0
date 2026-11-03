@@ -60,7 +60,7 @@ export function BoardView() {
 
   if (!session) return null
 
-  const hasMap = session.map.width > 0 && session.map.height > 0
+  const hasMap = session.maps.length > 0
 
   return (
     <div className="relative h-full w-full overflow-hidden">

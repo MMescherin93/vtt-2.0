@@ -9,13 +9,13 @@ export function createSessionState(
   now = Date.now()
 ): Session {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id,
     name,
     description,
     createdAt: now,
     updatedAt: now,
-    map: { imageUrl: '', width: 0, height: 0 },
+    maps: [],
     tokens: [],
     fogOfWar: { covered: true, ops: [] },
     drawings: [],

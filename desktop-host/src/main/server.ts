@@ -27,7 +27,8 @@ import {
   newId,
   rollDice,
   sanitizeFog,
-  trimLog
+  trimLog,
+  worldSize
 } from '@vtt/shared/utils'
 import type { HostServerEvent, ServerStatus } from '../shared/ipc'
 import { getLanIp } from './net'
@@ -124,8 +125,9 @@ export function applyTokenPatch(session: Session, patch: TokenPatch): TokenPatch
   const token = session.tokens.find((item) => item.id === patch.tokenId)
   if (!token) return null
 
-  const maxX = session.map.width > 0 ? session.map.width : Number.POSITIVE_INFINITY
-  const maxY = session.map.height > 0 ? session.map.height : Number.POSITIVE_INFINITY
+  const world = worldSize(session.maps)
+  const maxX = world.width > 0 ? world.width : Number.POSITIVE_INFINITY
+  const maxY = world.height > 0 ? world.height : Number.POSITIVE_INFINITY
   const result: TokenPatch = { tokenId: token.id }
 
   if (isFiniteNumber(patch.x)) {

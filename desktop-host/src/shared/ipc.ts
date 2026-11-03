@@ -89,9 +89,12 @@ export interface SessionPatch {
   name?: string
   description?: string
   settings?: Partial<MapSettings>
-  map?: MapData
-  /** Сбросить карту */
-  clearMap?: boolean
+  /** Добавить карту в конец полотна */
+  addMap?: MapData
+  /** Удалить карту по id */
+  removeMapId?: string
+  /** Удалить все карты */
+  clearMaps?: boolean
 }
 
 export interface AddAssetInput {

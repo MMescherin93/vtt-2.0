@@ -16,6 +16,11 @@ export interface MapData {
   height: number
 }
 
+/** Загруженная карта сессии (несколько карт лежат рядом на общем полотне) */
+export interface MapAsset extends MapData {
+  id: string
+}
+
 /**
  * Операция тумана войны.
  * reveal — убрать туман («окно»), conceal — закрасить туманом.

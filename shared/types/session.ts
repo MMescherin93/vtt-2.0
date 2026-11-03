@@ -1,4 +1,4 @@
-import type { Drawing, FogOfWarData, MapData, MapSettings } from './map'
+import type { Drawing, FogOfWarData, MapAsset, MapSettings } from './map'
 import type { Token } from './token'
 
 /** Роль участника: GM — всегда хост десктопного приложения (уточнение 7) */
@@ -37,8 +37,11 @@ export interface PlayerInfo {
 
 /** Состояние сессии (сохраняется в JSON-файл, формат задан ТЗ) */
 export interface Session {
-  /** Версия схемы JSON — для миграций при загрузке старых файлов */
-  schemaVersion: 1
+  /**
+   * Версия схемы JSON — для миграций при загрузке старых файлов.
+   * v2: несколько карт (maps) на общем полотне; туман и рисунки — на весь мир.
+   */
+  schemaVersion: 2
   id: string
   name: string
   /** Описание сессии (ТЗ: «Создание новой сессии (имя, описание)») */
@@ -46,7 +49,8 @@ export interface Session {
   createdAt: number
   /** Время последнего автосохранения */
   updatedAt: number
-  map: MapData
+  /** Карты сессии — лежат слева направо через зазор MAP_GAP */
+  maps: MapAsset[]
   tokens: Token[]
   fogOfWar: FogOfWarData
   drawings: Drawing[]

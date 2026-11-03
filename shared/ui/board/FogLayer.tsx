@@ -1,8 +1,6 @@
-import { useEffect, useRef } from 'react'
-import type Konva from 'konva'
-import { Image as KonvaImage, Layer } from 'react-konva'
+import { Layer, Line, Rect } from 'react-konva'
 import type { FogOfWarData } from '../../types/map'
-import { fogHasContent, renderFog } from './fogRender'
+import { FOG_COLOR, fogHasContent } from './fogRender'
 
 export interface FogLayerProps {
   fog: FogOfWarData
@@ -13,41 +11,57 @@ export interface FogLayerProps {
   visible: boolean
 }
 
-/** Слой тумана войны (ТЗ, п.4) */
+/**
+ * Слой тумана войны (ТЗ, п.4).
+ *
+ * Рисуется векторно, без offscreen-канвы: так мир из нескольких карт
+ * (десятки тысяч пикселей в ширину) не съедает память. `destination-out`
+ * стирает туман только внутри этого слоя, не трогая карту и токены.
+ */
 export function FogLayer({ fog, width, height, opacity, visible }: FogLayerProps) {
-  const layerRef = useRef<Konva.Layer>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-
-  if (!canvasRef.current && typeof document !== 'undefined') {
-    canvasRef.current = document.createElement('canvas')
-  }
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || width <= 0 || height <= 0) return
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width
-      canvas.height = height
-    }
-    const context = canvas.getContext('2d')
-    if (!context) return
-    renderFog(context, fog, width, height)
-    // Канва меняется вне React — просим Konva перерисовать слой
-    layerRef.current?.batchDraw()
-  }, [fog, width, height, visible, opacity])
-
   if (!visible || !fogHasContent(fog) || width <= 0 || height <= 0) return null
 
   return (
-    <Layer ref={layerRef} listening={false} opacity={opacity}>
-      <KonvaImage
-        image={canvasRef.current ?? undefined}
-        x={0}
-        y={0}
-        width={width}
-        height={height}
-        listening={false}
-      />
+    <Layer listening={false} opacity={opacity}>
+      {fog.covered && (
+        <Rect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          fill={FOG_COLOR}
+          listening={false}
+          perfectDrawEnabled={false}
+        />
+      )}
+
+      {fog.ops.map((op) =>
+        op.shape === 'rect' ? (
+          <Rect
+            key={op.id}
+            x={op.x}
+            y={op.y}
+            width={op.width}
+            height={op.height}
+            fill={FOG_COLOR}
+            globalCompositeOperation={op.op === 'reveal' ? 'destination-out' : 'source-over'}
+            listening={false}
+            perfectDrawEnabled={false}
+          />
+        ) : (
+          <Line
+            key={op.id}
+            points={op.points}
+            stroke={FOG_COLOR}
+            strokeWidth={op.size}
+            lineCap="round"
+            lineJoin="round"
+            globalCompositeOperation={op.op === 'reveal' ? 'destination-out' : 'source-over'}
+            listening={false}
+            perfectDrawEnabled={false}
+          />
+        )
+      )}
     </Layer>
   )
 }
