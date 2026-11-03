@@ -41,6 +41,8 @@ interface ClientState {
   panels: { chat: boolean; dice: boolean; extensions: boolean }
   /** Включённость расширений (см. shared/plugins) */
   extensions: ExtensionValues
+  /** Развёрнутые панели модулей (иконки в правом верхнем углу) */
+  modulePanels: Record<string, boolean>
   /** Карта, которая сейчас в центре экрана (мини-индикатор) */
   activeMapId: string | null
   /** Запрос перелёта камеры к карте */
@@ -79,6 +81,8 @@ interface ClientState {
   setSelectedToken: (tokenId: string | null) => void
   togglePanel: (panel: 'chat' | 'dice' | 'extensions') => void
   toggleExtension: (extensionId: string, enabled: boolean) => void
+  /** Развернуть/свернуть панель модуля; без open — переключить */
+  toggleModulePanel: (extensionId: string, open?: boolean) => void
   setActiveMap: (mapId: string | null) => void
   focusMap: (mapId: string) => void
 }
@@ -102,7 +106,10 @@ function withTokenPatch(session: Session | null, patch: TokenPatch): Session | n
   }
 }
 
-type PersistedClientUi = Pick<ClientState, 'tool' | 'drawStyle' | 'panels' | 'extensions'>
+type PersistedClientUi = Pick<
+  ClientState,
+  'tool' | 'drawStyle' | 'panels' | 'extensions' | 'modulePanels'
+>
 
 export const useClientStore = create<ClientState>()(
   persist<ClientState, [], [], PersistedClientUi>(
@@ -122,6 +129,7 @@ export const useClientStore = create<ClientState>()(
       selectedTokenId: null,
       panels: { chat: true, dice: false, extensions: false },
       extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
+      modulePanels: {},
       activeMapId: null,
       focusRequest: null,
 
@@ -265,7 +273,16 @@ export const useClientStore = create<ClientState>()(
         if (extensionId === 'dice' && !enabled) {
           patch.panels = { ...get().panels, dice: false }
         }
+        const definition = BUILT_IN_EXTENSIONS.find((item) => item.id === extensionId)
+        if (definition?.panel) {
+          patch.modulePanels = { ...get().modulePanels, [extensionId]: enabled }
+        }
         set(patch)
+      },
+
+      toggleModulePanel: (extensionId, open) => {
+        const next = open ?? !(get().modulePanels[extensionId] ?? false)
+        set({ modulePanels: { ...get().modulePanels, [extensionId]: next } })
       }
     }),
     {
@@ -274,7 +291,8 @@ export const useClientStore = create<ClientState>()(
         tool: state.tool,
         drawStyle: state.drawStyle,
         panels: state.panels,
-        extensions: state.extensions
+        extensions: state.extensions,
+        modulePanels: state.modulePanels
       })
     }
   )

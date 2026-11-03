@@ -55,6 +55,8 @@ interface HostState {
   panels: HostPanels
   /** Включённость расширений (см. shared/plugins) */
   extensions: ExtensionValues
+  /** Развёрнутые панели модулей (иконки в правом верхнем углу) */
+  modulePanels: Record<string, boolean>
   /** Карта, которая сейчас в центре экрана (мини-индикатор) */
   activeMapId: string | null
   /** Запрос перелёта камеры к карте */
@@ -80,6 +82,8 @@ interface HostState {
   setSelectedToken: (tokenId: string | null) => void
   togglePanel: (panel: keyof HostPanels) => void
   toggleExtension: (extensionId: string, enabled: boolean) => void
+  /** Развернуть/свернуть панель модуля; без open — переключить */
+  toggleModulePanel: (extensionId: string, open?: boolean) => void
   setActiveMap: (mapId: string | null) => void
   focusMap: (mapId: string) => void
 
@@ -125,7 +129,14 @@ const DRAW_COLORS = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#f8
 
 type PersistedHostUi = Pick<
   HostState,
-  'tool' | 'drawStyle' | 'fogTool' | 'fogBrushSize' | 'showFogPreview' | 'panels' | 'extensions'
+  | 'tool'
+  | 'drawStyle'
+  | 'fogTool'
+  | 'fogBrushSize'
+  | 'showFogPreview'
+  | 'panels'
+  | 'extensions'
+  | 'modulePanels'
 >
 
 export const useHostStore = create<HostState>()(
@@ -157,6 +168,7 @@ export const useHostStore = create<HostState>()(
         extensions: false
       },
       extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
+      modulePanels: {},
       activeMapId: null,
       focusRequest: null,
 
@@ -323,7 +335,17 @@ export const useHostStore = create<HostState>()(
         if (extensionId === 'dice' && !enabled) {
           patch.panels = { ...get().panels, dice: false }
         }
+        // Модуль с панелью открывается при включении и сворачивается при выключении
+        const definition = BUILT_IN_EXTENSIONS.find((item) => item.id === extensionId)
+        if (definition?.panel) {
+          patch.modulePanels = { ...get().modulePanels, [extensionId]: enabled }
+        }
         set(patch)
+      },
+
+      toggleModulePanel: (extensionId, open) => {
+        const next = open ?? !(get().modulePanels[extensionId] ?? false)
+        set({ modulePanels: { ...get().modulePanels, [extensionId]: next } })
       },
 
       updateSessionPatch: async (patch) => {
@@ -464,7 +486,8 @@ export const useHostStore = create<HostState>()(
         fogBrushSize: state.fogBrushSize,
         showFogPreview: state.showFogPreview,
         panels: state.panels,
-        extensions: state.extensions
+        extensions: state.extensions,
+        modulePanels: state.modulePanels
       })
     }
   )

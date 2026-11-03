@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
+import { BUILT_IN_EXTENSIONS, isExtensionVisible } from '@vtt/shared/plugins'
 import {
   Board,
   ChatPanel,
@@ -8,6 +8,7 @@ import {
   ExtensionFrame,
   ExtensionsPanel,
   MapSwitcher,
+  ModuleDock,
   PuzzleIcon
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
@@ -52,11 +53,23 @@ export function BoardView() {
   const setActiveMap = useHostStore((state) => state.setActiveMap)
   const focusMap = useHostStore((state) => state.focusMap)
   const setExtensionState = useHostStore((state) => state.setExtensionState)
+  const modulePanels = useHostStore((state) => state.modulePanels)
+  const toggleModulePanel = useHostStore((state) => state.toggleModulePanel)
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
   const labelsEnabled = extensions['token-labels'] ?? true
   const troikaEnabled = extensions['troika-initiative'] ?? false
+  const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
+
+  // Активированные модули с панелью получают иконку в доке справа сверху
+  const dockModules = BUILT_IN_EXTENSIONS.filter(
+    (definition) =>
+      definition.panel &&
+      definition.icon &&
+      isExtensionVisible(definition, 'gm') &&
+      (extensions[definition.id] ?? definition.defaultEnabled)
+  )
 
   const assetsBaseUrl = useAssetsBaseUrl()
 
@@ -157,7 +170,7 @@ export function BoardView() {
       <InvitePanel />
       <PlayersPanel />
 
-      {troikaEnabled && (
+      {troikaOpen && (
         <ExtensionFrame
           title="Инициатива «Тройка»"
           src={`${assetsBaseUrl}/extensions/troika-initiative/index.html`}
@@ -165,13 +178,20 @@ export function BoardView() {
           role="gm"
           state={session.extensionState['troika-initiative'] ?? null}
           onChange={(next) => void setExtensionState('troika-initiative', next)}
-          onClose={() => toggleExtension('troika-initiative', false)}
+          onClose={() => toggleModulePanel('troika-initiative', false)}
           width={760}
           height={620}
           storageKey="vtt.gm.panel.troika"
           defaultPosition={{ x: 300, y: 60 }}
         />
       )}
+
+      <ModuleDock
+        modules={dockModules}
+        open={modulePanels}
+        baseUrl={assetsBaseUrl}
+        onToggle={(extensionId) => toggleModulePanel(extensionId)}
+      />
 
       {panels.extensions && (
         <ExtensionsPanel

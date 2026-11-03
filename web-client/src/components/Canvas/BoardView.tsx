@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
+import { BUILT_IN_EXTENSIONS, isExtensionVisible } from '@vtt/shared/plugins'
 import {
   Board,
   ChatPanel,
@@ -7,6 +7,7 @@ import {
   ExtensionFrame,
   ExtensionsPanel,
   MapSwitcher,
+  ModuleDock,
   PuzzleIcon
 } from '@vtt/shared/ui'
 import { useClientStore } from '../../store/useClientStore'
@@ -38,11 +39,22 @@ export function BoardView() {
   const focusRequest = useClientStore((state) => state.focusRequest)
   const setActiveMap = useClientStore((state) => state.setActiveMap)
   const focusMap = useClientStore((state) => state.focusMap)
+  const modulePanels = useClientStore((state) => state.modulePanels)
+  const toggleModulePanel = useClientStore((state) => state.toggleModulePanel)
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
   const labelsEnabled = extensions['token-labels'] ?? true
   const troikaEnabled = extensions['troika-initiative'] ?? false
+  const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
+
+  const dockModules = BUILT_IN_EXTENSIONS.filter(
+    (definition) =>
+      definition.panel &&
+      definition.icon &&
+      isExtensionVisible(definition, 'player') &&
+      (extensions[definition.id] ?? definition.defaultEnabled)
+  )
 
   useEffect(() => {
     if (!notice) return
@@ -93,20 +105,27 @@ export function BoardView() {
 
       <ClientToolbar />
 
-      {troikaEnabled && (
+      {troikaOpen && (
         <ExtensionFrame
           title="Инициатива «Тройка»"
           src={`${hostUrl}/extensions/troika-initiative/index.html`}
           extensionId="troika-initiative"
           role="player"
           state={session.extensionState['troika-initiative'] ?? null}
-          onClose={() => toggleExtension('troika-initiative', false)}
+          onClose={() => toggleModulePanel('troika-initiative', false)}
           width={760}
           height={620}
           storageKey="vtt.player.panel.troika"
           defaultPosition={{ x: 300, y: 60 }}
         />
       )}
+
+      <ModuleDock
+        modules={dockModules}
+        open={modulePanels}
+        baseUrl={hostUrl}
+        onToggle={(extensionId) => toggleModulePanel(extensionId)}
+      />
 
       <MapSwitcher
         maps={session.maps}

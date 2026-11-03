@@ -47,6 +47,8 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     description:
       'Стек инициативы по правилам «Тройки!»: жетоны, раунды, отсрочка и прицеливание. Состояние общее для стола',
     scope: 'both',
-    defaultEnabled: false
+    defaultEnabled: false,
+    icon: '/extensions/troika-initiative/icon.svg',
+    panel: true
   }
 ]

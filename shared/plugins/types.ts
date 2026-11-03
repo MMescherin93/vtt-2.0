@@ -17,6 +17,10 @@ export interface ExtensionDefinition {
   description: string
   scope: ExtensionScope
   defaultEnabled: boolean
+  /** Путь к иконке модуля на HTTP-сервере хоста (например, /extensions/x/icon.svg) */
+  icon?: string
+  /** Есть ли разворачиваемая панель: такой модуль получает иконку в доке справа сверху */
+  panel?: boolean
 }
 
 /** Включённость расширений по id */
