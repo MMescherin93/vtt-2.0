@@ -103,8 +103,21 @@ function currentInvite(): InviteInfo {
   )
 }
 
+/**
+ * Иконка окна. Electron не всегда читает файлы из путей с кириллицей, поэтому
+ * лаунчер кладёт копию в ASCII-папку `%LOCALAPPDATA%\VTT\vtt.ico` — её и берём.
+ */
+function resolveWindowIcon(): string | undefined {
+  const candidates = [
+    process.env['LOCALAPPDATA'] ? join(process.env['LOCALAPPDATA'], 'VTT', 'vtt.ico') : '',
+    process.env['PUBLIC'] ? join(process.env['PUBLIC'], 'VTT', 'vtt.ico') : '',
+    join(app.getAppPath(), 'build', 'icon.ico')
+  ].filter(Boolean)
+  return candidates.find((candidate) => existsSync(candidate))
+}
+
 function createMainWindow(): void {
-  const iconPath = join(app.getAppPath(), 'build', 'icon.ico')
+  const iconPath = resolveWindowIcon()
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -112,7 +125,7 @@ function createMainWindow(): void {
     minHeight: 640,
     backgroundColor: '#1a1a1a',
     title: 'VTT — Host GM',
-    icon: existsSync(iconPath) ? iconPath : undefined,
+    icon: iconPath,
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

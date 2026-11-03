@@ -78,13 +78,40 @@ Add-Type -TypeDefinition $csharp -Language CSharp
 
 $root = Split-Path -Parent $PSScriptRoot
 $launcher = Join-Path $root 'scripts\launch-vtt.ps1'
-$icon = Join-Path $root 'desktop-host\build\icon.ico'
 $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 if (-not (Test-Path -LiteralPath $powershell)) { $powershell = 'powershell.exe' }
 
 if (-not (Test-Path -LiteralPath $launcher)) {
   throw "Не найден лаунчер: $launcher"
 }
+
+# Иконка кладётся в ASCII-путь с хешем в имени: так Windows не показывает
+# закешированную старую иконку после перегенерации.
+function Get-AsciiIcon([string]$sourceIcon) {
+  if (-not (Test-Path -LiteralPath $sourceIcon)) {
+    Write-Warning "Не найдена иконка: $sourceIcon"
+    return $sourceIcon
+  }
+
+  $targetRoot = Join-Path $env:LOCALAPPDATA 'VTT'
+  if ($targetRoot -match '[^\x20-\x7E]') {
+    $publicRoot = Join-Path $env:PUBLIC 'VTT'
+    if ($publicRoot -notmatch '[^\x20-\x7E]') { $targetRoot = $publicRoot }
+  }
+
+  try {
+    New-Item -ItemType Directory -Force -Path $targetRoot | Out-Null
+    $hash = (Get-FileHash -LiteralPath $sourceIcon -Algorithm SHA256).Hash.Substring(0, 10).ToLower()
+    $target = Join-Path $targetRoot ('vtt-' + $hash + '.ico')
+    Copy-Item -LiteralPath $sourceIcon -Destination $target -Force
+    return $target
+  } catch {
+    Write-Warning ('Не удалось подготовить иконку в ASCII-пути: ' + $_.Exception.Message)
+    return $sourceIcon
+  }
+}
+
+$icon = Get-AsciiIcon (Join-Path $root 'desktop-host\build\icon.ico')
 
 $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}"' -f $launcher
 

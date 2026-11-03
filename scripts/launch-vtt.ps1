@@ -64,6 +64,18 @@ function Find-ElectronDist {
   return $null
 }
 
+function Get-AsciiRoot {
+  # Кириллица в пути к electron.exe не даёт Chromium стартовать — держим копии
+  # в ASCII-папке. Если имя пользователя тоже не ASCII, используем общую папку.
+  $targetRoot = Join-Path $env:LOCALAPPDATA 'VTT'
+  if ($targetRoot -match '[^\x20-\x7E]') {
+    $publicRoot = Join-Path $env:PUBLIC 'VTT'
+    if ($publicRoot -notmatch '[^\x20-\x7E]') { $targetRoot = $publicRoot }
+  }
+  New-Item -ItemType Directory -Force -Path $targetRoot | Out-Null
+  return $targetRoot
+}
+
 function Get-AsciiElectron([string]$sourceDist) {
   $sourceVersion = 'unknown'
   $versionFile = Join-Path $sourceDist 'version'
@@ -71,18 +83,11 @@ function Get-AsciiElectron([string]$sourceDist) {
     $sourceVersion = (Get-Content $versionFile -Raw).Trim()
   }
 
-  # Кириллица в пути к electron.exe не даёт Chromium стартовать — копируем в ASCII-путь.
-  # Если имя пользователя тоже не ASCII, используем общую папку.
-  $targetRoot = Join-Path $env:LOCALAPPDATA 'VTT'
-  if ($targetRoot -match '[^\x20-\x7E]') {
-    $publicRoot = Join-Path $env:PUBLIC 'VTT'
-    if ($publicRoot -notmatch '[^\x20-\x7E]') { $targetRoot = $publicRoot }
-  }
+  $targetRoot = Get-AsciiRoot
   $targetDir = Join-Path $targetRoot ('electron-' + $sourceVersion)
   $targetExe = Join-Path $targetDir 'electron.exe'
 
   if (-not (Test-Path $targetExe)) {
-    New-Item -ItemType Directory -Force -Path $targetRoot | Out-Null
     Write-Log ('Копирую Electron ' + $sourceVersion + ' в ' + $targetDir)
     $robocopy = Join-Path $env:SystemRoot 'System32\robocopy.exe'
     & $robocopy $sourceDist $targetDir /E /NFL /NDL /NJH /NJS /NP /XF vtt-host.exe | Out-Null
@@ -108,6 +113,16 @@ try {
   }
 
   $electron = Get-AsciiElectron $sourceDist
+
+  # Свежая копия иконки в ASCII-путь: её читает окно Electron и ярлык
+  $iconSource = Join-Path $root 'desktop-host\build\icon.ico'
+  if (Test-Path -LiteralPath $iconSource) {
+    try {
+      Copy-Item -LiteralPath $iconSource -Destination (Join-Path (Get-AsciiRoot) 'vtt.ico') -Force
+    } catch {
+      Write-Log ('Не удалось обновить иконку: ' + $_.Exception.Message)
+    }
+  }
 
   $port = 3001
   if ($env:VTT_PORT) {

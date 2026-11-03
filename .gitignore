@@ -8,3 +8,5 @@ dist/
 .tmp/
 .electron-cache/
 VTT.lnk
+__pycache__/
+*.pyc
