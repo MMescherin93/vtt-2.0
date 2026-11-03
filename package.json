@@ -1,0 +1,32 @@
+{
+  "name": "vtt-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VTT — виртуальный стол для НРИ: десктопный хост GM (Electron) + веб-клиенты игроков",
+  "workspaces": [
+    "shared",
+    "desktop-host",
+    "web-client"
+  ],
+  "scripts": {
+    "dev:host": "npm run dev -w desktop-host",
+    "dev:client": "npm run dev -w web-client",
+    "start:host": "npm run start -w desktop-host",
+    "build": "npm run build -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/make-shortcut.ps1",
+    "test:server": "node scripts/build-test.mjs && node .tmp/test-dist/integration-test.mjs"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}

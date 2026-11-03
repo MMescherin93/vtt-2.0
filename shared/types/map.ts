@@ -1,0 +1,90 @@
+export type GridType = 'square' | 'hex' | 'none'
+
+/** Настройки отображения карты (ТЗ, interface Session.settings) */
+export interface MapSettings {
+  gridType: GridType
+  /** Размер ячейки сетки в пикселях карты */
+  gridSize: number
+  showGrid: boolean
+}
+
+/** Карта сессии: изображение и его размеры в пикселях */
+export interface MapData {
+  /** Относительный путь к изображению внутри папки сессии (ТЗ, уточнение 5) */
+  imageUrl: string
+  width: number
+  height: number
+}
+
+/**
+ * Операция тумана войны.
+ * reveal — убрать туман («окно»), conceal — закрасить туманом.
+ * Применяется к базовому состоянию (FogOfWarData.covered) строго по порядку.
+ */
+export type FogOp =
+  | {
+      id: string
+      op: 'reveal' | 'conceal'
+      shape: 'rect'
+      x: number
+      y: number
+      width: number
+      height: number
+    }
+  | {
+      id: string
+      op: 'reveal' | 'conceal'
+      shape: 'stroke'
+      /** Точки ломаной [x1,y1,x2,y2,...] в пикселях карты */
+      points: number[]
+      /** Толщина кисти в пикселях карты */
+      size: number
+    }
+
+/** Туман войны (ТЗ, п.4): кисть, ластик, выделение области */
+export interface FogOfWarData {
+  /** Закрыт ли весь лист туманом по умолчанию (true — игроки ничего не видят без reveal) */
+  covered: boolean
+  /** Операции поверх базового состояния, в порядке применения */
+  ops: FogOp[]
+}
+
+/** Новая операция тумана (id назначается при добавлении) */
+export type FogOpInput =
+  Omit<Extract<FogOp, { shape: 'rect' }>, 'id'> | Omit<Extract<FogOp, { shape: 'stroke' }>, 'id'>
+
+export type DrawingTool = 'pencil' | 'eraser'
+
+/** Рисунок на whiteboard (ТЗ, п.5) */
+export interface Drawing {
+  id: string
+  tool: DrawingTool
+  /** HEX-цвет (для eraser не используется) */
+  color: string
+  /** Толщина линии в пикселях карты */
+  size: number
+  /** Точки ломаной [x1,y1,x2,y2,...] в пикселях карты */
+  points: number[]
+  /** Автор (рисовать могут все участники, не только GM) */
+  authorId: string
+  authorName: string
+  createdAt: number
+}
+
+/** Данные нового рисунка от клиента (id/автора назначает сервер) */
+export interface DrawingInput {
+  tool: DrawingTool
+  color: string
+  size: number
+  points: number[]
+}
+
+/** Изменение токена: позиция, размер и/или поворот */
+export interface TokenPatch {
+  tokenId: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  rotation?: number
+}

@@ -1,0 +1,147 @@
+import { useEffect } from 'react'
+import { Board, ChatPanel, DicePanel, ChevronIcon } from '@vtt/shared/ui'
+import { useAssetsBaseUrl } from '../lib/host'
+import { useHostStore } from '../store/useHostStore'
+import { HostToolbar } from './Toolbar/HostToolbar'
+import { InvitePanel } from './InvitePanel/InvitePanel'
+import { MapPanel } from './MapPanel/MapPanel'
+import { PlayersPanel } from './PlayersPanel/PlayersPanel'
+import { TokenPanel } from './TokenPanel/TokenPanel'
+
+/** Стол Мастера: канвас, тулбар и плавающие панели */
+export function BoardView() {
+  const session = useHostStore((state) => state.session)
+  const players = useHostStore((state) => state.players)
+  const status = useHostStore((state) => state.status)
+  const tool = useHostStore((state) => state.tool)
+  const drawStyle = useHostStore((state) => state.drawStyle)
+  const fogTool = useHostStore((state) => state.fogTool)
+  const fogBrushSize = useHostStore((state) => state.fogBrushSize)
+  const showFogPreview = useHostStore((state) => state.showFogPreview)
+  const selectedTokenId = useHostStore((state) => state.selectedTokenId)
+  const panels = useHostStore((state) => state.panels)
+  const setSelectedToken = useHostStore((state) => state.setSelectedToken)
+  const moveToken = useHostStore((state) => state.moveToken)
+  const transformToken = useHostStore((state) => state.transformToken)
+  const addDrawing = useHostStore((state) => state.addDrawing)
+  const changeFog = useHostStore((state) => state.changeFog)
+  const sendChat = useHostStore((state) => state.sendChat)
+  const rollDice = useHostStore((state) => state.rollDice)
+  const uploadMap = useHostStore((state) => state.uploadMap)
+  const addTokenFromFile = useHostStore((state) => state.addTokenFromFile)
+  const setScreen = useHostStore((state) => state.setScreen)
+  const togglePanel = useHostStore((state) => state.togglePanel)
+  const notice = useHostStore((state) => state.notice)
+  const setNotice = useHostStore((state) => state.setNotice)
+  const error = useHostStore((state) => state.error)
+  const setError = useHostStore((state) => state.setError)
+
+  const assetsBaseUrl = useAssetsBaseUrl()
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [notice, setNotice])
+
+  if (!session) return null
+
+  const hasMap = session.map.width > 0 && session.map.height > 0
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <Board
+        session={session}
+        role="gm"
+        tool={tool}
+        drawStyle={drawStyle}
+        fogTool={fogTool}
+        fogBrushSize={fogBrushSize}
+        showFogPreview={showFogPreview}
+        assetsBaseUrl={assetsBaseUrl}
+        cameraKey={`gm-${session.id}`}
+        selectedTokenId={selectedTokenId}
+        onSelectToken={setSelectedToken}
+        onMoveToken={moveToken}
+        onTransformToken={transformToken}
+        onAddDrawing={addDrawing}
+        onFogChange={changeFog}
+        onFilesDropped={(files, world) => {
+          const image = files.find((file) => file.type.startsWith('image/'))
+          if (!image) {
+            setError('Можно перетаскивать только изображения (PNG, JPEG, WebP)')
+            return
+          }
+          if (!hasMap) void uploadMap(image)
+          else void addTokenFromFile(image, world.x, world.y)
+        }}
+      />
+
+      <div className="pointer-events-none fixed left-3 top-3 z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-2.5 py-1.5 shadow-xl backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={() => setScreen('sessions')}
+          className="pointer-events-auto flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs text-gray-400 transition hover:bg-white/10 hover:text-white"
+          title="К списку сессий"
+        >
+          <ChevronIcon size={14} className="rotate-180" />
+          Сессии
+        </button>
+        <span className="h-5 w-px bg-white/10" />
+        <div className="max-w-56">
+          <div className="truncate text-sm font-semibold text-gray-100">{session.name}</div>
+          <div className="text-[11px] text-gray-500">
+            {players.length} игроков ·{' '}
+            {status?.servingClient ? `порт ${status.port}` : 'клиент на 5173'}
+          </div>
+        </div>
+      </div>
+
+      <HostToolbar />
+
+      {panels.chat && (
+        <ChatPanel
+          messages={session.chatLog}
+          currentUserId="gm"
+          players={players}
+          onSend={sendChat}
+          onClose={() => togglePanel('chat')}
+          storageKey="vtt.gm.panel.chat"
+          defaultPosition={{ x: 24, y: 320 }}
+        />
+      )}
+      {panels.dice && (
+        <DicePanel
+          history={session.rollLog}
+          onRoll={rollDice}
+          onClose={() => togglePanel('dice')}
+          storageKey="vtt.gm.panel.dice"
+          defaultPosition={{ x: 360, y: 320 }}
+        />
+      )}
+      <TokenPanel />
+      <MapPanel />
+      <InvitePanel />
+      <PlayersPanel />
+
+      {notice && (
+        <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-100 shadow-xl backdrop-blur">
+          {notice}
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-red-400/30 bg-red-500/15 px-4 py-2 text-sm text-red-100 shadow-xl backdrop-blur">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-red-200 transition hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}

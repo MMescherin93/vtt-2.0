@@ -1,0 +1,22 @@
+{
+  "name": "@vtt/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Общие типы, утилиты и UI-компоненты VTT",
+  "main": "types/index.ts",
+  "types": "types/index.ts",
+  "exports": {
+    ".": "./types/index.ts",
+    "./types": "./types/index.ts",
+    "./utils": "./utils/index.ts",
+    "./ui": "./ui/index.ts",
+    "./ui/*": "./ui/*.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7"
+  }
+}
