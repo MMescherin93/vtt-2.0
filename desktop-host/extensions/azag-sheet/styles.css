@@ -109,6 +109,23 @@ body {
   background: #f7d9d4;
 }
 
+.btn.small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.zoom .pct {
+  min-width: 58px;
+  font-variant-numeric: tabular-nums;
+}
+
 .status {
   flex: 0 0 auto;
   font-size: 11px;

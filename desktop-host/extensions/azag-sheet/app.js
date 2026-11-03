@@ -420,17 +420,33 @@ async function connect() {
 /* Масштаб листа                                                      */
 /* ------------------------------------------------------------------ */
 
+let zoom = null // null — вписать по ширине
+let currentScale = 1
+
+function fitScale() {
+  const wrap = $('sheetWrap')
+  return Math.max(0.45, Math.min(1.7, Math.max(200, wrap.clientWidth - 32) / DESIGN_W))
+}
+
 function fitSheet() {
   const wrap = $('sheetWrap')
   const frame = $('sheetFrame')
   const sheet = $('sheet')
   if (!wrap || !frame || !sheet) return
 
-  const available = Math.max(200, wrap.clientWidth - 32)
-  const scale = Math.max(0.3, Math.min(1.25, available / DESIGN_W))
+  const scale = zoom ?? fitScale()
+  currentScale = scale
   frame.style.width = `${DESIGN_W * scale}px`
   frame.style.height = `${DESIGN_H * scale}px`
   sheet.style.transform = `scale(${scale})`
+
+  const label = $('zoomReset')
+  if (label) label.textContent = `${Math.round(scale * 100)}%`
+}
+
+function setZoom(value) {
+  zoom = value
+  fitSheet()
 }
 
 /* ------------------------------------------------------------------ */
@@ -446,6 +462,14 @@ async function init() {
   $('charSelect').addEventListener('change', (event) => {
     selectCharacter(event.target.value)
   })
+
+  $('zoomIn').addEventListener('click', () => {
+    setZoom(Math.min(2, Math.round((currentScale + 0.1) * 10) / 10))
+  })
+  $('zoomOut').addEventListener('click', () => {
+    setZoom(Math.max(0.4, Math.round((currentScale - 0.1) * 10) / 10))
+  })
+  $('zoomReset').addEventListener('click', () => setZoom(null))
 
   new ResizeObserver(fitSheet).observe($('sheetWrap'))
   window.addEventListener('resize', fitSheet)

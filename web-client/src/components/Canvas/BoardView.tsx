@@ -158,10 +158,11 @@ export function BoardView() {
           state={session.extensionState['azag-sheet'] ?? null}
           onChange={(next) => publishExtensionState('azag-sheet', next)}
           onClose={() => toggleModulePanel('azag-sheet', false)}
-          width={1000}
-          height={760}
+          width={Math.min(1440, window.innerWidth - 48)}
+          height={Math.min(880, window.innerHeight - 150)}
+          className="!max-h-[96vh]"
           storageKey="vtt.player.panel.azag"
-          defaultPosition={{ x: 180, y: 24 }}
+          defaultPosition={{ x: 60, y: 14 }}
         />
       )}
 

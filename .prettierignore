@@ -4,3 +4,4 @@ dist
 package-lock.json
 *.docx
 desktop-host/extensions
+.tmp

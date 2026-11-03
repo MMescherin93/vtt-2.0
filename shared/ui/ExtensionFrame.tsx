@@ -28,6 +28,7 @@ export interface ExtensionFrameProps {
   storageKey?: string
   defaultPosition?: { x: number; y: number }
   definition?: ExtensionDefinition
+  className?: string
 }
 
 /**
@@ -53,7 +54,8 @@ export function ExtensionFrame({
   width = 780,
   height = 620,
   storageKey,
-  defaultPosition = { x: 280, y: 60 }
+  defaultPosition = { x: 280, y: 60 },
+  className
 }: ExtensionFrameProps) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const stateRef = useRef<unknown>(state)
@@ -166,6 +168,7 @@ export function ExtensionFrame({
       width={width}
       storageKey={storageKey}
       defaultPosition={defaultPosition}
+      className={className}
     >
       <iframe
         ref={frameRef}
