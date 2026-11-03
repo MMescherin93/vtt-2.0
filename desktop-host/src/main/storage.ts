@@ -261,6 +261,10 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
     updatedAt: isFiniteNumber(source.updatedAt) ? source.updatedAt : base.updatedAt,
     maps,
     settings,
+    extensionState:
+      source.extensionState && typeof source.extensionState === 'object'
+        ? { ...(source.extensionState as Record<string, unknown>) }
+        : {},
     tokens: Array.isArray(source.tokens)
       ? source.tokens.map(normalizeToken).filter((token): token is Token => token !== null)
       : [],

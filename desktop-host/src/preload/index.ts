@@ -51,6 +51,8 @@ const hostApi: HostApi = {
     ipcRenderer.invoke(IPC.drawingAdd, drawing) as Promise<void>,
   sendChat: (text: string) => ipcRenderer.invoke(IPC.chatSend, text) as Promise<void>,
   rollDice: (dice: string[]) => ipcRenderer.invoke(IPC.diceRoll, dice) as Promise<void>,
+  setExtensionState: (extensionId: string, state: unknown) =>
+    ipcRenderer.invoke(IPC.extensionUpdate, extensionId, state) as Promise<void>,
 
   getInvite: () => ipcRenderer.invoke(IPC.inviteGet) as Promise<InviteInfo>,
   setTunnelUrl: (url: string | null) =>

@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { stat, readFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { extname, resolve, sep } from 'node:path'
 import { Server } from 'socket.io'
@@ -48,6 +48,8 @@ export interface VttServerOptions {
   clientPort: number
   /** Папка собранного веб-клиента (null — хост не раздаёт статику) */
   clientDistDir: string | null
+  /** Папка модулей-расширений (например, extensions/troika-initiative) */
+  extensionsDir: string | null
   sessionManager: SessionManager
   storage: SessionStorage
   onStatusChange: (status: ServerStatus) => void
@@ -66,6 +68,8 @@ export interface VttServer {
   drawingAdded(drawing: Drawing): void
   chatMessage(message: ChatMessage): void
   diceRolled(roll: DiceRoll): void
+  /** Состояние расширения изменилось (рассылается игрокам и в окно хоста) */
+  extensionUpdated(extensionId: string, state: unknown): void
   /** Сессия закрыта/удалена — игроки получают уведомление */
   sessionClosed(reason: string): void
   stop(): Promise<void>
@@ -158,11 +162,23 @@ export function applyTokenPatch(session: Session, patch: TokenPatch): TokenPatch
  * сессии. Сервер — источник истины: проверяет роли и сохраняет изменения.
  */
 export function startVttServer(options: VttServerOptions): VttServer {
-  const { port, clientPort, clientDistDir, sessionManager, storage, onStatusChange, onHostEvent } =
-    options
+  const {
+    port,
+    clientPort,
+    clientDistDir,
+    extensionsDir,
+    sessionManager,
+    storage,
+    onStatusChange,
+    onHostEvent
+  } = options
 
   const lanIp = getLanIp()
   const servingClient = Boolean(clientDistDir)
+
+  /** CDN-адрес OBR SDK, который подменяем на локальный адаптер при отдаче app.js */
+  const OBR_SDK_URL = 'https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm'
+  const OBR_SHIM_URL = '/extensions/troika-initiative/obr-shim.js'
 
   const status = (): ServerStatus => ({
     port,
@@ -210,6 +226,55 @@ export function startVttServer(options: VttServerOptions): VttServer {
     }
     try {
       await serveFile(res, filePath, 'public, max-age=31536000, immutable')
+    } catch {
+      res.writeHead(404)
+      res.end('Not found')
+    }
+  }
+
+  async function serveExtension(res: ServerResponse, pathname: string): Promise<void> {
+    if (!extensionsDir) {
+      res.writeHead(404)
+      res.end('Not found')
+      return
+    }
+
+    const rest = pathname.slice('/extensions/'.length)
+    const slash = rest.indexOf('/')
+    if (slash <= 0) {
+      res.writeHead(404)
+      res.end('Not found')
+      return
+    }
+    const name = rest.slice(0, slash)
+    const relativePath = rest.slice(slash + 1)
+    const root = resolve(extensionsDir)
+    const filePath = resolve(root, name, relativePath)
+    if (!filePath.startsWith(root + sep)) {
+      res.writeHead(403)
+      res.end('Forbidden')
+      return
+    }
+
+    try {
+      const info = await stat(filePath)
+      if (!info.isFile()) throw new Error('not a file')
+
+      let body: string | Buffer
+      if (name === 'troika-initiative' && relativePath.endsWith('app.js')) {
+        // Исходники расширения не меняем: подменяем только URL импорта SDK
+        const source = await readFile(filePath, 'utf-8')
+        body = source.split(OBR_SDK_URL).join(OBR_SHIM_URL)
+      } else {
+        body = await readFile(filePath)
+      }
+
+      res.writeHead(200, {
+        'Content-Type': mimeFor(filePath),
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      })
+      res.end(body)
     } catch {
       res.writeHead(404)
       res.end('Not found')
@@ -296,6 +361,11 @@ export function startVttServer(options: VttServerOptions): VttServer {
       const sessionId = rest.slice(0, slash)
       const relativePath = rest.slice(slash + 1)
       await serveSessionAsset(res, sessionId, relativePath)
+      return
+    }
+
+    if (pathname.startsWith('/extensions/')) {
+      await serveExtension(res, pathname)
       return
     }
 
@@ -656,6 +726,12 @@ export function startVttServer(options: VttServerOptions): VttServer {
       if (!session) return
       io.to(session.id).emit('dice:roll', roll)
       onHostEvent({ type: 'dice:roll', roll })
+    },
+    extensionUpdated(extensionId, state) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('extension:update', { extensionId, state })
+      onHostEvent({ type: 'extension:update', extensionId, state })
     },
     sessionClosed(reason) {
       const session = sessionManager.getActive()

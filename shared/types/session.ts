@@ -55,6 +55,8 @@ export interface Session {
   fogOfWar: FogOfWarData
   drawings: Drawing[]
   settings: MapSettings
+  /** Состояние расширений (модулей) в рамках сессии: id → данные модуля */
+  extensionState: Record<string, unknown>
   /** История чата (ограничена сервером) */
   chatLog: ChatMessage[]
   /** История бросков (ТЗ, п.6: «История бросков») */

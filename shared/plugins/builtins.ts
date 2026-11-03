@@ -40,5 +40,13 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     description: 'Показывать имена токенов на карте всем участникам',
     scope: 'both',
     defaultEnabled: true
+  },
+  {
+    id: 'troika-initiative',
+    title: 'Инициатива «Тройка»',
+    description:
+      'Стек инициативы по правилам «Тройки!»: жетоны, раунды, отсрочка и прицеливание. Состояние общее для стола',
+    scope: 'both',
+    defaultEnabled: false
   }
 ]

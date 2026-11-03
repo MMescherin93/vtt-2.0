@@ -20,6 +20,7 @@ export function createSessionState(
     fogOfWar: { covered: true, ops: [] },
     drawings: [],
     settings: { ...DEFAULT_MAP_SETTINGS },
+    extensionState: {},
     chatLog: [],
     rollLog: []
   }

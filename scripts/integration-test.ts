@@ -53,6 +53,7 @@ async function main(): Promise<void> {
     port: PORT,
     clientPort: PORT,
     clientDistDir: null,
+    extensionsDir: `${process.cwd()}/desktop-host/extensions`,
     sessionManager: manager,
     storage,
     onStatusChange: () => undefined,
@@ -169,6 +170,44 @@ async function main(): Promise<void> {
   const drawing = await drawingPromise
   check(drawing.points.length === 4, 'рисунок синхронизирован')
   check(drawing.authorName === 'Тарвин', 'у рисунка есть автор')
+
+  const extensionPromise = watch<{ extensionId: string; state: unknown }>(
+    client,
+    'extension:update'
+  )
+  manager.updateSilent((current) => {
+    current.extensionState = {
+      ...current.extensionState,
+      'troika-initiative': { round: 3, draw: 'END' }
+    }
+  })
+  server.extensionUpdated('troika-initiative', { round: 3, draw: 'END' })
+  const extensionUpdate = await extensionPromise
+  check(
+    extensionUpdate.extensionId === 'troika-initiative' &&
+      (extensionUpdate.state as { round: number }).round === 3,
+    'состояние расширения доставляется игрокам'
+  )
+
+  const appResponse = await fetch(`http://localhost:${PORT}/extensions/troika-initiative/app.js`)
+  const appSource = await appResponse.text()
+  check(appResponse.status === 200, 'исходный app.js расширения отдаётся по HTTP')
+  check(
+    appSource.includes('/extensions/troika-initiative/obr-shim.js') &&
+      !appSource.includes('cdn.jsdelivr.net/npm/@owlbear-rodeo'),
+    'в отдаваемом app.js SDK заменён на локальный адаптер (исходник не изменён)'
+  )
+  const shimResponse = await fetch(
+    `http://localhost:${PORT}/extensions/troika-initiative/obr-shim.js`
+  )
+  check(shimResponse.status === 200, 'адаптер OBR SDK доступен')
+  const traversalResponse = await fetch(
+    `http://localhost:${PORT}/extensions/..%2F..%2Fpackage.json`
+  )
+  check(
+    traversalResponse.status === 403 || traversalResponse.status === 404,
+    'выход за папку расширений заблокирован'
+  )
 
   const fogErrorPromise = watch<{ message: string }>(client, 'error:message')
   client.emit('fog:update', { covered: false, ops: [] })

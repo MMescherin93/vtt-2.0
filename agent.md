@@ -48,6 +48,18 @@
 в точках интеграции (тулбар, панель, слой). Выключение расширения не должно
 ломать ядро.
 
+### Внешние модули (Owlbear Rodeo)
+
+В `desktop-host/extensions/<id>/` лежат сторонние модули для Owlbear Rodeo.
+Их **исходники не редактируются**. Адаптация — только на стороне хоста:
+
+- сервер отдаёт файлы по `/extensions/<id>/...`;
+- для несовместимого SDK допускается подмена URL импорта при отдаче
+  (файл на диске не меняется) и локальный адаптер вроде `obr-shim.js`;
+- состояние модуля живёт в `Session.extensionState[<id>]` и синхронизируется
+  событием `extension:update` (Мастер пишет через IPC, игроки только читают);
+- iframe модуля — `shared/ui/ExtensionFrame.tsx` (sandbox, postMessage-мост).
+
 ### Контракт плагина (целевой, вынести в `shared/plugins/types.ts` при первом рефакторинге)
 
 ```ts
@@ -89,8 +101,8 @@ export interface PluginDefinition {
 - `socket-event`: `client:join`, `session:request`, `token:move`, `token:update`,
   `chat:send`, `dice:roll`, `drawing:add`, `fog:update`
 - `session-migration`: нормализация полей сессии и версии схемы
-- `extension`: кубики, чат, рисование, туман войны, подписи токенов
-  (см. `shared/plugins/builtins.ts`)
+- `extension`: кубики, чат, рисование, туман войны, подписи токенов,
+  «Инициатива «Тройка»» (см. `shared/plugins/builtins.ts`)
 
 ### Как добавить фичу (обязательный порядок)
 

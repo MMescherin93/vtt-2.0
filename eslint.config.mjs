@@ -9,7 +9,8 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/coverage/**',
       '.tmp/**',
-      '.npm-cache/**'
+      '.npm-cache/**',
+      'desktop-host/extensions/**'
     ]
   },
   js.configs.recommended,

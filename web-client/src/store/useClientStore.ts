@@ -63,6 +63,7 @@ interface ClientState {
   addDrawing: (drawing: Drawing) => void
   addChat: (message: ChatMessageData) => void
   addRoll: (roll: DiceRollResultData) => void
+  setExtensionState: (extensionId: string, state: unknown) => void
 
   moveToken: (tokenId: string, x: number, y: number) => void
   transformToken: (
@@ -157,6 +158,16 @@ export const useClientStore = create<ClientState>()(
         })
       },
       setSession: (session) => set({ session }),
+      setExtensionState: (extensionId, state) => {
+        const session = get().session
+        if (!session) return
+        set({
+          session: {
+            ...session,
+            extensionState: { ...session.extensionState, [extensionId]: state }
+          }
+        })
+      },
       setPlayers: (players) => set({ players }),
       setClosed: (reason) =>
         set({ closedReason: reason, joined: false, session: null, players: [] }),

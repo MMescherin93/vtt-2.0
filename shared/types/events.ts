@@ -2,6 +2,12 @@ import type { Drawing, DrawingInput, FogOfWarData, TokenPatch } from './map'
 import type { ChatMessage, DiceRoll, PlayerInfo, Session } from './session'
 import type { Token } from './token'
 
+/** Обновление состояния расширения (модуля) сессии */
+export interface ExtensionUpdateData {
+  extensionId: string
+  state: unknown
+}
+
 /** Аргументы событий (ТЗ, «WebSocket события (API)») */
 
 export interface ClientJoinData {
@@ -60,6 +66,8 @@ export interface ServerToClientEvents {
   'drawing:add': (drawing: Drawing) => void
   'chat:message': (data: ChatMessageData) => void
   'dice:roll': (data: DiceRollResultData) => void
+  /** Состояние расширения изменил Мастер */
+  'extension:update': (data: ExtensionUpdateData) => void
   /** Ошибка/отказ в операции (например, GM-only действие от игрока) */
   'error:message': (data: { message: string }) => void
 }

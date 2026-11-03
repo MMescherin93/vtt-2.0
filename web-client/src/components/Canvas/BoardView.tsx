@@ -4,6 +4,7 @@ import {
   Board,
   ChatPanel,
   DicePanel,
+  ExtensionFrame,
   ExtensionsPanel,
   MapSwitcher,
   PuzzleIcon
@@ -41,6 +42,7 @@ export function BoardView() {
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
   const labelsEnabled = extensions['token-labels'] ?? true
+  const troikaEnabled = extensions['troika-initiative'] ?? false
 
   useEffect(() => {
     if (!notice) return
@@ -90,6 +92,21 @@ export function BoardView() {
       </div>
 
       <ClientToolbar />
+
+      {troikaEnabled && (
+        <ExtensionFrame
+          title="Инициатива «Тройка»"
+          src={`${hostUrl}/extensions/troika-initiative/index.html`}
+          extensionId="troika-initiative"
+          role="player"
+          state={session.extensionState['troika-initiative'] ?? null}
+          onClose={() => toggleExtension('troika-initiative', false)}
+          width={760}
+          height={620}
+          storageKey="vtt.player.panel.troika"
+          defaultPosition={{ x: 300, y: 60 }}
+        />
+      )}
 
       <MapSwitcher
         maps={session.maps}

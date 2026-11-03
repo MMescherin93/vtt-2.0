@@ -55,6 +55,8 @@ export function useVttSocket(): void {
     const onDrawing = (drawing: Drawing): void => store.addDrawing(drawing)
     const onChat = (message: ChatMessageData): void => store.addChat(message)
     const onDice = (roll: DiceRollResultData): void => store.addRoll(roll)
+    const onExtension = (data: { extensionId: string; state: unknown }): void =>
+      store.setExtensionState(data.extensionId, data.state)
     const onError = (data: { message: string }): void => store.setNotice(data.message)
     const onClosed = (data: { reason: string }): void => {
       store.setClosed(data.reason)
@@ -73,6 +75,7 @@ export function useVttSocket(): void {
     socket.on('drawing:add', onDrawing)
     socket.on('chat:message', onChat)
     socket.on('dice:roll', onDice)
+    socket.on('extension:update', onExtension)
     socket.on('error:message', onError)
     socket.on('session:closed', onClosed)
 
@@ -91,6 +94,7 @@ export function useVttSocket(): void {
       socket.off('drawing:add', onDrawing)
       socket.off('chat:message', onChat)
       socket.off('dice:roll', onDice)
+      socket.off('extension:update', onExtension)
       socket.off('error:message', onError)
       socket.off('session:closed', onClosed)
       socket.disconnect()

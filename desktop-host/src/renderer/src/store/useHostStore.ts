@@ -104,6 +104,8 @@ interface HostState {
   changeFog: (fog: FogOfWarData) => void
   sendChat: (text: string) => void
   rollDice: (dice: string[]) => void
+  /** Сохранить состояние расширения в сессии */
+  setExtensionState: (extensionId: string, state: unknown) => Promise<void>
   refreshInvite: () => Promise<void>
 }
 
@@ -214,6 +216,18 @@ export const useHostStore = create<HostState>()(
           case 'dice:roll':
             if (!session) break
             set({ session: { ...session, rollLog: [...session.rollLog, event.roll] } })
+            break
+          case 'extension:update':
+            if (!session) break
+            set({
+              session: {
+                ...session,
+                extensionState: {
+                  ...session.extensionState,
+                  [event.extensionId]: event.state
+                }
+              }
+            })
             break
           case 'session:closed':
             set({ session: null, screen: 'sessions', players: [] })
@@ -421,6 +435,19 @@ export const useHostStore = create<HostState>()(
 
       rollDice: (dice) => {
         void window.hostApi.rollDice(dice)
+      },
+
+      setExtensionState: async (extensionId, state) => {
+        const session = get().session
+        if (session) {
+          set({
+            session: {
+              ...session,
+              extensionState: { ...session.extensionState, [extensionId]: state }
+            }
+          })
+        }
+        await window.hostApi.setExtensionState(extensionId, state)
       },
 
       refreshInvite: async () => {

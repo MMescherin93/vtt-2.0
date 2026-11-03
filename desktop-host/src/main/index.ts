@@ -406,6 +406,18 @@ function registerIpc(): void {
     server?.chatMessage(message)
   })
 
+  ipcMain.handle(
+    IPC.extensionUpdate,
+    async (_event, extensionId: string, state: unknown): Promise<void> => {
+      if (!sessionManager) return
+      if (typeof extensionId !== 'string' || !extensionId) return
+      sessionManager.updateSilent((current) => {
+        current.extensionState = { ...current.extensionState, [extensionId]: state }
+      })
+      server?.extensionUpdated(extensionId, state)
+    }
+  )
+
   ipcMain.handle(IPC.inviteGet, (): InviteInfo => currentInvite())
 
   ipcMain.handle(
@@ -469,6 +481,7 @@ if (!gotLock) {
       port: PORT,
       clientPort: clientDistDir ? PORT : DEV_CLIENT_PORT,
       clientDistDir,
+      extensionsDir: join(app.getAppPath(), 'extensions'),
       sessionManager,
       storage,
       onStatusChange: (status) => {

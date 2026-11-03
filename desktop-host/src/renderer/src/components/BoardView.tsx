@@ -5,6 +5,7 @@ import {
   ChatPanel,
   DicePanel,
   ChevronIcon,
+  ExtensionFrame,
   ExtensionsPanel,
   MapSwitcher,
   PuzzleIcon
@@ -50,10 +51,12 @@ export function BoardView() {
   const focusRequest = useHostStore((state) => state.focusRequest)
   const setActiveMap = useHostStore((state) => state.setActiveMap)
   const focusMap = useHostStore((state) => state.focusMap)
+  const setExtensionState = useHostStore((state) => state.setExtensionState)
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
   const labelsEnabled = extensions['token-labels'] ?? true
+  const troikaEnabled = extensions['troika-initiative'] ?? false
 
   const assetsBaseUrl = useAssetsBaseUrl()
 
@@ -153,6 +156,22 @@ export function BoardView() {
       <MapPanel />
       <InvitePanel />
       <PlayersPanel />
+
+      {troikaEnabled && (
+        <ExtensionFrame
+          title="Инициатива «Тройка»"
+          src={`${assetsBaseUrl}/extensions/troika-initiative/index.html`}
+          extensionId="troika-initiative"
+          role="gm"
+          state={session.extensionState['troika-initiative'] ?? null}
+          onChange={(next) => void setExtensionState('troika-initiative', next)}
+          onClose={() => toggleExtension('troika-initiative', false)}
+          width={760}
+          height={620}
+          storageKey="vtt.gm.panel.troika"
+          defaultPosition={{ x: 300, y: 60 }}
+        />
+      )}
 
       {panels.extensions && (
         <ExtensionsPanel
