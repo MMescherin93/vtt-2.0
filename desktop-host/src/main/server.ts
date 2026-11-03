@@ -17,6 +17,7 @@ import type {
   Token,
   TokenPatch
 } from '@vtt/shared'
+import { isExtensionPlayerWritable } from '@vtt/shared/plugins'
 import {
   MAX_CHAT_LOG,
   MAX_DICE_PER_ROLL,
@@ -178,7 +179,6 @@ export function startVttServer(options: VttServerOptions): VttServer {
 
   /** CDN-адрес OBR SDK, который подменяем на локальный адаптер при отдаче app.js */
   const OBR_SDK_URL = 'https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm'
-  const OBR_SHIM_URL = '/extensions/troika-initiative/obr-shim.js'
 
   const status = (): ServerStatus => ({
     port,
@@ -261,10 +261,10 @@ export function startVttServer(options: VttServerOptions): VttServer {
       if (!info.isFile()) throw new Error('not a file')
 
       let body: string | Buffer
-      if (name === 'troika-initiative' && relativePath.endsWith('app.js')) {
+      if (relativePath.endsWith('app.js')) {
         // Исходники расширения не меняем: подменяем только URL импорта SDK
         const source = await readFile(filePath, 'utf-8')
-        body = source.split(OBR_SDK_URL).join(OBR_SHIM_URL)
+        body = source.split(OBR_SDK_URL).join(`/extensions/${name}/obr-shim.js`)
       } else {
         body = await readFile(filePath)
       }
@@ -609,6 +609,31 @@ export function startVttServer(options: VttServerOptions): VttServer {
       console.log(`[server] бросок ${dice.join('+')} = ${total} (${socket.data.playerName})`)
       onHostEvent({ type: 'dice:roll', roll })
       onHostEvent({ type: 'chat:message', message })
+    })
+
+    socket.on('extension:update', (data) => {
+      const session = socketSession(socket)
+      if (!session) return
+      const extensionId = typeof data?.extensionId === 'string' ? data.extensionId : ''
+      // Игроки пишут только в модули, явно разрешившие это (например, лист персонажа)
+      if (!extensionId || !isExtensionPlayerWritable(extensionId)) return
+
+      let size: number
+      try {
+        size = JSON.stringify(data.state ?? null).length
+      } catch {
+        return
+      }
+      if (size > 200_000) {
+        emitError(socket, 'Слишком большой объём данных модуля')
+        return
+      }
+
+      sessionManager.updateSilent((current) => {
+        current.extensionState = { ...current.extensionState, [extensionId]: data.state }
+      })
+      io.to(session.id).emit('extension:update', { extensionId, state: data.state })
+      onHostEvent({ type: 'extension:update', extensionId, state: data.state })
     })
 
     socket.on('drawing:add', (data) => {

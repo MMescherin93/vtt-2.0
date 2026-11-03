@@ -41,12 +41,15 @@ export function BoardView() {
   const focusMap = useClientStore((state) => state.focusMap)
   const modulePanels = useClientStore((state) => state.modulePanels)
   const toggleModulePanel = useClientStore((state) => state.toggleModulePanel)
+  const publishExtensionState = useClientStore((state) => state.publishExtensionState)
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
   const labelsEnabled = extensions['token-labels'] ?? true
   const troikaEnabled = extensions['troika-initiative'] ?? false
   const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
+  const sheetEnabled = extensions['troika-sheet'] ?? false
+  const sheetOpen = sheetEnabled && (modulePanels['troika-sheet'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -111,12 +114,31 @@ export function BoardView() {
           src={`${hostUrl}/extensions/troika-initiative/index.html`}
           extensionId="troika-initiative"
           role="player"
+          metaKey="com.troika.initiative/state"
           state={session.extensionState['troika-initiative'] ?? null}
           onClose={() => toggleModulePanel('troika-initiative', false)}
           width={760}
           height={620}
           storageKey="vtt.player.panel.troika"
           defaultPosition={{ x: 300, y: 60 }}
+        />
+      )}
+
+      {sheetOpen && (
+        <ExtensionFrame
+          title="Лист персонажа «Тройка»"
+          src={`${hostUrl}/extensions/troika-sheet/index.html`}
+          extensionId="troika-sheet"
+          role="player"
+          allowPlayerWrite
+          metaKey="com.troika.sheet/state"
+          state={session.extensionState['troika-sheet'] ?? null}
+          onChange={(next) => publishExtensionState('troika-sheet', next)}
+          onClose={() => toggleModulePanel('troika-sheet', false)}
+          width={920}
+          height={720}
+          storageKey="vtt.player.panel.sheet"
+          defaultPosition={{ x: 240, y: 40 }}
         />
       )}
 

@@ -4,28 +4,45 @@
 Их **исходники не редактируются** — они хранятся как есть и адаптируются
 на уровне хоста VTT.
 
+## Общая схема адаптации
+
+1. `obr-shim.js` — наш файл в каждом модуле (копия одинаковая). Он реализует
+   срез `@owlbear-rodeo/sdk`, который используют расширения:
+   `isAvailable`, `onReady`, `player.getRole`, `player.onChange`,
+   `scene.getMetadata/setMetadata/onMetadataChange`,
+   `room.getMetadata/setMetadata/onMetadataChange` (room и scene в VTT — одно
+   и то же хранилище сессии; дублирующая запись отсекается).
+2. `id` модуля адаптер определяет по пути `/extensions/<id>/obr-shim.js`,
+   а ключ метаданных Owlbear (`metaKey`) получает от хоста сообщением
+   `config`. Поэтому один и тот же адаптер работает для всех модулей.
+3. HTTP-сервер хоста отдаёт `app.js` с заменой **только URL импорта SDK**
+   (CDN → `/extensions/<id>/obr-shim.js`). Файл на диске остаётся неизменным.
+4. Состояние модуля хранится в сессии VTT (`extensionState[<id>]`) и
+   синхронизируется событием `extension:update`. Мастер пишет через IPC;
+   модули с `playerWritable: true` принимают записи и от игроков
+   (проверка на сервере).
+5. `metaKey` и `playerWritable` объявлены в манифесте модуля
+   (`shared/plugins/builtins.ts`), а не в исходниках расширения.
+
 ## troika-initiative
 
 «Стек инициативы Тройка!» — трекер инициативы по правилам «Тройки!».
 Оригинал: отдельный проект `troika-initiative` (Owlbear Rodeo, manifest v1).
 
-Файлы скопированы без изменений:
+- Состояние: `com.troika.initiative/state`.
+- Права: пишет только Мастер, игроки смотрят.
 
-- `index.html`, `app.js`, `styles.css`, `icon.svg`
-- `manifest.json`, `README.md` — как в оригинале
+## troika-sheet
 
-Адаптация:
+«Лист персонажа Тройка!» — редактируемый лист персонажа (A4, печать/PDF).
+Оригинал: отдельный проект `troika-sheet` (Owlbear Rodeo, manifest v1).
 
-1. `obr-shim.js` — наш файл. Реализует тот срез `@owlbear-rodeo/sdk`,
-   который использует расширение (`isAvailable`, `onReady`, `player.getRole`,
-   `player.onChange`, `scene.getMetadata`, `scene.setMetadata`,
-   `scene.onMetadataChange`) и обменивается сообщениями с приложением VTT.
-2. HTTP-сервер хоста отдаёт `app.js` с заменой только URL импорта SDK
-   (CDN → `/extensions/troika-initiative/obr-shim.js`). Файл на диске
-   остаётся неизменным.
-3. Состояние расширения хранится в сессии VTT (`extensionState`)
-   и синхронизируется событием `extension:update`, поэтому Мастер и игроки
-   видят один и тот же трекер.
+- Состояние: `com.troika.sheet/state`.
+- Права: **любой участник** может редактировать листы (`playerWritable`),
+  изменения сразу видны всем и сохраняются в JSON сессии.
 
-Чтобы обновить модуль до новой версии оригинала, скопируйте файлы заново
-(кроме `obr-shim.js`) и проверьте, что используемые места SDK не изменились.
+## Обновление модуля
+
+Скопируйте файлы новой версии оригинала заново (кроме `obr-shim.js`),
+проверьте, что используемые места SDK не изменились, и при необходимости
+добавьте новый `metaKey` в `shared/plugins/builtins.ts`.

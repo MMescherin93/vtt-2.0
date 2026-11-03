@@ -49,6 +49,26 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     scope: 'both',
     defaultEnabled: false,
     icon: '/extensions/troika-initiative/icon.svg',
-    panel: true
+    panel: true,
+    metaKey: 'com.troika.initiative/state'
+  },
+  {
+    id: 'troika-sheet',
+    title: 'Лист персонажа «Тройка»',
+    description:
+      'Редактируемый лист персонажа по правилам «Тройки!». Любой участник может менять листы, состояние общее',
+    scope: 'both',
+    defaultEnabled: false,
+    icon: '/extensions/troika-sheet/icon.svg',
+    panel: true,
+    playerWritable: true,
+    metaKey: 'com.troika.sheet/state'
   }
 ]
+
+/** Может ли игрок сохранять состояние этого модуля (проверяется и на сервере) */
+export function isExtensionPlayerWritable(extensionId: string): boolean {
+  return BUILT_IN_EXTENSIONS.some(
+    (definition) => definition.id === extensionId && definition.playerWritable === true
+  )
+}

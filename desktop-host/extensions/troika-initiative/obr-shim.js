@@ -1,22 +1,34 @@
 /**
  * Адаптер Owlbear Rodeo SDK для VTT.
  *
- * Расширение «Стек инициативы Тройка» подключает @owlbear-rodeo/sdk по CDN.
- * Хост VTT подменяет только URL импорта при отдаче app.js (сам файл не меняется)
- * и отдаёт этот модуль. Он реализует ровно тот срез SDK, который использует
- * расширение, и связывает состояние сцены с сессией VTT через postMessage:
+ * Расширения «Стек инициативы» и «Лист персонажа» подключают
+ * @owlbear-rodeo/sdk по CDN. Хост VTT подменяет только URL импорта при отдаче
+ * app.js (сам файл не меняется) и отдаёт этот модуль. Он реализует ровно тот
+ * срез SDK, который используют расширения, и связывает метаданные сцены
+ * с сессией VTT через postMessage:
  *
  *   iframe  -> parent: hello, getMetadata, setMetadata
- *   parent  -> iframe: role, metadata, ready
+ *   parent  -> iframe: config, role, metadata, ready
  *
- * Метаданные сцены Owlbear представлены как { [META_KEY]: state }, поэтому
- * расширение видит привычную структуру.
+ * Метаданные Owlbear представлены как { [metaKey]: state }, где metaKey
+ * приходит от хоста (у каждого модуля свой).
  */
 
-const EXT_ID = 'troika-initiative'
-const META_KEY = 'com.troika.initiative/state'
+/** id модуля определяется по пути: /extensions/<id>/obr-shim.js */
+function detectExtensionId() {
+  try {
+    const match = window.location.pathname.match(/\/extensions\/([^/]+)\//)
+    if (match) return match[1]
+  } catch {
+    /* не в браузере */
+  }
+  return 'troika-initiative'
+}
 
-const wrapState = (state) => ({ [META_KEY]: state })
+const EXT_ID = detectExtensionId()
+let metaKey = `com.troika.${EXT_ID.replace(/^troika-/, '')}/state`
+
+const wrapState = (state) => ({ [metaKey]: state })
 
 function send(message) {
   try {
@@ -30,6 +42,8 @@ let role = null
 let state = null
 let hasState = false
 let ready = false
+/** Последнее отправленное состояние — чтобы не дублировать запись room+scene */
+let lastSentJson = null
 
 const roleResolvers = []
 const readyCallbacks = []
@@ -68,6 +82,12 @@ function applyRole(value) {
 function applyState(value) {
   state = value
   hasState = true
+  try {
+    // Если пришло чужое состояние, разрешаем отправить такое же ещё раз
+    if (JSON.stringify(value) !== lastSentJson) lastSentJson = null
+  } catch {
+    lastSentJson = null
+  }
   metadataCallbacks.forEach((callback) => {
     try {
       callback(wrapState(value))
@@ -98,6 +118,10 @@ window.addEventListener('message', (event) => {
     applyRole(data.role)
     return
   }
+  if (data.type === 'config' && typeof data.metaKey === 'string' && data.metaKey) {
+    metaKey = data.metaKey
+    return
+  }
   if (data.type === 'metadata') {
     applyState(data.state ?? null)
     if (data.reqId && requests.has(data.reqId)) {
@@ -116,12 +140,24 @@ const scene = {
   },
   setMetadata(meta) {
     const value =
-      meta && typeof meta === 'object' ? meta[META_KEY] ?? (meta.items && meta.items[META_KEY]) : undefined
-    if (value !== undefined) {
-      state = value
-      hasState = true
-      send({ type: 'setMetadata', state: value })
+      meta && typeof meta === 'object'
+        ? meta[metaKey] ?? (meta.items && meta.items[metaKey])
+        : undefined
+    if (value === undefined) return Promise.resolve()
+
+    let json = null
+    try {
+      json = JSON.stringify(value)
+    } catch {
+      json = null
     }
+    // Расширения могут писать и в room, и в scene — дубликат не отправляем
+    if (json !== null && json === lastSentJson) return Promise.resolve()
+
+    state = value
+    hasState = true
+    if (json !== null) lastSentJson = json
+    send({ type: 'setMetadata', state: value })
     return Promise.resolve()
   },
   onMetadataChange(callback) {
@@ -131,6 +167,16 @@ const scene = {
       if (index >= 0) metadataCallbacks.splice(index, 1)
     }
   }
+}
+
+/**
+ * В Owlbear Rodeo метаданные комнаты и сцены — разные хранилища.
+ * В VTT общее состояние сессии одно, поэтому room — это тот же scene.
+ */
+const room = {
+  getMetadata: () => scene.getMetadata(),
+  setMetadata: (meta) => scene.setMetadata(meta),
+  onMetadataChange: (callback) => scene.onMetadataChange(callback)
 }
 
 const player = {
@@ -172,8 +218,8 @@ const OBR = {
   },
   player,
   scene,
+  room,
   // Заглушки на случай обращений к неиспользуемым частям SDK
-  room: {},
   party: {},
   viewport: {},
   notification: { show: () => Promise.resolve() }

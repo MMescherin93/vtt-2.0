@@ -61,6 +61,8 @@ export function BoardView() {
   const labelsEnabled = extensions['token-labels'] ?? true
   const troikaEnabled = extensions['troika-initiative'] ?? false
   const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
+  const sheetEnabled = extensions['troika-sheet'] ?? false
+  const sheetOpen = sheetEnabled && (modulePanels['troika-sheet'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -176,6 +178,7 @@ export function BoardView() {
           src={`${assetsBaseUrl}/extensions/troika-initiative/index.html`}
           extensionId="troika-initiative"
           role="gm"
+          metaKey="com.troika.initiative/state"
           state={session.extensionState['troika-initiative'] ?? null}
           onChange={(next) => void setExtensionState('troika-initiative', next)}
           onClose={() => toggleModulePanel('troika-initiative', false)}
@@ -183,6 +186,23 @@ export function BoardView() {
           height={620}
           storageKey="vtt.gm.panel.troika"
           defaultPosition={{ x: 300, y: 60 }}
+        />
+      )}
+
+      {sheetOpen && (
+        <ExtensionFrame
+          title="Лист персонажа «Тройка»"
+          src={`${assetsBaseUrl}/extensions/troika-sheet/index.html`}
+          extensionId="troika-sheet"
+          role="gm"
+          metaKey="com.troika.sheet/state"
+          state={session.extensionState['troika-sheet'] ?? null}
+          onChange={(next) => void setExtensionState('troika-sheet', next)}
+          onClose={() => toggleModulePanel('troika-sheet', false)}
+          width={920}
+          height={720}
+          storageKey="vtt.gm.panel.sheet"
+          defaultPosition={{ x: 240, y: 40 }}
         />
       )}
 

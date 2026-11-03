@@ -66,6 +66,8 @@ interface ClientState {
   addChat: (message: ChatMessageData) => void
   addRoll: (roll: DiceRollResultData) => void
   setExtensionState: (extensionId: string, state: unknown) => void
+  /** Отправить состояние модуля на сервер (модули с playerWritable) */
+  publishExtensionState: (extensionId: string, state: unknown) => void
 
   moveToken: (tokenId: string, x: number, y: number) => void
   transformToken: (
@@ -175,6 +177,18 @@ export const useClientStore = create<ClientState>()(
             extensionState: { ...session.extensionState, [extensionId]: state }
           }
         })
+      },
+      publishExtensionState: (extensionId, state) => {
+        const session = get().session
+        if (session) {
+          set({
+            session: {
+              ...session,
+              extensionState: { ...session.extensionState, [extensionId]: state }
+            }
+          })
+        }
+        socket.emit('extension:update', { extensionId, state })
       },
       setPlayers: (players) => set({ players }),
       setClosed: (reason) =>

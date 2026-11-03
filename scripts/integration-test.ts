@@ -209,6 +209,42 @@ async function main(): Promise<void> {
     'выход за папку расширений заблокирован'
   )
 
+  const sheetApp = await fetch(`http://localhost:${PORT}/extensions/troika-sheet/app.js`)
+  const sheetSource = await sheetApp.text()
+  check(
+    sheetApp.status === 200 &&
+      sheetSource.includes('/extensions/troika-sheet/obr-shim.js') &&
+      !sheetSource.includes('cdn.jsdelivr.net/npm/@owlbear-rodeo'),
+    'лист персонажа отдаётся с локальным адаптером SDK'
+  )
+
+  // Лист персонажа может сохранять любой игрок
+  const sheetPromise = watch<{ extensionId: string; state: unknown }>(client, 'extension:update')
+  client.emit('extension:update', {
+    extensionId: 'troika-sheet',
+    state: { chars: [{ id: 'c1', fields: { name: 'Тарвин' } }] }
+  })
+  const sheetUpdate = await sheetPromise
+  check(
+    sheetUpdate.extensionId === 'troika-sheet' &&
+      Array.isArray((sheetUpdate.state as { chars?: unknown[] }).chars),
+    'игрок может сохранить лист персонажа (общее состояние)'
+  )
+
+  // В модуль инициативы игрок писать не может
+  let forbiddenUpdate = false
+  const onForbidden = (): void => {
+    forbiddenUpdate = true
+  }
+  client.once('extension:update', onForbidden)
+  client.emit('extension:update', {
+    extensionId: 'troika-initiative',
+    state: { round: 99 }
+  })
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  client.off('extension:update', onForbidden)
+  check(!forbiddenUpdate, 'в GM-модуль инициативы игрок записать не может')
+
   const fogErrorPromise = watch<{ message: string }>(client, 'error:message')
   client.emit('fog:update', { covered: false, ops: [] })
   const fogError = await fogErrorPromise

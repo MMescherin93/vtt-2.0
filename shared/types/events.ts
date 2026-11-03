@@ -77,6 +77,8 @@ export interface ClientToServerEvents {
   'client:join': (data: ClientJoinData, ack?: (res: ClientJoinAck) => void) => void
   /** Запрос состояния; ответ — событие 'session:update' */
   'session:request': () => void
+  /** Сохранить состояние модуля (только модули с playerWritable) */
+  'extension:update': (data: ExtensionUpdateData) => void
   /** Перемещение токена (двигать может любой участник — уточнение 4) */
   'token:move': (data: TokenMoveData) => void
   /** Перемещение/размер/поворот токена */
