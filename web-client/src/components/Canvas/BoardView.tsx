@@ -1,6 +1,13 @@
 import { useEffect } from 'react'
 import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
-import { Board, ChatPanel, DicePanel, ExtensionsPanel, PuzzleIcon } from '@vtt/shared/ui'
+import {
+  Board,
+  ChatPanel,
+  DicePanel,
+  ExtensionsPanel,
+  MapSwitcher,
+  PuzzleIcon
+} from '@vtt/shared/ui'
 import { useClientStore } from '../../store/useClientStore'
 import { hostUrl } from '../../socket'
 import { ClientToolbar } from '../Toolbar/ClientToolbar'
@@ -26,6 +33,10 @@ export function BoardView() {
   const setNotice = useClientStore((state) => state.setNotice)
   const extensions = useClientStore((state) => state.extensions)
   const toggleExtension = useClientStore((state) => state.toggleExtension)
+  const activeMapId = useClientStore((state) => state.activeMapId)
+  const focusRequest = useClientStore((state) => state.focusRequest)
+  const setActiveMap = useClientStore((state) => state.setActiveMap)
+  const focusMap = useClientStore((state) => state.focusMap)
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
@@ -60,6 +71,8 @@ export function BoardView() {
           // Туман войны меняет только Мастер
         }}
         showTokenLabels={labelsEnabled}
+        focusMap={focusRequest}
+        onActiveMapChange={setActiveMap}
       />
 
       <div className="pointer-events-none fixed left-3 top-3 z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-1.5 shadow-xl backdrop-blur-xl">
@@ -77,6 +90,14 @@ export function BoardView() {
       </div>
 
       <ClientToolbar />
+
+      <MapSwitcher
+        maps={session.maps}
+        sessionId={session.id}
+        assetsBaseUrl={hostUrl}
+        activeMapId={activeMapId}
+        onSelect={focusMap}
+      />
 
       {chatEnabled && panels.chat && (
         <ChatPanel

@@ -1,5 +1,13 @@
 import { useRef, type ChangeEvent } from 'react'
-import { FloatingPanel, FogIcon, GridIcon, ImageIcon, TrashIcon, UploadIcon } from '@vtt/shared/ui'
+import {
+  ChevronIcon,
+  FloatingPanel,
+  FogIcon,
+  GridIcon,
+  ImageIcon,
+  TrashIcon,
+  UploadIcon
+} from '@vtt/shared/ui'
 import type { GridType } from '@vtt/shared'
 import { GRID_TYPE_LABELS } from '@vtt/shared/utils'
 import { useHostStore } from '../../store/useHostStore'
@@ -50,7 +58,7 @@ export function MapPanel() {
             </p>
           ) : (
             <ul className="space-y-1">
-              {session.maps.map((map) => (
+              {session.maps.map((map, index) => (
                 <li
                   key={map.id}
                   className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5"
@@ -63,6 +71,30 @@ export function MapPanel() {
                       {map.width} × {map.height} px
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateSessionPatch({ moveMap: { mapId: map.id, direction: 'left' } })
+                    }
+                    disabled={index === 0}
+                    title="Сдвинуть карту влево"
+                    aria-label="Сдвинуть карту влево"
+                    className="flex h-6 w-5 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
+                  >
+                    <ChevronIcon size={12} className="rotate-180" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateSessionPatch({ moveMap: { mapId: map.id, direction: 'right' } })
+                    }
+                    disabled={index === session.maps.length - 1}
+                    title="Сдвинуть карту вправо"
+                    aria-label="Сдвинуть карту вправо"
+                    className="flex h-6 w-5 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
+                  >
+                    <ChevronIcon size={12} />
+                  </button>
                   <button
                     type="button"
                     onClick={() => void removeMap(map.id)}

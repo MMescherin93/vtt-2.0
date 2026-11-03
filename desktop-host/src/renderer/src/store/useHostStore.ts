@@ -15,7 +15,7 @@ import type {
   SessionPatch,
   TokenPatchInput
 } from '../../../shared/ipc'
-import type { DrawStyle, FogTool, Tool } from '@vtt/shared/ui'
+import type { DrawStyle, FogTool, MapFocusRequest, Tool } from '@vtt/shared/ui'
 import { worldCenter } from '@vtt/shared/utils'
 import {
   BUILT_IN_EXTENSIONS,
@@ -55,6 +55,10 @@ interface HostState {
   panels: HostPanels
   /** Включённость расширений (см. shared/plugins) */
   extensions: ExtensionValues
+  /** Карта, которая сейчас в центре экрана (мини-индикатор) */
+  activeMapId: string | null
+  /** Запрос перелёта камеры к карте */
+  focusRequest: MapFocusRequest | null
 
   setStatus: (status: ServerStatus) => void
   setScreen: (screen: HostScreen) => void
@@ -76,6 +80,8 @@ interface HostState {
   setSelectedToken: (tokenId: string | null) => void
   togglePanel: (panel: keyof HostPanels) => void
   toggleExtension: (extensionId: string, enabled: boolean) => void
+  setActiveMap: (mapId: string | null) => void
+  focusMap: (mapId: string) => void
 
   updateSessionPatch: (patch: SessionPatch) => Promise<void>
   uploadMap: (file: File) => Promise<void>
@@ -149,6 +155,8 @@ export const useHostStore = create<HostState>()(
         extensions: false
       },
       extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
+      activeMapId: null,
+      focusRequest: null,
 
       setStatus: (status) => set({ status }),
       setScreen: (screen) => set({ screen }),
@@ -280,6 +288,11 @@ export const useHostStore = create<HostState>()(
       toggleFogPreview: () => set({ showFogPreview: !get().showFogPreview }),
       setSelectedToken: (selectedTokenId) => set({ selectedTokenId }),
       togglePanel: (panel) => set({ panels: { ...get().panels, [panel]: !get().panels[panel] } }),
+      setActiveMap: (activeMapId) => set({ activeMapId }),
+      focusMap: (mapId) =>
+        set((state) => ({
+          focusRequest: { mapId, seq: (state.focusRequest?.seq ?? 0) + 1 }
+        })),
 
       toggleExtension: (extensionId, enabled) => {
         const extensions = { ...get().extensions, [extensionId]: enabled }

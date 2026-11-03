@@ -17,7 +17,7 @@ import {
   defaultExtensionValues,
   type ExtensionValues
 } from '@vtt/shared/plugins'
-import type { DrawStyle, Tool } from '@vtt/shared/ui'
+import type { DrawStyle, MapFocusRequest, Tool } from '@vtt/shared/ui'
 import { SESSION_ID, socket } from '../socket'
 
 export type ClientStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -41,6 +41,10 @@ interface ClientState {
   panels: { chat: boolean; dice: boolean; extensions: boolean }
   /** Включённость расширений (см. shared/plugins) */
   extensions: ExtensionValues
+  /** Карта, которая сейчас в центре экрана (мини-индикатор) */
+  activeMapId: string | null
+  /** Запрос перелёта камеры к карте */
+  focusRequest: MapFocusRequest | null
 
   setStatus: (status: ClientStatus) => void
   setJoined: (joined: boolean, selfId?: string) => void
@@ -74,6 +78,8 @@ interface ClientState {
   setSelectedToken: (tokenId: string | null) => void
   togglePanel: (panel: 'chat' | 'dice' | 'extensions') => void
   toggleExtension: (extensionId: string, enabled: boolean) => void
+  setActiveMap: (mapId: string | null) => void
+  focusMap: (mapId: string) => void
 }
 
 function withTokenPatch(session: Session | null, patch: TokenPatch): Session | null {
@@ -115,6 +121,8 @@ export const useClientStore = create<ClientState>()(
       selectedTokenId: null,
       panels: { chat: true, dice: false, extensions: false },
       extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
+      activeMapId: null,
+      focusRequest: null,
 
       setStatus: (status) => set({ status }),
       setJoined: (joined, selfId) =>
@@ -227,6 +235,11 @@ export const useClientStore = create<ClientState>()(
       setDrawStyle: (style) => set({ drawStyle: { ...get().drawStyle, ...style } }),
       setSelectedToken: (selectedTokenId) => set({ selectedTokenId }),
       togglePanel: (panel) => set({ panels: { ...get().panels, [panel]: !get().panels[panel] } }),
+      setActiveMap: (activeMapId) => set({ activeMapId }),
+      focusMap: (mapId) =>
+        set((state) => ({
+          focusRequest: { mapId, seq: (state.focusRequest?.seq ?? 0) + 1 }
+        })),
 
       toggleExtension: (extensionId, enabled) => {
         const extensions = { ...get().extensions, [extensionId]: enabled }

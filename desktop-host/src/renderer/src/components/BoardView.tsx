@@ -6,6 +6,7 @@ import {
   DicePanel,
   ChevronIcon,
   ExtensionsPanel,
+  MapSwitcher,
   PuzzleIcon
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
@@ -45,6 +46,10 @@ export function BoardView() {
   const setError = useHostStore((state) => state.setError)
   const extensions = useHostStore((state) => state.extensions)
   const toggleExtension = useHostStore((state) => state.toggleExtension)
+  const activeMapId = useHostStore((state) => state.activeMapId)
+  const focusRequest = useHostStore((state) => state.focusRequest)
+  const setActiveMap = useHostStore((state) => state.setActiveMap)
+  const focusMap = useHostStore((state) => state.focusMap)
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
@@ -81,6 +86,8 @@ export function BoardView() {
         onAddDrawing={addDrawing}
         onFogChange={changeFog}
         showTokenLabels={labelsEnabled}
+        focusMap={focusRequest}
+        onActiveMapChange={setActiveMap}
         onFilesDropped={(files, world) => {
           const image = files.find((file) => file.type.startsWith('image/'))
           if (!image) {
@@ -113,6 +120,14 @@ export function BoardView() {
       </div>
 
       <HostToolbar />
+
+      <MapSwitcher
+        maps={session.maps}
+        sessionId={session.id}
+        assetsBaseUrl={assetsBaseUrl}
+        activeMapId={activeMapId}
+        onSelect={focusMap}
+      />
 
       {chatEnabled && panels.chat && (
         <ChatPanel

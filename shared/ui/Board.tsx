@@ -91,6 +91,8 @@ export function Board({
   onFogChange,
   onFilesDropped,
   showTokenLabels = true,
+  focusMap = null,
+  onActiveMapChange,
   disabled = false
 }: BoardProps) {
   const layout = useMemo(() => layoutMaps(session.maps), [session.maps])
@@ -132,6 +134,45 @@ export function Board({
   useEffect(() => {
     saveCamera(storageKey, camera)
   }, [camera, storageKey])
+
+  // Перелёт камеры к выбранной в мини-индикаторе карте (один раз на клик)
+  const focusSeqRef = useRef(0)
+  useEffect(() => {
+    if (!focusMap || viewport.width < 20 || viewport.height < 20) return
+    if (focusMap.seq === focusSeqRef.current) return
+    focusSeqRef.current = focusMap.seq
+
+    const placement = layout.items.find((item) => item.map.id === focusMap.mapId)
+    if (!placement) return
+
+    const fitted = fitCamera(
+      viewport,
+      { width: placement.map.width, height: placement.map.height },
+      60
+    )
+    // Центрируем именно карту: пустое поле вокруг допустимо, поэтому без clampCamera
+    setCamera({
+      x: fitted.x - placement.x * fitted.scale,
+      y: fitted.y - placement.y * fitted.scale,
+      scale: fitted.scale
+    })
+  }, [focusMap, layout, viewport, field])
+
+  // Сообщаем приложению, какая карта в центре экрана
+  const activeMapRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!onActiveMapChange) return
+    if (viewport.width < 20) return
+    const centerX = (viewport.width / 2 - camera.x) / camera.scale
+    const placement = layout.items.find(
+      (item) => centerX >= item.x && centerX <= item.x + item.map.width
+    )
+    const mapId = placement?.map.id ?? null
+    if (activeMapRef.current !== mapId) {
+      activeMapRef.current = mapId
+      onActiveMapChange(mapId)
+    }
+  }, [camera, layout, viewport.width, onActiveMapChange])
 
   // Пробел — временное панорамирование
   useEffect(() => {

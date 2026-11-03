@@ -2,6 +2,12 @@ import type { DrawingInput, FogOfWarData } from '../../types/map'
 import type { Session } from '../../types/session'
 import type { PlayerRole } from '../../types/session'
 
+/** Запрос камеры к конкретной карте (seq меняется при каждом клике) */
+export interface MapFocusRequest {
+  mapId: string
+  seq: number
+}
+
 /** Инструменты (ТЗ, п.8): выбор, перемещение, рисование, туман войны */
 export type Tool = 'select' | 'pan' | 'draw' | 'erase' | 'fog'
 
@@ -46,5 +52,9 @@ export interface BoardProps {
   onFilesDropped?: (files: File[], world: { x: number; y: number }) => void
   /** Показывать имена токенов (расширение «Подписи токенов») */
   showTokenLabels?: boolean
+  /** Перелёт камеры к карте (мини-индикатор карт) */
+  focusMap?: MapFocusRequest | null
+  /** Какая карта сейчас в центре экрана */
+  onActiveMapChange?: (mapId: string | null) => void
   disabled?: boolean
 }

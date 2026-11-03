@@ -95,6 +95,8 @@ export interface SessionPatch {
   removeMapId?: string
   /** Удалить все карты */
   clearMaps?: boolean
+  /** Переставить карту на соседнюю позицию */
+  moveMap?: { mapId: string; direction: 'left' | 'right' }
 }
 
 export interface AddAssetInput {

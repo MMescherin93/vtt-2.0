@@ -216,6 +216,14 @@ function registerIpc(): void {
           current.maps.push({ id: newId('map'), imageUrl, width, height })
         }
       }
+      if (patch.moveMap) {
+        const index = current.maps.findIndex((map) => map.id === patch.moveMap!.mapId)
+        const target = patch.moveMap.direction === 'left' ? index - 1 : index + 1
+        if (index >= 0 && target >= 0 && target < current.maps.length) {
+          const [moved] = current.maps.splice(index, 1)
+          if (moved) current.maps.splice(target, 0, moved)
+        }
+      }
       if (patch.settings) {
         const { gridType, gridSize, showGrid } = patch.settings
         if (gridType === 'square' || gridType === 'hex' || gridType === 'none') {

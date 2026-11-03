@@ -1,6 +1,7 @@
 export * from './Board'
 export * from './FloatingPanel'
 export * from './ToolbarButton'
+export * from './MapSwitcher'
 export * from './icons'
 export * from './assets'
 export * from './useElementSize'
