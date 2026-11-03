@@ -70,13 +70,13 @@ export function ExtensionsPanel({
                 aria-checked={enabled}
                 aria-label={`${definition.title}: ${enabled ? 'включено' : 'выключено'}`}
                 onClick={() => onToggle(definition.id, !enabled)}
-                className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors ${
+                className={`mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors ${
                   enabled ? 'bg-indigo-500' : 'bg-white/15'
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  className={`h-4 w-4 rounded-full bg-white shadow transition-transform duration-150 ${
+                    enabled ? 'translate-x-4' : 'translate-x-0'
                   }`}
                 />
               </button>
