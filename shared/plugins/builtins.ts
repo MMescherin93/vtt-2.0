@@ -1,4 +1,18 @@
-import type { ExtensionDefinition } from './types'
+import type { ExtensionCategory, ExtensionDefinition } from './types'
+
+/** Разделы каталога расширений (порядок отображения) */
+export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
+  {
+    id: 'basic',
+    title: 'Базовые',
+    description: 'Общие инструменты стола: кубики, чат, рисование, карта'
+  },
+  {
+    id: 'troika',
+    title: 'Тройка!',
+    description: 'Модули для системы «Тройка!»: инициатива и листы персонажей'
+  }
+]
 
 /**
  * Встроенные расширения v1.0.
@@ -11,35 +25,40 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     title: 'Кубики',
     description: 'Броски d4–d100, история и результат в чате',
     scope: 'both',
-    defaultEnabled: true
+    defaultEnabled: true,
+    category: 'basic'
   },
   {
     id: 'chat',
     title: 'Чат',
     description: 'Общий чат стола с именами отправителей и временем',
     scope: 'both',
-    defaultEnabled: true
+    defaultEnabled: true,
+    category: 'basic'
   },
   {
     id: 'drawing',
     title: 'Рисование',
     description: 'Карандаш и ластик: цвет, толщина, общая доска',
     scope: 'both',
-    defaultEnabled: true
+    defaultEnabled: true,
+    category: 'basic'
   },
   {
     id: 'fog',
     title: 'Туман войны',
     description: 'Кисть, ластик и область — управляет только Мастер',
     scope: 'gm',
-    defaultEnabled: true
+    defaultEnabled: true,
+    category: 'basic'
   },
   {
     id: 'token-labels',
     title: 'Подписи токенов',
     description: 'Показывать имена токенов на карте всем участникам',
     scope: 'both',
-    defaultEnabled: true
+    defaultEnabled: true,
+    category: 'basic'
   },
   {
     id: 'troika-initiative',
@@ -48,6 +67,7 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
       'Стек инициативы по правилам «Тройки!»: жетоны, раунды, отсрочка и прицеливание. Состояние общее для стола',
     scope: 'both',
     defaultEnabled: false,
+    category: 'troika',
     icon: '/extensions/troika-initiative/icon.svg',
     panel: true,
     metaKey: 'com.troika.initiative/state'
@@ -59,6 +79,7 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
       'Редактируемый лист персонажа по правилам «Тройки!». Любой участник может менять листы, состояние общее',
     scope: 'both',
     defaultEnabled: false,
+    category: 'troika',
     icon: '/extensions/troika-sheet/icon.svg',
     panel: true,
     playerWritable: true,

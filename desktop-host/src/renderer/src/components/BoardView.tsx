@@ -222,7 +222,7 @@ export function BoardView() {
           role="gm"
           onToggle={toggleExtension}
           onClose={() => togglePanel('extensions')}
-          storageKey="vtt.gm.panel.extensions"
+          storageKey="vtt.gm.panel.extensions.v2"
           defaultPosition={{ x: 380, y: 380 }}
         />
       )}

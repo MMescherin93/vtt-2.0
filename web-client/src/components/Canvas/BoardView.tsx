@@ -186,7 +186,7 @@ export function BoardView() {
           role="player"
           readOnly
           onClose={() => togglePanel('extensions')}
-          storageKey="vtt.player.panel.extensions"
+          storageKey="vtt.player.panel.extensions.v2"
           defaultPosition={{ x: 380, y: 380 }}
         />
       )}

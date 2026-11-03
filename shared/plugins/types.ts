@@ -1,14 +1,21 @@
 /**
  * Расширения (плагины) стола.
  *
- * Каждое расширение — самостоятельный модуль с манифестом. Значения
- * включённости хранятся у клиента и переживают перезагрузку страницы.
- * Ядро не знает о конкретных расширениях: интерфейс собирает список
+ * Каждое расширение — самостоятельный модуль с манифестом. Включённость
+ * хранится в сессии (`Session.enabledExtensions`) и общая для стола;
+ * ядро не знает о конкретных расширениях: интерфейс собирает список
  * из реестра и спрашивает `isExtensionEnabled`.
  */
 
 /** Для кого доступно расширение */
 export type ExtensionScope = 'both' | 'gm' | 'player'
+
+/** Раздел каталога расширений (как категории в Owlbear Rodeo) */
+export interface ExtensionCategory {
+  id: string
+  title: string
+  description?: string
+}
 
 /** Манифест расширения (слот `extension`) */
 export interface ExtensionDefinition {
@@ -17,6 +24,8 @@ export interface ExtensionDefinition {
   description: string
   scope: ExtensionScope
   defaultEnabled: boolean
+  /** Раздел каталога; по умолчанию — «Базовые» */
+  category?: string
   /** Путь к иконке модуля на HTTP-сервере хоста (например, /extensions/x/icon.svg) */
   icon?: string
   /** Есть ли разворачиваемая панель: такой модуль получает иконку в доке справа сверху */

@@ -3,6 +3,7 @@ import { rm } from 'node:fs/promises'
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents, Session, Token } from '@vtt/shared'
 import { layoutMaps, newId } from '@vtt/shared/utils'
+import { BUILT_IN_EXTENSIONS, EXTENSION_CATEGORIES } from '@vtt/shared/plugins'
 import type { HostServerEvent } from '../desktop-host/src/shared/ipc'
 import { SessionManager } from '../desktop-host/src/main/session'
 import { startVttServer } from '../desktop-host/src/main/server'
@@ -125,6 +126,13 @@ async function main(): Promise<void> {
       mergedChars.chars.find((item) => item.id === 'b')?.name === 'B2' &&
       mergedChars.chars.some((item) => item.id === 'c'),
     'правки разных листов объединяются без потерь'
+  )
+
+  const categories = new Set(EXTENSION_CATEGORIES.map((category) => category.id))
+  check(
+    EXTENSION_CATEGORIES.some((category) => category.id === 'troika') &&
+      BUILT_IN_EXTENSIONS.every((definition) => categories.has(definition.category ?? 'basic')),
+    'все расширения разложены по разделам каталога'
   )
 
   const layout = layoutMaps([
