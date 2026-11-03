@@ -42,7 +42,7 @@ export function HostToolbar() {
   const panels = useHostStore((state) => state.panels)
   const togglePanel = useHostStore((state) => state.togglePanel)
   const selectedTokenId = useHostStore((state) => state.selectedTokenId)
-  const extensions = useHostStore((state) => state.extensions)
+  const extensions = session?.enabledExtensions ?? {}
   const renameToken = useHostStore((state) => state.renameToken)
   const tokens = session?.tokens ?? []
   const selectedToken = tokens.find((token) => token.id === selectedTokenId) ?? null

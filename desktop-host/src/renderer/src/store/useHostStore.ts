@@ -17,11 +17,7 @@ import type {
 } from '../../../shared/ipc'
 import type { DrawStyle, FogTool, MapFocusRequest, Tool } from '@vtt/shared/ui'
 import { worldCenter } from '@vtt/shared/utils'
-import {
-  BUILT_IN_EXTENSIONS,
-  defaultExtensionValues,
-  type ExtensionValues
-} from '@vtt/shared/plugins'
+import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 
 export type HostScreen = 'sessions' | 'table'
 
@@ -53,8 +49,6 @@ interface HostState {
   showFogPreview: boolean
   selectedTokenId: string | null
   panels: HostPanels
-  /** Включённость расширений (см. shared/plugins) */
-  extensions: ExtensionValues
   /** Развёрнутые панели модулей (иконки в правом верхнем углу) */
   modulePanels: Record<string, boolean>
   /** Карта, которая сейчас в центре экрана (мини-индикатор) */
@@ -129,14 +123,7 @@ const DRAW_COLORS = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#f8
 
 type PersistedHostUi = Pick<
   HostState,
-  | 'tool'
-  | 'drawStyle'
-  | 'fogTool'
-  | 'fogBrushSize'
-  | 'showFogPreview'
-  | 'panels'
-  | 'extensions'
-  | 'modulePanels'
+  'tool' | 'drawStyle' | 'fogTool' | 'fogBrushSize' | 'showFogPreview' | 'panels' | 'modulePanels'
 >
 
 export const useHostStore = create<HostState>()(
@@ -167,7 +154,6 @@ export const useHostStore = create<HostState>()(
         players: false,
         extensions: false
       },
-      extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
       modulePanels: {},
       activeMapId: null,
       focusRequest: null,
@@ -321,8 +307,8 @@ export const useHostStore = create<HostState>()(
         })),
 
       toggleExtension: (extensionId, enabled) => {
-        const extensions = { ...get().extensions, [extensionId]: enabled }
-        const patch: Partial<HostState> = { extensions }
+        const session = get().session
+        const patch: Partial<HostState> = {}
         // Если выключили расширение, активный инструмент из него сбрасываем
         const tool = get().tool
         if (extensionId === 'fog' && !enabled && tool === 'fog') patch.tool = 'select'
@@ -340,7 +326,16 @@ export const useHostStore = create<HostState>()(
         if (definition?.panel) {
           patch.modulePanels = { ...get().modulePanels, [extensionId]: enabled }
         }
+        if (session) {
+          patch.session = {
+            ...session,
+            enabledExtensions: { ...session.enabledExtensions, [extensionId]: enabled }
+          }
+        }
         set(patch)
+        if (session) {
+          void window.hostApi.updateSession({ setExtensionEnabled: { extensionId, enabled } })
+        }
       },
 
       toggleModulePanel: (extensionId, open) => {
@@ -486,7 +481,6 @@ export const useHostStore = create<HostState>()(
         fogBrushSize: state.fogBrushSize,
         showFogPreview: state.showFogPreview,
         panels: state.panels,
-        extensions: state.extensions,
         modulePanels: state.modulePanels
       })
     }

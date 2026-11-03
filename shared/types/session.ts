@@ -55,6 +55,8 @@ export interface Session {
   fogOfWar: FogOfWarData
   drawings: Drawing[]
   settings: MapSettings
+  /** Включённые расширения (общие для сессии; переключает только Мастер) */
+  enabledExtensions: Record<string, boolean>
   /** Состояние расширений (модулей) в рамках сессии: id → данные модуля */
   extensionState: Record<string, unknown>
   /** История чата (ограничена сервером) */

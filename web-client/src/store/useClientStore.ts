@@ -12,11 +12,6 @@ import type {
   TokenPatch
 } from '@vtt/shared'
 import { newId } from '@vtt/shared/utils'
-import {
-  BUILT_IN_EXTENSIONS,
-  defaultExtensionValues,
-  type ExtensionValues
-} from '@vtt/shared/plugins'
 import type { DrawStyle, MapFocusRequest, Tool } from '@vtt/shared/ui'
 import { SESSION_ID, socket } from '../socket'
 
@@ -39,8 +34,6 @@ interface ClientState {
   drawStyle: DrawStyle
   selectedTokenId: string | null
   panels: { chat: boolean; dice: boolean; extensions: boolean }
-  /** Включённость расширений (см. shared/plugins) */
-  extensions: ExtensionValues
   /** Развёрнутые панели модулей (иконки в правом верхнем углу) */
   modulePanels: Record<string, boolean>
   /** Карта, которая сейчас в центре экрана (мини-индикатор) */
@@ -108,10 +101,7 @@ function withTokenPatch(session: Session | null, patch: TokenPatch): Session | n
   }
 }
 
-type PersistedClientUi = Pick<
-  ClientState,
-  'tool' | 'drawStyle' | 'panels' | 'extensions' | 'modulePanels'
->
+type PersistedClientUi = Pick<ClientState, 'tool' | 'drawStyle' | 'panels' | 'modulePanels'>
 
 export const useClientStore = create<ClientState>()(
   persist<ClientState, [], [], PersistedClientUi>(
@@ -130,7 +120,6 @@ export const useClientStore = create<ClientState>()(
       drawStyle: { color: '#38bdf8', size: 6 },
       selectedTokenId: null,
       panels: { chat: true, dice: false, extensions: false },
-      extensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
       modulePanels: {},
       activeMapId: null,
       focusRequest: null,
@@ -274,9 +263,10 @@ export const useClientStore = create<ClientState>()(
           focusRequest: { mapId, seq: (state.focusRequest?.seq ?? 0) + 1 }
         })),
 
+      // Игрок не включает расширения: это делает Мастер для всей сессии.
+      // Здесь оставлено только локальное закрытие панелей при выключении.
       toggleExtension: (extensionId, enabled) => {
-        const extensions = { ...get().extensions, [extensionId]: enabled }
-        const patch: Partial<ClientState> = { extensions }
+        const patch: Partial<ClientState> = {}
         const tool = get().tool
         if (extensionId === 'drawing' && !enabled && (tool === 'draw' || tool === 'erase')) {
           patch.tool = 'select'
@@ -286,10 +276,6 @@ export const useClientStore = create<ClientState>()(
         }
         if (extensionId === 'dice' && !enabled) {
           patch.panels = { ...get().panels, dice: false }
-        }
-        const definition = BUILT_IN_EXTENSIONS.find((item) => item.id === extensionId)
-        if (definition?.panel) {
-          patch.modulePanels = { ...get().modulePanels, [extensionId]: enabled }
         }
         set(patch)
       },
@@ -305,7 +291,6 @@ export const useClientStore = create<ClientState>()(
         tool: state.tool,
         drawStyle: state.drawStyle,
         panels: state.panels,
-        extensions: state.extensions,
         modulePanels: state.modulePanels
       })
     }

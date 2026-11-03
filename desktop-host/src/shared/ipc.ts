@@ -98,6 +98,8 @@ export interface SessionPatch {
   clearMaps?: boolean
   /** Переставить карту на соседнюю позицию */
   moveMap?: { mapId: string; direction: 'left' | 'right' }
+  /** Включить/выключить расширение для всей сессии (только Мастер) */
+  setExtensionEnabled?: { extensionId: string; enabled: boolean }
 }
 
 export interface AddAssetInput {

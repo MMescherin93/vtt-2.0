@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { ExtensionDefinition } from '../plugins/types'
 import { FloatingPanel } from './FloatingPanel'
+import { mergeWithBaseline, withLocalSelection, writeSelection } from './extensionState'
 
 export interface ExtensionFrameProps {
   title: string
@@ -17,6 +18,10 @@ export interface ExtensionFrameProps {
   allowPlayerWrite?: boolean
   /** Ключ метаданных Owlbear, под которым модуль хранит состояние */
   metaKey?: string
+  /** У каждого клиента свой выбор внутри модуля (например, текущий лист) */
+  perClientSelection?: boolean
+  /** Ключ массива, элементы которого сливаются по id между клиентами */
+  mergeListKey?: string
   onClose?: () => void
   width?: number
   height?: number
@@ -42,6 +47,8 @@ export function ExtensionFrame({
   onChange,
   allowPlayerWrite = false,
   metaKey,
+  perClientSelection = false,
+  mergeListKey,
   onClose,
   width = 780,
   height = 620,
@@ -54,13 +61,26 @@ export function ExtensionFrame({
   const allowPlayerWriteRef = useRef(allowPlayerWrite)
   const onChangeRef = useRef(onChange)
   const metaKeyRef = useRef(metaKey)
-  const lastSentRef = useRef<string | null>(null)
+  const perClientSelectionRef = useRef(perClientSelection)
+  const mergeListKeyRef = useRef(mergeListKey)
+  const baselineRef = useRef<unknown>(null)
+  const lastIncomingRef = useRef<string | null>(null)
 
   stateRef.current = state
   roleRef.current = role
   allowPlayerWriteRef.current = allowPlayerWrite
   onChangeRef.current = onChange
   metaKeyRef.current = metaKey
+  perClientSelectionRef.current = perClientSelection
+  mergeListKeyRef.current = mergeListKey
+
+  /** Состояние, которое видит модуль: с локальным выбором листа */
+  const shownState = (value: unknown): unknown => {
+    const key = mergeListKeyRef.current
+    return perClientSelectionRef.current && key
+      ? withLocalSelection(value, extensionId, key)
+      : value
+  }
 
   const post = (message: Record<string, unknown>): void => {
     frameRef.current?.contentWindow?.postMessage({ __vttExt: extensionId, ...message }, '*')
@@ -81,29 +101,42 @@ export function ExtensionFrame({
 
       if (data.type === 'hello') {
         if (metaKeyRef.current) post({ type: 'config', metaKey: metaKeyRef.current })
+        const shown = shownState(stateRef.current ?? null)
+        baselineRef.current = shown
         post({ type: 'role', role: roleRef.current === 'gm' ? 'GM' : 'PLAYER' })
-        post({ type: 'metadata', state: stateRef.current ?? null })
+        post({ type: 'metadata', state: shown })
         post({ type: 'ready' })
         return
       }
       if (data.type === 'getMetadata') {
-        post({ type: 'metadata', state: stateRef.current ?? null, reqId: data.reqId })
+        const shown = shownState(stateRef.current ?? null)
+        baselineRef.current = shown
+        post({ type: 'metadata', state: shown, reqId: data.reqId })
         return
       }
       if (
         data.type === 'setMetadata' &&
         (roleRef.current === 'gm' || allowPlayerWriteRef.current)
       ) {
+        const key = mergeListKeyRef.current
+        let next = data.state
+
+        if (perClientSelectionRef.current && key && next && typeof next === 'object') {
+          const currentId = (next as Record<string, unknown>).currentId
+          if (typeof currentId === 'string') writeSelection(extensionId, currentId)
+          next = mergeWithBaseline(baselineRef.current, next, stateRef.current, key)
+        }
+
         // room.setMetadata + scene.setMetadata дают два одинаковых вызова
         let json: string | null
         try {
-          json = JSON.stringify(data.state ?? null)
+          json = JSON.stringify(next ?? null)
         } catch {
           json = null
         }
-        if (json !== null && json === lastSentRef.current) return
-        lastSentRef.current = json
-        onChangeRef.current?.(data.state)
+        if (json !== null && json === lastIncomingRef.current) return
+        lastIncomingRef.current = json
+        onChangeRef.current?.(next)
       }
     }
 
@@ -111,14 +144,11 @@ export function ExtensionFrame({
     return () => window.removeEventListener('message', onMessage)
   }, [extensionId])
 
-  // Мастер обновил состояние — отправляем всем открытым iframe
+  // Состояние обновилось — отправляем в iframe с локальным выбором листа
   useEffect(() => {
-    post({ type: 'metadata', state: state ?? null })
-    try {
-      lastSentRef.current = JSON.stringify(state ?? null)
-    } catch {
-      lastSentRef.current = null
-    }
+    const shown = shownState(state ?? null)
+    post({ type: 'metadata', state: shown })
+    baselineRef.current = shown
   }, [state])
 
   useEffect(() => {

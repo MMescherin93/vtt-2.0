@@ -7,6 +7,7 @@ import type { HostServerEvent } from '../desktop-host/src/shared/ipc'
 import { SessionManager } from '../desktop-host/src/main/session'
 import { startVttServer } from '../desktop-host/src/main/server'
 import { normalizeSession, SessionStorage } from '../desktop-host/src/main/storage'
+import { mergeWithBaseline } from '../shared/ui/extensionState'
 
 const PORT = Number(process.env.VTT_TEST_PORT ?? 3999)
 const DATA_DIR = '.tmp/test-data'
@@ -82,6 +83,48 @@ async function main(): Promise<void> {
   check(
     legacy.schemaVersion === 2 && legacy.maps.length === 1 && legacy.maps[0]?.width === 640,
     'миграция v1: одна карта превращается в maps'
+  )
+  check(
+    legacy.enabledExtensions['chat'] === true && legacy.enabledExtensions['troika-sheet'] === false,
+    'у старой сессии появляются значения расширений по умолчанию'
+  )
+  check(
+    session.enabledExtensions['chat'] === true &&
+      session.enabledExtensions['troika-initiative'] === false,
+    'включённость расширений хранится в сессии'
+  )
+
+  // Независимое редактирование листов: правки разных персонажей не затираются
+  const mergedChars = mergeWithBaseline(
+    {
+      currentId: 'a',
+      chars: [
+        { id: 'a', name: 'A' },
+        { id: 'b', name: 'B' }
+      ]
+    },
+    {
+      currentId: 'a',
+      chars: [
+        { id: 'a', name: 'A2' },
+        { id: 'b', name: 'B' }
+      ]
+    },
+    {
+      currentId: 'b',
+      chars: [
+        { id: 'a', name: 'A' },
+        { id: 'b', name: 'B2' },
+        { id: 'c', name: 'C' }
+      ]
+    },
+    'chars'
+  ) as { chars: Array<{ id: string; name: string }> }
+  check(
+    mergedChars.chars.find((item) => item.id === 'a')?.name === 'A2' &&
+      mergedChars.chars.find((item) => item.id === 'b')?.name === 'B2' &&
+      mergedChars.chars.some((item) => item.id === 'c'),
+    'правки разных листов объединяются без потерь'
   )
 
   const layout = layoutMaps([

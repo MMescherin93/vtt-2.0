@@ -1,4 +1,6 @@
 import type { Session } from '../types/session'
+import { BUILT_IN_EXTENSIONS } from '../plugins/builtins'
+import { defaultExtensionValues } from '../plugins/types'
 import { DEFAULT_MAP_SETTINGS } from './grid'
 
 /** Создаёт пустую сессию (используется при создании новой сессии хостом) */
@@ -20,6 +22,7 @@ export function createSessionState(
     fogOfWar: { covered: true, ops: [] },
     drawings: [],
     settings: { ...DEFAULT_MAP_SETTINGS },
+    enabledExtensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),
     extensionState: {},
     chatLog: [],
     rollLog: []

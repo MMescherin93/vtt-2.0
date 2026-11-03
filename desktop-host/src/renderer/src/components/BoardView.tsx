@@ -46,7 +46,7 @@ export function BoardView() {
   const setNotice = useHostStore((state) => state.setNotice)
   const error = useHostStore((state) => state.error)
   const setError = useHostStore((state) => state.setError)
-  const extensions = useHostStore((state) => state.extensions)
+  const extensions = session?.enabledExtensions ?? {}
   const toggleExtension = useHostStore((state) => state.toggleExtension)
   const activeMapId = useHostStore((state) => state.activeMapId)
   const focusRequest = useHostStore((state) => state.focusRequest)
@@ -196,6 +196,8 @@ export function BoardView() {
           extensionId="troika-sheet"
           role="gm"
           metaKey="com.troika.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
           state={session.extensionState['troika-sheet'] ?? null}
           onChange={(next) => void setExtensionState('troika-sheet', next)}
           onClose={() => toggleModulePanel('troika-sheet', false)}

@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/p
 import { extname, join, resolve, sep } from 'node:path'
 import type { Session, SessionSummary } from '@vtt/shared'
 import type { Drawing, FogOfWarData, MapAsset, MapSettings, Token } from '@vtt/shared'
+import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 import { createSessionState, newId, sanitizeFog } from '@vtt/shared/utils'
 
 const SESSION_FILE = 'session.json'
@@ -253,6 +254,14 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
 
   const fog: FogOfWarData = sanitizeFog(source.fogOfWar) ?? { covered: true, ops: [] }
 
+  // Включённость расширений — общая для сессии; старые сессии получают значения по умолчанию
+  const enabledExtensions: Record<string, boolean> = {}
+  for (const definition of BUILT_IN_EXTENSIONS) {
+    const stored = source.enabledExtensions?.[definition.id]
+    enabledExtensions[definition.id] =
+      typeof stored === 'boolean' ? stored : definition.defaultEnabled
+  }
+
   return {
     ...base,
     schemaVersion: 2,
@@ -261,6 +270,7 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
     updatedAt: isFiniteNumber(source.updatedAt) ? source.updatedAt : base.updatedAt,
     maps,
     settings,
+    enabledExtensions,
     extensionState:
       source.extensionState && typeof source.extensionState === 'object'
         ? { ...(source.extensionState as Record<string, unknown>) }

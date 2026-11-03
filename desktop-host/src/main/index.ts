@@ -10,6 +10,7 @@ import type {
   Session,
   Token
 } from '@vtt/shared'
+import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 import {
   MAX_CHAT_LOG,
   MAX_DICE_PER_ROLL,
@@ -222,6 +223,18 @@ function registerIpc(): void {
         if (index >= 0 && target >= 0 && target < current.maps.length) {
           const [moved] = current.maps.splice(index, 1)
           if (moved) current.maps.splice(target, 0, moved)
+        }
+      }
+      if (patch.setExtensionEnabled) {
+        const { extensionId, enabled } = patch.setExtensionEnabled
+        if (
+          typeof extensionId === 'string' &&
+          BUILT_IN_EXTENSIONS.some((definition) => definition.id === extensionId)
+        ) {
+          current.enabledExtensions = {
+            ...current.enabledExtensions,
+            [extensionId]: Boolean(enabled)
+          }
         }
       }
       if (patch.settings) {

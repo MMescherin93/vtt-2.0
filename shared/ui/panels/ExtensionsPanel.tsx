@@ -7,7 +7,9 @@ export interface ExtensionsPanelProps {
   definitions: ExtensionDefinition[]
   values: ExtensionValues
   role: 'gm' | 'player'
-  onToggle: (extensionId: string, enabled: boolean) => void
+  /** У игрока панель только для просмотра: включает расширения Мастер */
+  readOnly?: boolean
+  onToggle?: (extensionId: string, enabled: boolean) => void
   onClose?: () => void
   storageKey?: string
   defaultPosition?: { x: number; y: number }
@@ -15,12 +17,14 @@ export interface ExtensionsPanelProps {
 
 /**
  * Панель расширений (кнопка в правом нижнем углу экрана).
- * Показывает модули, доступные роли, и позволяет включать/выключать их.
+ * Мастер включает/выключает модули для всей сессии; игроки видят тот же набор
+ * и могут только разворачивать/сворачивать панели иконками.
  */
 export function ExtensionsPanel({
   definitions,
   values,
   role,
+  readOnly = false,
   onToggle,
   onClose,
   storageKey = 'vtt.panel.extensions',
@@ -64,30 +68,40 @@ export function ExtensionsPanel({
                 </p>
               </div>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={enabled}
-                aria-label={`${definition.title}: ${enabled ? 'включено' : 'выключено'}`}
-                onClick={() => onToggle(definition.id, !enabled)}
-                className={`mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors ${
-                  enabled ? 'bg-indigo-500' : 'bg-white/15'
-                }`}
-              >
+              {readOnly ? (
                 <span
-                  className={`h-4 w-4 rounded-full bg-white shadow transition-transform duration-150 ${
-                    enabled ? 'translate-x-4' : 'translate-x-0'
+                  className={`mt-0.5 shrink-0 rounded px-2 py-1 text-[10px] font-semibold ${
+                    enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-gray-500'
                   }`}
-                />
-              </button>
+                >
+                  {enabled ? 'вкл' : 'выкл'}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enabled}
+                  aria-label={`${definition.title}: ${enabled ? 'включено' : 'выключено'}`}
+                  onClick={() => onToggle?.(definition.id, !enabled)}
+                  className={`mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors ${
+                    enabled ? 'bg-indigo-500' : 'bg-white/15'
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-white shadow transition-transform duration-150 ${
+                      enabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              )}
             </div>
           )
         })}
 
         <p className="pt-1 text-[11px] leading-relaxed text-gray-600">
-          Включение расширений сохраняется в этом браузере. Активированные модули с панелью
-          появляются отдельными иконками в правом верхнем углу — клик разворачивает и сворачивает
-          панель.
+          {readOnly
+            ? 'Расширения включает Мастер для всей сессии. Иконки справа сверху разворачивают и сворачивают панели.'
+            : 'Включение расширений общее для всей сессии: игроки сразу видят тот же набор. Активированные модули с панелью появляются иконками в правом верхнем углу — клик разворачивает и сворачивает панель.'}
         </p>
       </div>
     </FloatingPanel>

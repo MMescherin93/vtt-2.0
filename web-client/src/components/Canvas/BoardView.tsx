@@ -33,8 +33,7 @@ export function BoardView() {
   const togglePanel = useClientStore((state) => state.togglePanel)
   const notice = useClientStore((state) => state.notice)
   const setNotice = useClientStore((state) => state.setNotice)
-  const extensions = useClientStore((state) => state.extensions)
-  const toggleExtension = useClientStore((state) => state.toggleExtension)
+  const extensions = session?.enabledExtensions ?? {}
   const activeMapId = useClientStore((state) => state.activeMapId)
   const focusRequest = useClientStore((state) => state.focusRequest)
   const setActiveMap = useClientStore((state) => state.setActiveMap)
@@ -132,6 +131,8 @@ export function BoardView() {
           role="player"
           allowPlayerWrite
           metaKey="com.troika.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
           state={session.extensionState['troika-sheet'] ?? null}
           onChange={(next) => publishExtensionState('troika-sheet', next)}
           onClose={() => toggleModulePanel('troika-sheet', false)}
@@ -183,7 +184,7 @@ export function BoardView() {
           definitions={BUILT_IN_EXTENSIONS}
           values={extensions}
           role="player"
-          onToggle={toggleExtension}
+          readOnly
           onClose={() => togglePanel('extensions')}
           storageKey="vtt.player.panel.extensions"
           defaultPosition={{ x: 380, y: 380 }}

@@ -19,7 +19,8 @@ export function ClientToolbar() {
   const setDrawStyle = useClientStore((state) => state.setDrawStyle)
   const panels = useClientStore((state) => state.panels)
   const togglePanel = useClientStore((state) => state.togglePanel)
-  const extensions = useClientStore((state) => state.extensions)
+  const session = useClientStore((state) => state.session)
+  const extensions = session?.enabledExtensions ?? {}
 
   const drawingEnabled = extensions['drawing'] ?? true
   const chatEnabled = extensions['chat'] ?? true
