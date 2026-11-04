@@ -1,3 +1,15 @@
+/** Кому показывать цифры статов */
+export type StatsVisibility = 'full' | 'bar' | 'hidden'
+
+/** Статы токена: HP/AC и режим их видимости */
+export interface TokenStats {
+  hp: number
+  hpMax: number
+  tempHp: number
+  ac: number
+  visibility: StatsVisibility
+}
+
 /** Токен существа/объекта на карте */
 export interface Token {
   id: string
@@ -17,4 +29,12 @@ export interface Token {
   hidden: boolean
   /** Запрет перемещения (по умолчанию false — двигать может любой участник) */
   locked: boolean
+  /** HP/AC; null — статы не заданы или скрыты от этого клиента */
+  stats: TokenStats | null
+  /** Активные состояния (id из каталога) */
+  conditions: string[]
+  /** Только для игроков: доля HP 0..1, когда цифры скрыты */
+  hpPercent?: number
+  /** Только для игроков: доля временных HP 0..1 */
+  tempPercent?: number
 }

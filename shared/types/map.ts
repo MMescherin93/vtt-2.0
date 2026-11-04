@@ -1,3 +1,5 @@
+import type { TokenStats } from './token'
+
 export type GridType = 'square' | 'hex' | 'none'
 
 /** Настройки отображения карты (ТЗ, interface Session.settings) */
@@ -84,7 +86,7 @@ export interface DrawingInput {
   points: number[]
 }
 
-/** Изменение токена: позиция, размер и/или поворот */
+/** Изменение токена: позиция, размер, поворот и/или статы */
 export interface TokenPatch {
   tokenId: string
   x?: number
@@ -92,4 +94,11 @@ export interface TokenPatch {
   width?: number
   height?: number
   rotation?: number
+  /** Частичное обновление статов; null — сбросить */
+  stats?: Partial<TokenStats> | null
+  /** Полная замена списка состояний */
+  conditions?: string[]
+  /** Только для игроков: доля HP и временных HP */
+  hpPercent?: number
+  tempPercent?: number
 }

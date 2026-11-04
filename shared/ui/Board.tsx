@@ -29,6 +29,7 @@ import { FogLayer } from './board/FogLayer'
 import { GridLayer, type VisibleRect } from './board/GridLayer'
 import { MapLayer } from './board/MapLayer'
 import { TokensLayer } from './board/TokensLayer'
+import { TokenStatsLayer } from './board/TokenStatsLayer'
 import { loadCamera, saveCamera } from './board/cameraStorage'
 import type { BoardProps } from './board/types'
 
@@ -97,6 +98,13 @@ export function Board({
 }: BoardProps) {
   const layout = useMemo(() => layoutMaps(session.maps), [session.maps])
   const hasMap = session.maps.length > 0
+  const statsVisible = session.enabledExtensions['token-stats'] ?? false
+  const initiativeEnabled = session.enabledExtensions['initiative'] ?? false
+  const activeCombatant =
+    initiativeEnabled && session.combat?.active
+      ? session.combat.combatants.find((combatant) => combatant.id === session.combat?.turnId)
+      : undefined
+  const activeTokenId = activeCombatant?.tokenId ?? null
   const field = useMemo<Size>(() => {
     if (layout.world.width > 0 && layout.world.height > 0) {
       return { width: layout.world.width, height: layout.world.height }
@@ -435,9 +443,18 @@ export function Board({
             interactive={tool === 'select' && !disabled}
             selectedTokenId={selectedTokenId}
             showLabels={showTokenLabels}
+            activeTokenId={activeTokenId}
             onSelect={onSelectToken}
             onMove={onMoveToken}
             onTransform={onTransformToken}
+          />
+
+          <TokenStatsLayer
+            session={session}
+            role={role}
+            width={field.width}
+            height={field.height}
+            visible={statsVisible}
           />
 
           <FogLayer

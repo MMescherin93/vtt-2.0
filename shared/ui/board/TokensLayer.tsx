@@ -21,6 +21,7 @@ interface TokenNodeProps {
   showLabels: boolean
   selected: boolean
   isGm: boolean
+  active: boolean
   mapWidth: number
   mapHeight: number
   onSelect: (tokenId: string) => void
@@ -36,6 +37,7 @@ function TokenNode({
   showLabels,
   selected,
   isGm,
+  active,
   mapWidth,
   mapHeight,
   onSelect,
@@ -161,6 +163,21 @@ function TokenNode({
             listening={false}
           />
         )}
+        {active && (
+          <Rect
+            x={-token.width / 2 - 5}
+            y={-token.height / 2 - 5}
+            width={token.width + 10}
+            height={token.height + 10}
+            cornerRadius={Math.min(token.width, token.height) / 2 + 5}
+            stroke="#fbbf24"
+            strokeWidth={3}
+            shadowColor="#fbbf24"
+            shadowBlur={12}
+            shadowOpacity={0.7}
+            listening={false}
+          />
+        )}
         {showLabel && (
           <Text
             x={-labelWidth / 2}
@@ -208,6 +225,8 @@ export interface TokensLayerProps {
   interactive: boolean
   /** Показывать подписи токенов */
   showLabels: boolean
+  /** Токен, чей сейчас ход (подсветка трекера инициативы) */
+  activeTokenId?: string | null
   selectedTokenId: string | null
   onSelect: (tokenId: string | null) => void
   onMove: (tokenId: string, x: number, y: number, final: boolean) => void
@@ -223,6 +242,7 @@ export function TokensLayer({
   height,
   interactive,
   showLabels,
+  activeTokenId = null,
   selectedTokenId,
   onSelect,
   onMove,
@@ -243,6 +263,7 @@ export function TokensLayer({
           showLabels={showLabels}
           selected={token.id === selectedTokenId}
           isGm={isGm}
+          active={token.id === activeTokenId}
           mapWidth={width}
           mapHeight={height}
           onSelect={onSelect}

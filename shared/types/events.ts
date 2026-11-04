@@ -1,6 +1,7 @@
 import type { Drawing, DrawingInput, FogOfWarData, TokenPatch } from './map'
 import type { ChatMessage, DiceRoll, PlayerInfo, Session } from './session'
 import type { Token } from './token'
+import type { CombatState } from './combat'
 
 /** Обновление состояния расширения (модуля) сессии */
 export interface ExtensionUpdateData {
@@ -68,6 +69,8 @@ export interface ServerToClientEvents {
   'dice:roll': (data: DiceRollResultData) => void
   /** Состояние расширения изменил Мастер */
   'extension:update': (data: ExtensionUpdateData) => void
+  /** Состояние боя изменилось (игрокам — без скрытых бойцов) */
+  'combat:update': (data: { combat: CombatState | null }) => void
   /** Ошибка/отказ в операции (например, GM-only действие от игрока) */
   'error:message': (data: { message: string }) => void
 }

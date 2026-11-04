@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
   ChatMessageData,
+  CombatState,
   DiceRollResultData,
   Drawing,
   DrawingInput,
@@ -11,7 +12,7 @@ import type {
   Token,
   TokenPatch
 } from '@vtt/shared'
-import { newId } from '@vtt/shared/utils'
+import { defaultStats, newId } from '@vtt/shared/utils'
 import type { DrawStyle, MapFocusRequest, Tool } from '@vtt/shared/ui'
 import { SESSION_ID, socket } from '../socket'
 
@@ -59,6 +60,8 @@ interface ClientState {
   addChat: (message: ChatMessageData) => void
   addRoll: (roll: DiceRollResultData) => void
   setExtensionState: (extensionId: string, state: unknown) => void
+  /** Применить состояние боя из сокета */
+  applyCombat: (combat: CombatState | null) => void
   /** Отправить состояние модуля на сервер (модули с playerWritable) */
   publishExtensionState: (extensionId: string, state: unknown) => void
 
@@ -86,18 +89,28 @@ function withTokenPatch(session: Session | null, patch: TokenPatch): Session | n
   if (!session) return null
   return {
     ...session,
-    tokens: session.tokens.map((token) =>
-      token.id === patch.tokenId
-        ? {
-            ...token,
-            x: patch.x ?? token.x,
-            y: patch.y ?? token.y,
-            width: patch.width ?? token.width,
-            height: patch.height ?? token.height,
-            rotation: patch.rotation ?? token.rotation
-          }
-        : token
-    )
+    tokens: session.tokens.map((token) => {
+      if (token.id !== patch.tokenId) return token
+      const stats =
+        patch.stats === null
+          ? defaultStats()
+          : patch.stats
+            ? { ...(token.stats ?? defaultStats()), ...patch.stats }
+            : token.stats
+      return {
+        ...token,
+        x: patch.x ?? token.x,
+        y: patch.y ?? token.y,
+        width: patch.width ?? token.width,
+        height: patch.height ?? token.height,
+        rotation: patch.rotation ?? token.rotation,
+        stats,
+        conditions: patch.conditions ?? token.conditions,
+        hpPercent: patch.stats === null ? patch.hpPercent : (patch.hpPercent ?? token.hpPercent),
+        tempPercent:
+          patch.stats === null ? patch.tempPercent : (patch.tempPercent ?? token.tempPercent)
+      }
+    })
   }
 }
 
@@ -166,6 +179,10 @@ export const useClientStore = create<ClientState>()(
             extensionState: { ...session.extensionState, [extensionId]: state }
           }
         })
+      },
+      applyCombat: (combat) => {
+        const session = get().session
+        if (session) set({ session: { ...session, combat } })
       },
       publishExtensionState: (extensionId, state) => {
         const session = get().session

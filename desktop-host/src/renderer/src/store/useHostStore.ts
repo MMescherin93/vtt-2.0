@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
+  CombatState,
   DrawingInput,
   FogOfWarData,
   PlayerInfo,
   Session,
   SessionSummary,
-  Token
+  Token,
+  TokenStats
 } from '@vtt/shared'
 import type {
   HostServerEvent,
@@ -16,7 +18,7 @@ import type {
   TokenPatchInput
 } from '../../../shared/ipc'
 import type { DrawStyle, FogTool, MapFocusRequest, Tool } from '@vtt/shared/ui'
-import { worldCenter } from '@vtt/shared/utils'
+import { defaultStats, worldCenter } from '@vtt/shared/utils'
 import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 
 export type HostScreen = 'sessions' | 'table'
@@ -104,18 +106,42 @@ interface HostState {
   rollDice: (dice: string[]) => void
   /** Сохранить состояние расширения в сессии */
   setExtensionState: (extensionId: string, state: unknown) => Promise<void>
+  setCombat: (combat: CombatState | null) => Promise<void>
   refreshInvite: () => Promise<void>
 }
 
+type TokenPatchLike = Omit<Partial<Token>, 'stats' | 'conditions' | 'hpPercent' | 'tempPercent'> & {
+  stats?: Partial<TokenStats> | null
+  conditions?: string[]
+  hpPercent?: number
+  tempPercent?: number
+}
 function patchToken(
   session: Session | null,
   tokenId: string,
-  patch: Partial<Token>
+  patch: TokenPatchLike
 ): Session | null {
   if (!session) return null
   return {
     ...session,
-    tokens: session.tokens.map((token) => (token.id === tokenId ? { ...token, ...patch } : token))
+    tokens: session.tokens.map((token) => {
+      if (token.id !== tokenId) return token
+      const next: Token = { ...token }
+      if (patch.name !== undefined) next.name = patch.name
+      if (patch.x !== undefined) next.x = patch.x
+      if (patch.y !== undefined) next.y = patch.y
+      if (patch.width !== undefined) next.width = patch.width
+      if (patch.height !== undefined) next.height = patch.height
+      if (patch.rotation !== undefined) next.rotation = patch.rotation
+      if (patch.hidden !== undefined) next.hidden = patch.hidden
+      if (patch.locked !== undefined) next.locked = patch.locked
+      if (patch.stats === null) next.stats = defaultStats()
+      else if (patch.stats) next.stats = { ...(next.stats ?? defaultStats()), ...patch.stats }
+      if (patch.conditions !== undefined) next.conditions = patch.conditions
+      if (patch.hpPercent !== undefined) next.hpPercent = patch.hpPercent
+      if (patch.tempPercent !== undefined) next.tempPercent = patch.tempPercent
+      return next
+    })
   }
 }
 
@@ -226,6 +252,10 @@ export const useHostStore = create<HostState>()(
                 }
               }
             })
+            break
+          case 'combat:update':
+            if (!session) break
+            set({ session: { ...session, combat: event.combat } })
             break
           case 'session:closed':
             set({ session: null, screen: 'sessions', players: [] })
@@ -465,6 +495,12 @@ export const useHostStore = create<HostState>()(
           })
         }
         await window.hostApi.setExtensionState(extensionId, state)
+      },
+
+      setCombat: async (combat) => {
+        const session = get().session
+        if (session) set({ session: { ...session, combat } })
+        await window.hostApi.setCombat(combat)
       },
 
       refreshInvite: async () => {

@@ -7,6 +7,7 @@ import type { Socket } from 'socket.io'
 import type {
   ChatMessage,
   ClientToServerEvents,
+  CombatState,
   DiceRoll,
   Drawing,
   FogOfWarData,
@@ -26,8 +27,11 @@ import {
   diceSides,
   formatDice,
   newId,
+  playerCombat,
   rollDice,
+  sanitizeConditions,
   sanitizeFog,
+  sanitizeStats,
   trimLog,
   worldSize
 } from '@vtt/shared/utils'
@@ -69,6 +73,8 @@ export interface VttServer {
   drawingAdded(drawing: Drawing): void
   chatMessage(message: ChatMessage): void
   diceRolled(roll: DiceRoll): void
+  /** Состояние боя изменилось (игрокам — без скрытых бойцов) */
+  combatUpdated(combat: CombatState | null): void
   /** Состояние расширения изменилось (рассылается игрокам и в окно хоста) */
   extensionUpdated(extensionId: string, state: unknown): void
   /** Сессия закрыта/удалена — игроки получают уведомление */
@@ -122,8 +128,56 @@ function sanitizeColor(value: unknown): string {
 function playerSession(session: Session): Session {
   return {
     ...session,
-    tokens: session.tokens.filter((token) => !token.hidden)
+    tokens: session.tokens.filter((token) => !token.hidden).map(playerToken),
+    combat: playerCombat(session.combat, session.tokens)
   }
+}
+
+/** Представление токена для игроков: цифры статов по режиму видимости */
+function playerToken(token: Token): Token {
+  if (!token.stats || token.stats.visibility === 'hidden') {
+    return { ...token, stats: null, hpPercent: undefined, tempPercent: undefined }
+  }
+  if (token.stats.visibility === 'bar') {
+    const percent = token.stats.hpMax > 0 ? token.stats.hp / token.stats.hpMax : 0
+    const temp = token.stats.hpMax > 0 ? token.stats.tempHp / token.stats.hpMax : 0
+    return {
+      ...token,
+      stats: null,
+      hpPercent: Math.max(0, Math.min(1, percent)),
+      tempPercent: Math.max(0, Math.min(1, temp))
+    }
+  }
+  return token
+}
+
+/** Патч токена для игроков: без чужих цифр и скрытых статов */
+function playerTokenPatch(patch: TokenPatch, token: Token): TokenPatch {
+  const result: TokenPatch = {
+    tokenId: patch.tokenId,
+    ...(patch.x !== undefined ? { x: patch.x } : {}),
+    ...(patch.y !== undefined ? { y: patch.y } : {}),
+    ...(patch.width !== undefined ? { width: patch.width } : {}),
+    ...(patch.height !== undefined ? { height: patch.height } : {}),
+    ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {})
+  }
+  if (patch.conditions !== undefined) result.conditions = token.conditions
+  if (patch.stats !== undefined) {
+    if (token.stats && token.stats.visibility === 'full') {
+      result.stats = { ...token.stats }
+    } else {
+      result.stats = null
+      if (token.stats && token.stats.visibility === 'bar') {
+        result.hpPercent =
+          token.stats.hpMax > 0 ? Math.max(0, Math.min(1, token.stats.hp / token.stats.hpMax)) : 0
+        result.tempPercent =
+          token.stats.hpMax > 0
+            ? Math.max(0, Math.min(1, token.stats.tempHp / token.stats.hpMax))
+            : 0
+      }
+    }
+  }
+  return result
 }
 
 export function applyTokenPatch(session: Session, patch: TokenPatch): TokenPatch | null {
@@ -154,6 +208,17 @@ export function applyTokenPatch(session: Session, patch: TokenPatch): TokenPatch
   if (isFiniteNumber(patch.rotation)) {
     token.rotation = clamp(patch.rotation, -3600, 3600)
     result.rotation = token.rotation
+  }
+  if (patch.stats === null) {
+    token.stats = sanitizeStats(null)
+    result.stats = { ...token.stats }
+  } else if (patch.stats) {
+    token.stats = sanitizeStats(patch.stats, token.stats ?? undefined)
+    result.stats = { ...token.stats }
+  }
+  if (patch.conditions !== undefined) {
+    token.conditions = sanitizeConditions(patch.conditions)
+    result.conditions = [...token.conditions]
   }
   return result
 }
@@ -553,6 +618,13 @@ export function startVttServer(options: VttServerOptions): VttServer {
 
       // Игрок не может трогать скрытые и закреплённые токены
       if (socket.data.role === 'player' && (token.hidden || token.locked)) return
+      // Статы и состояния меняет только Мастер через IPC
+      if (
+        socket.data.role === 'player' &&
+        (patch.stats !== undefined || patch.conditions !== undefined)
+      ) {
+        return
+      }
 
       let result: TokenPatch | null = null
       sessionManager.updateSilent((current) => {
@@ -729,13 +801,14 @@ export function startVttServer(options: VttServerOptions): VttServer {
     tokenAdded(token) {
       const session = sessionManager.getActive()
       if (!session) return
-      if (!token.hidden) io.to(session.id).emit('token:add', token)
+      if (!token.hidden) io.to(session.id).emit('token:add', playerToken(token))
       onHostEvent({ type: 'token:add', token })
     },
     tokenUpdated(patch) {
       const session = sessionManager.getActive()
       if (!session) return
-      io.to(session.id).emit('token:update', patch)
+      const token = session.tokens.find((item) => item.id === patch.tokenId)
+      if (token) io.to(session.id).emit('token:update', playerTokenPatch(patch, token))
       onHostEvent({ type: 'token:update', patch })
     },
     tokenRemoved(tokenId) {
@@ -773,6 +846,14 @@ export function startVttServer(options: VttServerOptions): VttServer {
       if (!session) return
       io.to(session.id).emit('extension:update', { extensionId, state })
       onHostEvent({ type: 'extension:update', extensionId, state })
+    },
+    combatUpdated(combat) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('combat:update', {
+        combat: playerCombat(combat, session.tokens)
+      })
+      onHostEvent({ type: 'combat:update', combat })
     },
     sessionClosed(reason) {
       const session = sessionManager.getActive()

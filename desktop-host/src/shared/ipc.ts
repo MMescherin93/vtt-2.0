@@ -1,5 +1,6 @@
 import type {
   ChatMessage,
+  CombatState,
   DiceRoll,
   Drawing,
   DrawingInput,
@@ -35,6 +36,7 @@ export const IPC = {
   chatSend: 'chat:send',
   diceRoll: 'dice:roll',
   extensionUpdate: 'extension:update',
+  combatUpdate: 'combat:update',
 
   inviteGet: 'invite:get',
   inviteSetTunnelUrl: 'invite:set-tunnel-url',
@@ -146,6 +148,7 @@ export type HostServerEvent =
   | { type: 'chat:message'; message: ChatMessage }
   | { type: 'dice:roll'; roll: DiceRoll }
   | { type: 'extension:update'; extensionId: string; state: unknown }
+  | { type: 'combat:update'; combat: CombatState | null }
   | { type: 'session:closed'; reason: string }
 
 /** API, доступное рендереру хоста через preload (contextBridge) */
@@ -171,6 +174,8 @@ export interface HostApi {
   updateFog(fog: FogOfWarData): Promise<void>
   /** Сохранить состояние расширения (модуля) в сессии и разослать игрокам */
   setExtensionState(extensionId: string, state: unknown): Promise<void>
+  /** Сохранить состояние боя и разослать игрокам */
+  setCombat(combat: CombatState | null): Promise<void>
   addDrawing(drawing: DrawingInput): Promise<void>
   sendChat(text: string): Promise<void>
   rollDice(dice: string[]): Promise<void>

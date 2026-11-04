@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type {
   ChatMessageData,
+  CombatState,
   DiceRollResultData,
   Drawing,
   FogOfWarData,
@@ -57,6 +58,7 @@ export function useVttSocket(): void {
     const onDice = (roll: DiceRollResultData): void => store.addRoll(roll)
     const onExtension = (data: { extensionId: string; state: unknown }): void =>
       store.setExtensionState(data.extensionId, data.state)
+    const onCombat = (data: { combat: CombatState | null }): void => store.applyCombat(data.combat)
     const onError = (data: { message: string }): void => store.setNotice(data.message)
     const onClosed = (data: { reason: string }): void => {
       store.setClosed(data.reason)
@@ -76,6 +78,7 @@ export function useVttSocket(): void {
     socket.on('chat:message', onChat)
     socket.on('dice:roll', onDice)
     socket.on('extension:update', onExtension)
+    socket.on('combat:update', onCombat)
     socket.on('error:message', onError)
     socket.on('session:closed', onClosed)
 
@@ -95,6 +98,7 @@ export function useVttSocket(): void {
       socket.off('chat:message', onChat)
       socket.off('dice:roll', onDice)
       socket.off('extension:update', onExtension)
+      socket.off('combat:update', onCombat)
       socket.off('error:message', onError)
       socket.off('session:closed', onClosed)
       socket.disconnect()

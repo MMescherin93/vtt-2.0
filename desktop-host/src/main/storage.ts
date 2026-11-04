@@ -4,7 +4,14 @@ import { extname, join, resolve, sep } from 'node:path'
 import type { Session, SessionSummary } from '@vtt/shared'
 import type { Drawing, FogOfWarData, MapAsset, MapSettings, Token } from '@vtt/shared'
 import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
-import { createSessionState, newId, sanitizeFog } from '@vtt/shared/utils'
+import {
+  createSessionState,
+  newId,
+  normalizeCombat,
+  sanitizeConditions,
+  sanitizeFog,
+  sanitizeStats
+} from '@vtt/shared/utils'
 
 const SESSION_FILE = 'session.json'
 const ASSETS_DIR = 'assets'
@@ -180,7 +187,9 @@ function normalizeToken(raw: unknown): Token | null {
     height: isFiniteNumber(token.height) && token.height > 0 ? token.height : 70,
     rotation: isFiniteNumber(token.rotation) ? token.rotation : 0,
     hidden: Boolean(token.hidden),
-    locked: Boolean(token.locked)
+    locked: Boolean(token.locked),
+    stats: sanitizeStats(token.stats),
+    conditions: sanitizeConditions(token.conditions)
   }
 }
 
@@ -270,6 +279,7 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
     updatedAt: isFiniteNumber(source.updatedAt) ? source.updatedAt : base.updatedAt,
     maps,
     settings,
+    combat: normalizeCombat(source.combat),
     enabledExtensions,
     extensionState:
       source.extensionState && typeof source.extensionState === 'object'

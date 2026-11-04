@@ -13,6 +13,7 @@ import {
 import { useClientStore } from '../../store/useClientStore'
 import { hostUrl } from '../../socket'
 import { ClientToolbar } from '../Toolbar/ClientToolbar'
+import { InitiativePanel } from '../InitiativePanel/InitiativePanel'
 
 /** Стол игрока: канвас, упрощённый тулбар, чат и кубики */
 export function BoardView() {
@@ -53,6 +54,8 @@ export function BoardView() {
   const azagOpen = azagEnabled && (modulePanels['azag-sheet'] ?? false)
   const dice3dEnabled = extensions['dice3d'] ?? false
   const dice3dOpen = dice3dEnabled && (modulePanels['dice3d'] ?? false)
+  const initiativeEnabled = extensions['initiative'] ?? false
+  const initiativeOpen = initiativeEnabled && (modulePanels['initiative'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -183,6 +186,8 @@ export function BoardView() {
           defaultPosition={{ x: 320, y: 80 }}
         />
       )}
+
+      {initiativeOpen && <InitiativePanel />}
 
       <ModuleDock
         modules={dockModules}

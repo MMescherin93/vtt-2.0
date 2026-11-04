@@ -12,7 +12,14 @@ import type {
   TokenPatchInput
 } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
-import type { DrawingInput, FogOfWarData, Session, SessionSummary, Token } from '@vtt/shared'
+import type {
+  CombatState,
+  DrawingInput,
+  FogOfWarData,
+  Session,
+  SessionSummary,
+  Token
+} from '@vtt/shared'
 
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
   const listener = (_event: IpcRendererEvent, payload: T): void => callback(payload)
@@ -53,6 +60,8 @@ const hostApi: HostApi = {
   rollDice: (dice: string[]) => ipcRenderer.invoke(IPC.diceRoll, dice) as Promise<void>,
   setExtensionState: (extensionId: string, state: unknown) =>
     ipcRenderer.invoke(IPC.extensionUpdate, extensionId, state) as Promise<void>,
+  setCombat: (combat: CombatState | null) =>
+    ipcRenderer.invoke(IPC.combatUpdate, combat) as Promise<void>,
 
   getInvite: () => ipcRenderer.invoke(IPC.inviteGet) as Promise<InviteInfo>,
   setTunnelUrl: (url: string | null) =>

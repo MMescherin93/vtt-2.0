@@ -1,4 +1,5 @@
 import type { Drawing, FogOfWarData, MapAsset, MapSettings } from './map'
+import type { CombatState } from './combat'
 import type { Token } from './token'
 
 /** Роль участника: GM — всегда хост десктопного приложения (уточнение 7) */
@@ -55,6 +56,8 @@ export interface Session {
   fogOfWar: FogOfWarData
   drawings: Drawing[]
   settings: MapSettings
+  /** Активный бой (трекер инициативы) */
+  combat: CombatState | null
   /** Включённые расширения (общие для сессии; переключает только Мастер) */
   enabledExtensions: Record<string, boolean>
   /** Состояние расширений (модулей) в рамках сессии: id → данные модуля */

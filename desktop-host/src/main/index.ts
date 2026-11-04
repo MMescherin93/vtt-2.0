@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import type {
   ChatMessage,
+  CombatState,
   DiceRoll,
   Drawing,
   DrawingInput,
@@ -18,6 +19,9 @@ import {
   diceSides,
   formatDice,
   newId,
+  defaultStats,
+  normalizeCombat,
+  removeTokenFromCombat,
   rollDice,
   sanitizeFog,
   trimLog,
@@ -290,7 +294,9 @@ function registerIpc(): void {
       height: size,
       rotation: 0,
       hidden: Boolean(input.hidden),
-      locked: false
+      locked: false,
+      stats: defaultStats(),
+      conditions: []
     }
 
     sessionManager.updateSilent((current) => {
@@ -331,10 +337,25 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.tokenRemove, async (_event, tokenId: string) => {
     if (!sessionManager) return
+    let combat: CombatState | null | undefined
     sessionManager.updateSilent((current) => {
       current.tokens = current.tokens.filter((token) => token.id !== tokenId)
+      if (current.combat) {
+        current.combat = removeTokenFromCombat(current.combat, tokenId)
+        combat = current.combat
+      }
     })
     server?.tokenRemoved(tokenId)
+    if (combat !== undefined) server?.combatUpdated(combat)
+  })
+
+  ipcMain.handle(IPC.combatUpdate, async (_event, combat: CombatState | null) => {
+    if (!sessionManager) return
+    const normalized = combat ? normalizeCombat(combat) : null
+    sessionManager.updateSilent((current) => {
+      current.combat = normalized
+    })
+    server?.combatUpdated(normalized)
   })
 
   ipcMain.handle(IPC.fogUpdate, async (_event, fog: FogOfWarData) => {

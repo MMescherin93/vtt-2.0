@@ -44,6 +44,7 @@ export function HostToolbar() {
   const selectedTokenId = useHostStore((state) => state.selectedTokenId)
   const extensions = session?.enabledExtensions ?? {}
   const renameToken = useHostStore((state) => state.renameToken)
+  const toggleModulePanel = useHostStore((state) => state.toggleModulePanel)
   const tokens = session?.tokens ?? []
   const selectedToken = tokens.find((token) => token.id === selectedTokenId) ?? null
 
@@ -259,6 +260,19 @@ export function HostToolbar() {
               aria-label="Новое имя токена"
             />
           )}
+          <button
+            type="button"
+            onClick={() => toggleModulePanel('token-stats', true)}
+            className={`flex items-center gap-1 rounded-md px-1.5 py-1 transition hover:bg-white/10 ${
+              extensions['token-stats'] ? '' : 'hidden'
+            }`}
+            title="HP/AC и состояния"
+          >
+            ❤{' '}
+            {selectedToken.stats && selectedToken.stats.hpMax > 0
+              ? `${selectedToken.stats.hp}/${selectedToken.stats.hpMax}`
+              : 'Статы'}
+          </button>
           <button
             type="button"
             onClick={() =>

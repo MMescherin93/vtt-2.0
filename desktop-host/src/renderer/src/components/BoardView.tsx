@@ -14,10 +14,12 @@ import {
 import { useAssetsBaseUrl } from '../lib/host'
 import { useHostStore } from '../store/useHostStore'
 import { HostToolbar } from './Toolbar/HostToolbar'
+import { InitiativePanel } from './InitiativePanel/InitiativePanel'
 import { InvitePanel } from './InvitePanel/InvitePanel'
 import { MapPanel } from './MapPanel/MapPanel'
 import { PlayersPanel } from './PlayersPanel/PlayersPanel'
 import { TokenPanel } from './TokenPanel/TokenPanel'
+import { TokenStatsPanel } from './TokenStatsPanel/TokenStatsPanel'
 
 /** Стол Мастера: канвас, тулбар и плавающие панели */
 export function BoardView() {
@@ -67,6 +69,10 @@ export function BoardView() {
   const azagOpen = azagEnabled && (modulePanels['azag-sheet'] ?? false)
   const dice3dEnabled = extensions['dice3d'] ?? false
   const dice3dOpen = dice3dEnabled && (modulePanels['dice3d'] ?? false)
+  const statsEnabled = extensions['token-stats'] ?? false
+  const statsOpen = statsEnabled && (modulePanels['token-stats'] ?? false)
+  const initiativeEnabled = extensions['initiative'] ?? false
+  const initiativeOpen = initiativeEnabled && (modulePanels['initiative'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -247,6 +253,9 @@ export function BoardView() {
           defaultPosition={{ x: 320, y: 80 }}
         />
       )}
+
+      {statsOpen && <TokenStatsPanel />}
+      {initiativeOpen && <InitiativePanel />}
 
       <ModuleDock
         modules={dockModules}

@@ -1,8 +1,14 @@
 /* Интеграционный тест сервера VTT: сессии, сокеты, токены, чат, кубики, туман, файлы */
 import { rm } from 'node:fs/promises'
 import { io, type Socket } from 'socket.io-client'
-import type { ClientToServerEvents, ServerToClientEvents, Session, Token } from '@vtt/shared'
-import { layoutMaps, newId } from '@vtt/shared/utils'
+import type {
+  ClientToServerEvents,
+  CombatState,
+  ServerToClientEvents,
+  Session,
+  Token
+} from '@vtt/shared'
+import { layoutMaps, newId, stepTurn } from '@vtt/shared/utils'
 import { BUILT_IN_EXTENSIONS, EXTENSION_CATEGORIES } from '@vtt/shared/plugins'
 import type { HostServerEvent } from '../desktop-host/src/shared/ipc'
 import { SessionManager } from '../desktop-host/src/main/session'
@@ -182,7 +188,9 @@ async function main(): Promise<void> {
     height: 70,
     rotation: 0,
     hidden: false,
-    locked: false
+    locked: false,
+    stats: { hp: 10, hpMax: 20, tempHp: 2, ac: 14, visibility: 'full' },
+    conditions: ['poisoned']
   }
   const addedPromise = watch<Token>(client, 'token:add')
   manager.update((current) => {
@@ -385,6 +393,116 @@ async function main(): Promise<void> {
   check(
     !hostEvents.some((event) => event.type === 'token:add' && event.token.hidden),
     'скрытый токен не уходит в token:add'
+  )
+
+  // Статы: игроки получают цифры только в режиме full
+  const fullStatsSession = await (async () => {
+    const promise = watch<Session>(client, 'session:update')
+    manager.update((current) => {
+      const item = current.tokens.find((entry) => entry.id === token.id)
+      if (item) item.stats = { hp: 10, hpMax: 20, tempHp: 4, ac: 14, visibility: 'full' }
+    })
+    return promise
+  })()
+  const fullToken = fullStatsSession.tokens.find((entry) => entry.id === token.id)
+  check(
+    fullToken?.stats?.hp === 10 && fullToken.stats.hpMax === 20,
+    'при режиме full игрок видит цифры статов'
+  )
+
+  const barStatsPromise = watch<Session>(client, 'session:update')
+  manager.update((current) => {
+    const item = current.tokens.find((entry) => entry.id === token.id)
+    if (item) item.stats = { hp: 10, hpMax: 20, tempHp: 4, ac: 14, visibility: 'bar' }
+  })
+  const barSession = await barStatsPromise
+  const barToken = barSession.tokens.find((entry) => entry.id === token.id)
+  check(
+    barToken?.stats === null && barToken.hpPercent === 0.5,
+    'при режиме bar игрок получает только долю HP'
+  )
+
+  const hiddenStatsPromise = watch<Session>(client, 'session:update')
+  manager.update((current) => {
+    const item = current.tokens.find((entry) => entry.id === token.id)
+    if (item) item.stats = { hp: 10, hpMax: 20, tempHp: 4, ac: 14, visibility: 'hidden' }
+  })
+  const hiddenStatsSession = await hiddenStatsPromise
+  const hiddenStatsToken = hiddenStatsSession.tokens.find((entry) => entry.id === token.id)
+  check(
+    hiddenStatsToken?.stats === null && hiddenStatsToken.hpPercent === undefined,
+    'при режиме hidden цифры статов не утекают игроку'
+  )
+
+  // Игрок не может менять статы через сокет
+  client.emit('token:update', {
+    tokenId: token.id,
+    stats: { hp: 999, hpMax: 999, tempHp: 0, ac: 99, visibility: 'full' }
+  })
+  await new Promise((resolve) => setTimeout(resolve, 250))
+  const afterPlayerPatch = manager.getActive()?.tokens.find((entry) => entry.id === token.id)
+  check(
+    afterPlayerPatch?.stats?.hp === 10 && afterPlayerPatch.stats.visibility === 'hidden',
+    'игрок не может изменить статы токена'
+  )
+
+  // Бой: скрытые бойцы не уходят игрокам
+  const visibleCombatant = {
+    id: 'cb-visible',
+    tokenId: token.id,
+    name: 'Гоблин',
+    initiative: 15,
+    bonus: 2,
+    tiebreak: 1,
+    hidden: false,
+    defeated: false
+  }
+  const secretCombatant = {
+    id: 'cb-secret',
+    tokenId: hidden.id,
+    name: 'Секретный враг',
+    initiative: 20,
+    bonus: 0,
+    tiebreak: 2,
+    hidden: true,
+    defeated: false
+  }
+  const combat: CombatState = {
+    active: true,
+    round: 1,
+    turnId: visibleCombatant.id,
+    order: [secretCombatant.id, visibleCombatant.id],
+    combatants: [visibleCombatant, secretCombatant],
+    announce: true,
+    updatedAt: Date.now()
+  }
+
+  const combatSessionPromise = watch<Session>(client, 'session:update')
+  manager.update((current) => {
+    current.combat = combat
+  })
+  const combatSession = await combatSessionPromise
+  check(
+    combatSession.combat?.combatants.length === 1 &&
+      combatSession.combat.combatants[0]?.id === visibleCombatant.id,
+    'скрытый боец не попадает игрокам'
+  )
+
+  const hiddenTurn = { ...combat, turnId: secretCombatant.id }
+  const hiddenTurnPromise = watch<Session>(client, 'session:update')
+  manager.update((current) => {
+    current.combat = hiddenTurn
+  })
+  const hiddenTurnSession = await hiddenTurnPromise
+  check(
+    hiddenTurnSession.combat?.turnId === null && hiddenTurnSession.combat.turnHidden === true,
+    'скрытый текущий ход показывается игроку как «Ход Мастера»'
+  )
+
+  const nextCombat = stepTurn({ ...combat, turnId: combat.order[1]! }, 1)
+  check(
+    nextCombat.round === 2 && nextCombat.turnId === combat.order[0],
+    'раунд переключается по кругу'
   )
 
   const fogPromise = watch<{ covered: boolean }>(client, 'fog:update')

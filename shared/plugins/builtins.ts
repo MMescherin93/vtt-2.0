@@ -76,6 +76,27 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     panel: true
   },
   {
+    id: 'token-stats',
+    title: 'HP/AC и состояния',
+    description:
+      'Полосы здоровья, класс брони и маркеры состояний над токенами; настройка видимости для игроков',
+    scope: 'gm',
+    defaultEnabled: false,
+    category: 'basic',
+    icon: '/extensions/icons/token-stats.svg',
+    panel: true
+  },
+  {
+    id: 'initiative',
+    title: 'Инициатива',
+    description: 'Универсальный трекер боя: порядок ходов, раунды, HP и состояния',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'basic',
+    icon: '/extensions/icons/initiative.svg',
+    panel: true
+  },
+  {
     id: 'troika-initiative',
     title: 'Инициатива «Тройка»',
     description:
