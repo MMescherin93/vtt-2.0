@@ -149,6 +149,7 @@ export function BoardView() {
           metaKey="com.troika.sheet/state"
           perClientSelection
           mergeListKey="chars"
+          zoomable
           state={session.extensionState['troika-sheet'] ?? null}
           onChange={(next) => publishExtensionState('troika-sheet', next)}
           onClose={() => toggleModulePanel('troika-sheet', false)}
@@ -169,6 +170,7 @@ export function BoardView() {
           metaKey="com.azag.sheet/state"
           perClientSelection
           mergeListKey="chars"
+          zoomable
           state={session.extensionState['azag-sheet'] ?? null}
           onChange={(next) => publishExtensionState('azag-sheet', next)}
           onClose={() => toggleModulePanel('azag-sheet', false)}

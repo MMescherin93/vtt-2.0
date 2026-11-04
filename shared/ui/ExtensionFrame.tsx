@@ -1,7 +1,26 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ExtensionDefinition } from '../plugins/types'
 import { FloatingPanel } from './FloatingPanel'
 import { mergeWithBaseline, withLocalSelection, writeSelection } from './extensionState'
+import { ZoomInIcon, ZoomOutIcon } from './icons'
+
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 2
+const ZOOM_STEP = 0.1
+
+function clampZoom(value: number): number {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 10) / 10))
+}
+
+function loadZoom(key: string): number {
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? Number(raw) : NaN
+    return Number.isFinite(parsed) ? clampZoom(parsed) : 1
+  } catch {
+    return 1
+  }
+}
 
 export interface ExtensionFrameProps {
   title: string
@@ -31,6 +50,8 @@ export interface ExtensionFrameProps {
   defaultPosition?: { x: number; y: number }
   definition?: ExtensionDefinition
   className?: string
+  /** Показывать кнопки масштабирования содержимого модуля */
+  zoomable?: boolean
 }
 
 /**
@@ -58,9 +79,12 @@ export function ExtensionFrame({
   height = 620,
   storageKey,
   defaultPosition = { x: 280, y: 60 },
-  className
+  className,
+  zoomable = false
 }: ExtensionFrameProps) {
   const frameRef = useRef<HTMLIFrameElement>(null)
+  const zoomKey = `${storageKey ?? `vtt.extension.${extensionId}`}:zoom`
+  const [zoom, setZoom] = useState(() => loadZoom(zoomKey))
   const stateRef = useRef<unknown>(state)
   const roleRef = useRef(role)
   const allowPlayerWriteRef = useRef(allowPlayerWrite)
@@ -80,6 +104,49 @@ export function ExtensionFrame({
   metaKeyRef.current = metaKey
   perClientSelectionRef.current = perClientSelection
   mergeListKeyRef.current = mergeListKey
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(zoomKey, String(zoom))
+    } catch {
+      // localStorage может быть недоступен — не критично
+    }
+  }, [zoom, zoomKey])
+
+  const zoomBy = (delta: number): void => setZoom((current) => clampZoom(current + delta))
+  const frameWidth = Math.max(100, width - 2)
+  const zoomActions = zoomable ? (
+    <div className="flex items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => zoomBy(-ZOOM_STEP)}
+        disabled={zoom <= MIN_ZOOM}
+        aria-label="Уменьшить лист"
+        title="Уменьшить"
+        className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
+      >
+        <ZoomOutIcon size={13} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setZoom(1)}
+        title="Сбросить масштаб"
+        className="min-w-10 rounded-md px-1 text-[11px] font-medium text-gray-400 transition hover:bg-white/10 hover:text-white"
+      >
+        {Math.round(zoom * 100)}%
+      </button>
+      <button
+        type="button"
+        onClick={() => zoomBy(ZOOM_STEP)}
+        disabled={zoom >= MAX_ZOOM}
+        aria-label="Увеличить лист"
+        title="Увеличить"
+        className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
+      >
+        <ZoomInIcon size={13} />
+      </button>
+    </div>
+  ) : undefined
 
   /** Состояние, которое видит модуль: с локальным выбором листа */
   const shownState = (value: unknown): unknown => {
@@ -180,16 +247,32 @@ export function ExtensionFrame({
       storageKey={storageKey}
       defaultPosition={defaultPosition}
       className={className}
+      actions={zoomActions}
     >
-      <iframe
-        ref={frameRef}
-        src={src}
-        title={title}
-        className="block w-full border-0 bg-[#14161f]"
-        style={{ height }}
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-        allow="clipboard-write"
-      />
+      <div className="overflow-auto" style={{ height: Math.max(200, height * zoom) }}>
+        <div
+          style={{
+            width: frameWidth * zoom,
+            height: height * zoom,
+            margin: zoom < 1 ? '0 auto' : undefined
+          }}
+        >
+          <iframe
+            ref={frameRef}
+            src={src}
+            title={title}
+            className="block border-0 bg-[#14161f]"
+            style={{
+              width: frameWidth,
+              height,
+              transform: `scale(${zoom})`,
+              transformOrigin: 'top left'
+            }}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            allow="clipboard-write"
+          />
+        </div>
+      </div>
     </FloatingPanel>
   )
 }
