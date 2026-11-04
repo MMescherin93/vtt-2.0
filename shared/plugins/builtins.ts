@@ -138,6 +138,16 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     metaKey: 'com.forbiddenlands.sheet/state'
   },
   {
+    id: 'fl-dice',
+    title: 'Кубы «Запретных земель»',
+    description: 'Пул белых, красных и чёрных d6, успехи и баны, толчок с последствиями',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'forbidden-lands',
+    icon: '/extensions/icons/fl-dice.svg',
+    panel: true
+  },
+  {
     id: 'troika-initiative',
     title: 'Инициатива «Тройка»',
     description:

@@ -5,6 +5,7 @@ import {
   CharacterSheetFrame,
   ChatPanel,
   DicePanel,
+  FlDicePanel,
   ExtensionFrame,
   ExtensionsPanel,
   MapSwitcher,
@@ -74,6 +75,8 @@ export function BoardView() {
   const notesOpen = notesEnabled && (modulePanels['notes'] ?? false)
   const flSheetEnabled = extensions['forbidden-lands-sheet'] ?? false
   const flSheetOpen = flSheetEnabled && (modulePanels['forbidden-lands-sheet'] ?? false)
+  const flDiceEnabled = extensions['fl-dice'] ?? false
+  const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -254,6 +257,14 @@ export function BoardView() {
           height={720}
           storageKey="vtt.player.panel.forbidden-lands"
           defaultPosition={{ x: 240, y: 40 }}
+        />
+      )}
+
+      {flDiceOpen && (
+        <FlDicePanel
+          onSendChat={sendChat}
+          onClose={() => toggleModulePanel('fl-dice', false)}
+          storageKey="vtt.player.panel.fl-dice"
         />
       )}
 

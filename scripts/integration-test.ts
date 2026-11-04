@@ -10,7 +10,7 @@ import type {
   Session,
   Token
 } from '@vtt/shared'
-import { layoutMaps, newId, stepTurn } from '@vtt/shared/utils'
+import { layoutMaps, newId, pushFlRoll, rollFlPool, stepTurn } from '@vtt/shared/utils'
 import { BUILT_IN_EXTENSIONS, EXTENSION_CATEGORIES } from '@vtt/shared/plugins'
 import type { HostServerEvent } from '../desktop-host/src/shared/ipc'
 import { SessionManager } from '../desktop-host/src/main/session'
@@ -670,6 +670,34 @@ async function main(): Promise<void> {
     !manager.getActive()?.notes.some((note) => note.title === 'Игрок пытается создать секрет'),
     'игрок не может создать GM-заметку'
   )
+
+  // Кубы Forbidden Lands: успехи, баны по цветам, push и минус-кубы
+  const sequence = (values: number[]) => {
+    let index = 0
+    return () => {
+      const value = values[index++] ?? 6
+      return (value - 1) / 6 + 0.001
+    }
+  }
+  const flRoll = rollFlPool({ base: 2, skill: 1, gear: 1 }, sequence([6, 1, 6, 1]))
+  check(
+    flRoll.successes === 2 && flRoll.baseBanes === 1 && flRoll.gearBanes === 1,
+    'кубы FL: успехи и баны считаются по цветам'
+  )
+  const flPush = pushFlRoll(
+    { base: 1, skill: 1, gear: 0 },
+    rollFlPool({ base: 1, skill: 1, gear: 0 }, sequence([2, 1])),
+    sequence([6])
+  )
+  check(
+    flPush.successes === 1 && flPush.baseBanes === 0 && flPush.skillBanes === 1 && flPush.pushed,
+    'кубы FL: push перебрасывает пустые грани и сохраняет баны'
+  )
+  const flNegative = rollFlPool(
+    { base: 0, skill: 1, gear: 0, modifier: -1 },
+    sequence([6, 6])
+  )
+  check(flNegative.successes === 0, 'кубы FL: минус-куб вычитает успех')
 
   const health = await fetch(`http://localhost:${PORT}/api/health`)
   const healthBody = (await health.json()) as { ok: boolean; sessionId: string }

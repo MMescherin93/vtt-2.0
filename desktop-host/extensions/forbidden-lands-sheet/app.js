@@ -46,7 +46,11 @@ const blankFields = () => {
   const fields = {}
   for (const field of FIELDS) {
     fields[field.name] =
-      field.kind === 'checkbox' ? false : field.kind === 'track' ? '0' : ''
+      field.kind === 'checkbox' || field.kind === 'circle'
+        ? false
+        : field.kind === 'track'
+          ? '0'
+          : ''
   }
   return fields
 }
@@ -59,7 +63,7 @@ const newCharacter = (fields) => ({
 let state = { currentId: null, chars: [] }
 
 function normalizeValue(field, value) {
-  if (field.kind === 'checkbox') return Boolean(value)
+  if (field.kind === 'checkbox' || field.kind === 'circle') return Boolean(value)
   if (field.kind === 'track') {
     const number = Number(value)
     return String(Number.isFinite(number) ? Math.max(0, Math.min(field.max, number)) : 0)
@@ -240,12 +244,25 @@ function setTrackValue(root, value, max) {
 function buildFields() {
   for (const field of FIELDS) {
     let element
-    if (field.kind === 'checkbox') {
+    if (field.kind === 'checkbox' || field.kind === 'circle') {
       element = document.createElement('input')
       element.type = 'checkbox'
-      element.className = 'field check'
+      element.className = `field check${field.kind === 'circle' ? ' circle' : ''}`
     } else if (field.kind === 'track') {
       element = buildTrack(field)
+    } else if (field.kind === 'select') {
+      element = document.createElement('select')
+      element.className = 'field selectField'
+      const blank = document.createElement('option')
+      blank.value = ''
+      blank.textContent = '—'
+      element.appendChild(blank)
+      for (const option of field.options ?? []) {
+        const item = document.createElement('option')
+        item.value = option
+        item.textContent = option
+        element.appendChild(item)
+      }
     } else if (field.kind === 'area') {
       element = document.createElement('textarea')
       element.className = 'field area'
@@ -269,12 +286,12 @@ function buildFields() {
       const container = document.querySelector(`[data-fields="${field.page}"]`)
       container?.appendChild(element)
     } else {
-      const pad = field.kind === 'checkbox' ? 2 : 0
+      const pad = field.kind === 'checkbox' || field.kind === 'circle' ? 2 : 0
       element.style.left = `${field.x - pad}px`
       element.style.top = `${field.y - pad}px`
       element.style.width = `${field.w + pad * 2}px`
       element.style.height = `${field.h + pad * 2}px`
-      if (field.kind !== 'checkbox') {
+      if (field.kind !== 'checkbox' && field.kind !== 'circle') {
         element.style.fontSize = `${field.kind === 'area' ? 14 : Math.max(12, Math.min(18, field.h * 0.62))}px`
       }
       const container = document.querySelector(`[data-fields="${field.page}"]`)
@@ -292,7 +309,7 @@ function readForm() {
   const fields = {}
   for (const field of FIELDS) {
     const element = elements.get(field.name)
-    if (field.kind === 'checkbox') fields[field.name] = element.checked
+    if (field.kind === 'checkbox' || field.kind === 'circle') fields[field.name] = element.checked
     else if (field.kind === 'track') fields[field.name] = element.dataset.value || '0'
     else fields[field.name] = element.value
   }
@@ -303,7 +320,7 @@ function applyForm(fields) {
   for (const field of FIELDS) {
     const element = elements.get(field.name)
     const value = fields ? fields[field.name] : undefined
-    if (field.kind === 'checkbox') {
+    if (field.kind === 'checkbox' || field.kind === 'circle') {
       element.checked = Boolean(value)
     } else if (field.kind === 'track') {
       setTrackValue(element, value, field.max)

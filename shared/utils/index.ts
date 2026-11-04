@@ -1,6 +1,7 @@
 export * from './ids'
 export * from './dice'
 export * from './grid'
+export * from './flDice'
 export * from './camera'
 export * from './fog'
 export * from './session'

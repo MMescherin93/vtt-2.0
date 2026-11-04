@@ -5,6 +5,7 @@ import {
   CharacterSheetFrame,
   ChatPanel,
   DicePanel,
+  FlDicePanel,
   ChevronIcon,
   ExtensionFrame,
   ExtensionsPanel,
@@ -90,6 +91,8 @@ export function BoardView() {
   const notesOpen = notesEnabled && (modulePanels['notes'] ?? false)
   const flSheetEnabled = extensions['forbidden-lands-sheet'] ?? false
   const flSheetOpen = flSheetEnabled && (modulePanels['forbidden-lands-sheet'] ?? false)
+  const flDiceEnabled = extensions['fl-dice'] ?? false
+  const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -320,6 +323,14 @@ export function BoardView() {
           height={720}
           storageKey="vtt.gm.panel.forbidden-lands"
           defaultPosition={{ x: 240, y: 40 }}
+        />
+      )}
+
+      {flDiceOpen && (
+        <FlDicePanel
+          onSendChat={sendChat}
+          onClose={() => toggleModulePanel('fl-dice', false)}
+          storageKey="vtt.gm.panel.fl-dice"
         />
       )}
 
