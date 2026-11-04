@@ -1,7 +1,8 @@
 import type { FogOfWarData } from '../../types/map'
 
 /** Цвет тумана (совпадает с фоном карты) */
-export const FOG_COLOR = 'rgba(8, 10, 16, 1)'
+export const FOG_RGB = { r: 8, g: 10, b: 16 }
+export const FOG_COLOR = `rgba(${FOG_RGB.r}, ${FOG_RGB.g}, ${FOG_RGB.b}, 1)`
 
 /**
  * Отрисовывает туман войны на offscreen-канве.

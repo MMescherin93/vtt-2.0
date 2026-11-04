@@ -460,6 +460,9 @@ export function Board({
             height={field.height}
             opacity={isGm ? 0.35 : 1}
             visible={isGm ? showFogPreview : true}
+            binary={isGm && showFogPreview}
+            camera={camera}
+            viewport={viewport}
           />
 
           <DrawingsLayer drawings={session.drawings} width={field.width} height={field.height} />
