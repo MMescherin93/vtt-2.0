@@ -1,5 +1,7 @@
 export * from './session'
 export * from './token'
 export * from './map'
+export * from './note'
+export * from './pdf'
 export * from './combat'
 export * from './events'

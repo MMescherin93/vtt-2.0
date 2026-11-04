@@ -135,6 +135,16 @@ export function TrashIcon(props: IconProps) {
   )
 }
 
+export function FileTextIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 3h8l4 4v14H6V3z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 12h6M9 15.5h6M9 19h4" />
+    </Icon>
+  )
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <Icon {...props}>

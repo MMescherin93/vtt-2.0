@@ -10,6 +10,10 @@ import type {
   MapText,
   MapTextInput,
   MapTextPatch,
+  Note,
+  NoteInput,
+  NotePatch,
+  PdfDocument,
   PlayerInfo,
   Session,
   SessionSummary,
@@ -39,6 +43,11 @@ export const IPC = {
   textAdd: 'text:add',
   textUpdate: 'text:update',
   textRemove: 'text:remove',
+  pdfPick: 'pdf:pick',
+  pdfRemove: 'pdf:remove',
+  noteAdd: 'note:add',
+  noteUpdate: 'note:update',
+  noteRemove: 'note:remove',
   chatSend: 'chat:send',
   diceRoll: 'dice:roll',
   extensionUpdate: 'extension:update',
@@ -154,6 +163,9 @@ export type HostServerEvent =
   | { type: 'text:add'; text: MapText }
   | { type: 'text:update'; text: MapText }
   | { type: 'text:remove'; textId: string }
+  | { type: 'note:add'; note: Note }
+  | { type: 'note:update'; note: Note }
+  | { type: 'note:remove'; noteId: string }
   | { type: 'chat:message'; message: ChatMessage }
   | { type: 'dice:roll'; roll: DiceRoll }
   | { type: 'extension:update'; extensionId: string; state: unknown }
@@ -189,6 +201,11 @@ export interface HostApi {
   addText(text: MapTextInput): Promise<void>
   updateText(patch: MapTextPatch): Promise<void>
   removeText(textId: string): Promise<void>
+  pickPdf(): Promise<PdfDocument | null>
+  removePdf(pdfId: string): Promise<boolean>
+  addNote(note: NoteInput): Promise<void>
+  updateNote(patch: NotePatch): Promise<void>
+  removeNote(noteId: string): Promise<void>
   sendChat(text: string): Promise<void>
   rollDice(dice: string[]): Promise<void>
 

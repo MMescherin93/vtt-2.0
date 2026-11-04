@@ -22,6 +22,8 @@ export function createSessionState(
     fogOfWar: { covered: true, ops: [] },
     drawings: [],
     texts: [],
+    pdfs: [],
+    notes: [],
     settings: { ...DEFAULT_MAP_SETTINGS },
     combat: null,
     enabledExtensions: defaultExtensionValues(BUILT_IN_EXTENSIONS),

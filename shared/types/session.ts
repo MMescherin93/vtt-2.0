@@ -1,5 +1,7 @@
 import type { Drawing, FogOfWarData, MapAsset, MapSettings, MapText } from './map'
 import type { CombatState } from './combat'
+import type { Note } from './note'
+import type { PdfDocument } from './pdf'
 import type { Token } from './token'
 
 /** Роль участника: GM — всегда хост десктопного приложения (уточнение 7) */
@@ -57,6 +59,10 @@ export interface Session {
   drawings: Drawing[]
   /** Текстовые заметки на карте */
   texts: MapText[]
+  /** PDF-документы библиотеки сессии */
+  pdfs: PdfDocument[]
+  /** Общие заметки кампании (и заметки Мастера) */
+  notes: Note[]
   settings: MapSettings
   /** Активный бой (трекер инициативы) */
   combat: CombatState | null

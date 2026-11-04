@@ -1,5 +1,5 @@
-import type { Session, SessionSummary } from '@vtt/shared'
-import { createSessionState, shortId } from '@vtt/shared/utils'
+import type { PdfDocument, Session, SessionSummary } from '@vtt/shared'
+import { createSessionState, newId, shortId } from '@vtt/shared/utils'
 import { imageSize } from './imageSize'
 import { SessionStorage } from './storage'
 
@@ -83,6 +83,9 @@ export class SessionManager {
 
   /** Удаление сессии вместе с её файлами */
   async remove(id: string): Promise<void> {
+    // Сначала фиксируем активную сессию, чтобы отложенное автосохранение
+    // не пыталось писать в уже удалённую папку.
+    await this.flush()
     if (this.activeSession?.id === id) {
       this.activeSession = null
       this.onChange?.(null)
@@ -136,6 +139,37 @@ export class SessionManager {
       width: dimensions?.width ?? 0,
       height: dimensions?.height ?? 0
     }
+  }
+
+  /** Добавляет PDF в библиотеку сессии, копируя файл без чтения в память */
+  async addPdf(sourcePath: string, fileName: string): Promise<PdfDocument | null> {
+    const session = this.activeSession
+    if (!session) return null
+    const { relativePath, size } = await this.storage.addPdf(session.id, sourcePath)
+    const pdf: PdfDocument = {
+      id: newId('pdf'),
+      title: fileName.replace(/\.pdf$/i, '').slice(0, 200) || 'PDF',
+      fileName: fileName.slice(0, 260),
+      relativePath,
+      size,
+      addedAt: Date.now()
+    }
+    this.update((current) => {
+      current.pdfs.push(pdf)
+    })
+    return pdf
+  }
+
+  async removePdf(pdfId: string): Promise<boolean> {
+    const session = this.activeSession
+    if (!session) return false
+    const pdf = session.pdfs.find((item) => item.id === pdfId)
+    if (!pdf) return false
+    this.update((current) => {
+      current.pdfs = current.pdfs.filter((item) => item.id !== pdfId)
+    })
+    await this.storage.removeAsset(session.id, pdf.relativePath)
+    return true
   }
 
   /** Немедленная запись на диск (перед выходом/переключением сессии) */

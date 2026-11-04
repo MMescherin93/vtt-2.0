@@ -9,6 +9,8 @@ import {
   ExtensionsPanel,
   MapSwitcher,
   ModuleDock,
+  NotesPanel,
+  PdfPanel,
   PuzzleIcon
 } from '@vtt/shared/ui'
 import { useClientStore } from '../../store/useClientStore'
@@ -27,6 +29,7 @@ export function BoardView() {
   const selectedTokenId = useClientStore((state) => state.selectedTokenId)
   const panels = useClientStore((state) => state.panels)
   const selfId = useClientStore((state) => state.selfId)
+  const playerName = useClientStore((state) => state.playerName)
   const setSelectedToken = useClientStore((state) => state.setSelectedToken)
   const moveToken = useClientStore((state) => state.moveToken)
   const transformToken = useClientStore((state) => state.transformToken)
@@ -34,6 +37,9 @@ export function BoardView() {
   const sendText = useClientStore((state) => state.sendText)
   const sendTextUpdate = useClientStore((state) => state.sendTextUpdate)
   const sendTextRemove = useClientStore((state) => state.sendTextRemove)
+  const sendNoteAdd = useClientStore((state) => state.sendNoteAdd)
+  const sendNoteUpdate = useClientStore((state) => state.sendNoteUpdate)
+  const sendNoteRemove = useClientStore((state) => state.sendNoteRemove)
   const sendChat = useClientStore((state) => state.sendChat)
   const requestRoll = useClientStore((state) => state.requestRoll)
   const togglePanel = useClientStore((state) => state.togglePanel)
@@ -62,6 +68,10 @@ export function BoardView() {
   const dice3dOpen = dice3dEnabled && (modulePanels['dice3d'] ?? false)
   const initiativeEnabled = extensions['initiative'] ?? false
   const initiativeOpen = initiativeEnabled && (modulePanels['initiative'] ?? false)
+  const pdfEnabled = extensions['pdf-viewer'] ?? false
+  const pdfOpen = pdfEnabled && (modulePanels['pdf-viewer'] ?? false)
+  const notesEnabled = extensions['notes'] ?? false
+  const notesOpen = notesEnabled && (modulePanels['notes'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -197,6 +207,33 @@ export function BoardView() {
       )}
 
       {initiativeOpen && <InitiativePanel />}
+
+      {notesOpen && (
+        <NotesPanel
+          sessionId={session.id}
+          role="player"
+          ownerKey={playerName || selfId || 'player'}
+          notes={session.notes}
+          onAdd={(note) => sendNoteAdd(note)}
+          onUpdate={(patch) => sendNoteUpdate(patch)}
+          onRemove={(noteId) => sendNoteRemove(noteId)}
+          onClose={() => toggleModulePanel('notes', false)}
+          storageKey="vtt.player.panel.notes"
+        />
+      )}
+
+      {pdfOpen && (
+        <PdfPanel
+          sessionId={session.id}
+          assetsBaseUrl={hostUrl}
+          pdfs={session.pdfs}
+          canManage={false}
+          onPick={async () => null}
+          onRemove={async () => false}
+          onClose={() => toggleModulePanel('pdf-viewer', false)}
+          storageKey="vtt.player.panel.pdf"
+        />
+      )}
 
       <ModuleDock
         modules={dockModules}

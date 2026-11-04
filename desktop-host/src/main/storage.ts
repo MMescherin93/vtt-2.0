@@ -1,8 +1,17 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { extname, join, resolve, sep } from 'node:path'
 import type { Session, SessionSummary } from '@vtt/shared'
-import type { Drawing, FogOfWarData, MapAsset, MapSettings, MapText, Token } from '@vtt/shared'
+import type {
+  Drawing,
+  FogOfWarData,
+  MapAsset,
+  MapSettings,
+  MapText,
+  Note,
+  PdfDocument,
+  Token
+} from '@vtt/shared'
 import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 import {
   createSessionState,
@@ -136,6 +145,30 @@ export class SessionStorage {
     return { relativePath: `${ASSETS_DIR}/${baseName}`, absolutePath }
   }
 
+  /** Копирует PDF в папку сессии без загрузки всего файла в память */
+  async addPdf(
+    sessionId: string,
+    sourcePath: string
+  ): Promise<{ relativePath: string; size: number }> {
+    const dir = this.assetsDir(sessionId)
+    await mkdir(dir, { recursive: true })
+    const baseName = `pdf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.pdf`
+    const absolutePath = join(dir, baseName)
+    await copyFile(sourcePath, absolutePath)
+    const info = await stat(absolutePath)
+    return { relativePath: `${ASSETS_DIR}/${baseName}`, size: info.size }
+  }
+
+  async removeAsset(sessionId: string, relativePath: string): Promise<void> {
+    const file = this.resolveAssetPath(sessionId, relativePath)
+    if (!file) return
+    try {
+      await rm(file, { force: true })
+    } catch {
+      // файл мог быть уже удалён
+    }
+  }
+
   /** Безопасное разрешение пути ассета (защита от выхода за папку сессии) */
   resolveAssetPath(sessionId: string, relativePath: string): string | null {
     const sessionRoot = resolve(this.sessionDir(sessionId))
@@ -228,6 +261,58 @@ function normalizeMapText(raw: unknown): MapText | null {
     authorId: typeof text.authorId === 'string' ? text.authorId : '',
     authorName: typeof text.authorName === 'string' ? text.authorName : '',
     createdAt: isFiniteNumber(text.createdAt) ? text.createdAt : Date.now()
+  }
+}
+
+function normalizePdf(raw: unknown): PdfDocument | null {
+  if (!raw || typeof raw !== 'object') return null
+  const pdf = raw as Partial<PdfDocument>
+  if (
+    typeof pdf.id !== 'string' ||
+    typeof pdf.relativePath !== 'string' ||
+    !pdf.relativePath.toLowerCase().endsWith('.pdf')
+  ) {
+    return null
+  }
+  return {
+    id: pdf.id,
+    title:
+      typeof pdf.title === 'string' && pdf.title.trim()
+        ? pdf.title.slice(0, 200)
+        : (pdf.relativePath.split('/').pop() ?? 'PDF'),
+    fileName: typeof pdf.fileName === 'string' ? pdf.fileName.slice(0, 260) : 'document.pdf',
+    relativePath: pdf.relativePath,
+    size: isFiniteNumber(pdf.size) && pdf.size >= 0 ? pdf.size : 0,
+    addedAt: isFiniteNumber(pdf.addedAt) ? pdf.addedAt : Date.now(),
+    ...(isFiniteNumber(pdf.pages) && pdf.pages > 0 ? { pages: Math.round(pdf.pages) } : {})
+  }
+}
+
+function normalizeNote(raw: unknown): Note | null {
+  if (!raw || typeof raw !== 'object') return null
+  const note = raw as Partial<Note>
+  if (typeof note.id !== 'string' || typeof note.title !== 'string') return null
+  return {
+    id: note.id,
+    title: note.title.slice(0, 200),
+    body: typeof note.body === 'string' ? note.body.slice(0, 50000) : '',
+    authorId: typeof note.authorId === 'string' ? note.authorId : '',
+    authorName: typeof note.authorName === 'string' ? note.authorName.slice(0, 80) : '',
+    visibility: note.visibility === 'gm' ? 'gm' : 'shared',
+    tags: Array.isArray(note.tags)
+      ? note.tags
+          .filter((tag): tag is string => typeof tag === 'string')
+          .map((tag) => tag.slice(0, 40))
+          .slice(0, 12)
+      : [],
+    createdAt: isFiniteNumber(note.createdAt) ? note.createdAt : Date.now(),
+    updatedAt: isFiniteNumber(note.updatedAt) ? note.updatedAt : Date.now(),
+    ...(note.pdf &&
+    typeof note.pdf.documentId === 'string' &&
+    isFiniteNumber(note.pdf.page) &&
+    note.pdf.page > 0
+      ? { pdf: { documentId: note.pdf.documentId, page: Math.round(note.pdf.page) } }
+      : {})
   }
 }
 
@@ -325,6 +410,12 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
       : [],
     texts: Array.isArray(source.texts)
       ? source.texts.map(normalizeMapText).filter((text): text is MapText => text !== null)
+      : [],
+    pdfs: Array.isArray(source.pdfs)
+      ? source.pdfs.map(normalizePdf).filter((pdf): pdf is PdfDocument => pdf !== null)
+      : [],
+    notes: Array.isArray(source.notes)
+      ? source.notes.map(normalizeNote).filter((note): note is Note => note !== null)
       : [],
     chatLog: Array.isArray(source.chatLog)
       ? source.chatLog.filter(

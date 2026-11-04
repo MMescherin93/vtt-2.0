@@ -6,6 +6,8 @@ import type {
   FogOfWarData,
   MapTextInput,
   MapTextPatch,
+  NoteInput,
+  NotePatch,
   PlayerInfo,
   Session,
   SessionSummary,
@@ -108,6 +110,9 @@ interface HostState {
   addText: (text: MapTextInput) => void
   updateText: (patch: MapTextPatch) => void
   removeText: (textId: string) => void
+  addNote: (note: NoteInput) => Promise<void>
+  updateNote: (patch: NotePatch) => Promise<void>
+  removeNote: (noteId: string) => Promise<void>
   changeFog: (fog: FogOfWarData) => void
   sendChat: (text: string) => void
   rollDice: (dice: string[]) => void
@@ -248,6 +253,29 @@ export const useHostStore = create<HostState>()(
             if (!session) break
             if (session.drawings.some((drawing) => drawing.id === event.drawing.id)) break
             set({ session: { ...session, drawings: [...session.drawings, event.drawing] } })
+            break
+          case 'note:add':
+            if (!session) break
+            if (session.notes.some((note) => note.id === event.note.id)) break
+            set({ session: { ...session, notes: [...session.notes, event.note] } })
+            break
+          case 'note:update':
+            if (!session) break
+            set({
+              session: {
+                ...session,
+                notes: session.notes.map((note) => (note.id === event.note.id ? event.note : note))
+              }
+            })
+            break
+          case 'note:remove':
+            if (!session) break
+            set({
+              session: {
+                ...session,
+                notes: session.notes.filter((note) => note.id !== event.noteId)
+              }
+            })
             break
           case 'text:add':
             if (!session) break
@@ -513,6 +541,18 @@ export const useHostStore = create<HostState>()(
 
       addText: (text) => {
         void window.hostApi.addText(text)
+      },
+
+      addNote: async (note) => {
+        await window.hostApi.addNote(note)
+      },
+
+      updateNote: async (patch) => {
+        await window.hostApi.updateNote(patch)
+      },
+
+      removeNote: async (noteId) => {
+        await window.hostApi.removeNote(noteId)
       },
 
       updateText: (patch) => {

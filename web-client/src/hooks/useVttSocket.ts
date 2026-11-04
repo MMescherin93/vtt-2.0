@@ -6,6 +6,7 @@ import type {
   Drawing,
   FogOfWarData,
   MapText,
+  Note,
   PlayerInfo,
   Session,
   Token,
@@ -58,6 +59,9 @@ export function useVttSocket(): void {
     const onTextAdd = (text: MapText): void => store.addText(text)
     const onTextUpdate = (text: MapText): void => store.updateText(text)
     const onTextRemove = (data: { textId: string }): void => store.removeText(data.textId)
+    const onNoteAdd = (note: Note): void => store.addNote(note)
+    const onNoteUpdate = (note: Note): void => store.updateNote(note)
+    const onNoteRemove = (data: { noteId: string }): void => store.removeNote(data.noteId)
     const onChat = (message: ChatMessageData): void => store.addChat(message)
     const onDice = (roll: DiceRollResultData): void => store.addRoll(roll)
     const onExtension = (data: { extensionId: string; state: unknown }): void =>
@@ -82,6 +86,9 @@ export function useVttSocket(): void {
     socket.on('text:add', onTextAdd)
     socket.on('text:update', onTextUpdate)
     socket.on('text:remove', onTextRemove)
+    socket.on('note:add', onNoteAdd)
+    socket.on('note:update', onNoteUpdate)
+    socket.on('note:remove', onNoteRemove)
     socket.on('chat:message', onChat)
     socket.on('dice:roll', onDice)
     socket.on('extension:update', onExtension)
@@ -105,6 +112,9 @@ export function useVttSocket(): void {
       socket.off('text:add', onTextAdd)
       socket.off('text:update', onTextUpdate)
       socket.off('text:remove', onTextRemove)
+      socket.off('note:add', onNoteAdd)
+      socket.off('note:update', onNoteUpdate)
+      socket.off('note:remove', onNoteRemove)
       socket.off('chat:message', onChat)
       socket.off('dice:roll', onDice)
       socket.off('extension:update', onExtension)

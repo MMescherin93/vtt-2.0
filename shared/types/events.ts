@@ -7,6 +7,7 @@ import type {
   MapTextPatch,
   TokenPatch
 } from './map'
+import type { Note, NoteInput, NotePatch } from './note'
 import type { ChatMessage, DiceRoll, PlayerInfo, Session } from './session'
 import type { Token } from './token'
 import type { CombatState } from './combat'
@@ -76,6 +77,9 @@ export interface ServerToClientEvents {
   'text:add': (text: MapText) => void
   'text:update': (text: MapText) => void
   'text:remove': (data: { textId: string }) => void
+  'note:add': (note: Note) => void
+  'note:update': (note: Note) => void
+  'note:remove': (data: { noteId: string }) => void
   'chat:message': (data: ChatMessageData) => void
   'dice:roll': (data: DiceRollResultData) => void
   /** Состояние расширения изменил Мастер */
@@ -105,6 +109,10 @@ export interface ClientToServerEvents {
   'text:add': (data: MapTextInput) => void
   'text:update': (data: MapTextPatch) => void
   'text:remove': (data: { textId: string }) => void
+  /** Заметки: общие и GM-заметки; игроки видят только shared */
+  'note:add': (data: NoteInput) => void
+  'note:update': (data: NotePatch) => void
+  'note:remove': (data: { noteId: string }) => void
   /** Туман войны меняет только GM (проверка роли на сервере) */
   'fog:update': (fog: FogOfWarData) => void
 }

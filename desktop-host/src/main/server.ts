@@ -12,6 +12,7 @@ import type {
   Drawing,
   FogOfWarData,
   MapText,
+  Note,
   PlayerInfo,
   ServerToClientEvents,
   Session,
@@ -75,6 +76,9 @@ export interface VttServer {
   textAdded(text: MapText): void
   textUpdated(text: MapText): void
   textRemoved(textId: string): void
+  noteAdded(note: Note): void
+  noteUpdated(note: Note): void
+  noteRemoved(noteId: string): void
   chatMessage(message: ChatMessage): void
   diceRolled(roll: DiceRoll): void
   /** Состояние боя изменилось (игрокам — без скрытых бойцов) */
@@ -104,6 +108,7 @@ const MIME_TYPES: Record<string, string> = {
   '.ttf': 'font/ttf',
   '.map': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
+  '.pdf': 'application/pdf',
   '.wasm': 'application/wasm'
 }
 
@@ -128,12 +133,22 @@ function sanitizeColor(value: unknown): string {
   return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#f8fafc'
 }
 
+function sanitizeTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((tag): tag is string => typeof tag === 'string')
+    .map((tag) => tag.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 12)
+}
+
 /** Игроки не должны получать скрытые токены (ТЗ, п.3: GM-only скрытие) */
 function playerSession(session: Session): Session {
   return {
     ...session,
     tokens: session.tokens.filter((token) => !token.hidden).map(playerToken),
-    combat: playerCombat(session.combat, session.tokens)
+    combat: playerCombat(session.combat, session.tokens),
+    notes: session.notes.filter((note) => note.visibility === 'shared')
   }
 }
 
@@ -282,7 +297,8 @@ export function startVttServer(options: VttServerOptions): VttServer {
   async function serveFile(
     res: ServerResponse,
     filePath: string,
-    cacheControl: string
+    cacheControl: string,
+    req?: IncomingMessage
   ): Promise<void> {
     const info = await stat(filePath)
     if (!info.isFile()) {
@@ -290,11 +306,41 @@ export function startVttServer(options: VttServerOptions): VttServer {
       res.end('Not found')
       return
     }
-    res.writeHead(200, {
-      'Content-Type': mimeFor(filePath),
-      'Content-Length': info.size,
+
+    const type = mimeFor(filePath)
+    const headers: Record<string, string | number> = {
+      'Content-Type': type,
       'Cache-Control': cacheControl,
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': '*',
+      'Accept-Ranges': 'bytes'
+    }
+    if (type === 'application/pdf') headers['Content-Disposition'] = 'inline'
+
+    const range = req?.headers.range
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range)
+      if (match) {
+        const start = match[1] ? Number(match[1]) : 0
+        const end = match[2] ? Number(match[2]) : info.size - 1
+        if (Number.isFinite(start) && Number.isFinite(end) && start <= end && start < info.size) {
+          const safeEnd = Math.min(end, info.size - 1)
+          res.writeHead(206, {
+            ...headers,
+            'Content-Range': `bytes ${start}-${safeEnd}/${info.size}`,
+            'Content-Length': safeEnd - start + 1
+          })
+          createReadStream(filePath, { start, end: safeEnd }).pipe(res)
+          return
+        }
+        res.writeHead(416, { 'Content-Range': `bytes */${info.size}` })
+        res.end()
+        return
+      }
+    }
+
+    res.writeHead(200, {
+      ...headers,
+      'Content-Length': info.size
     })
     createReadStream(filePath).pipe(res)
   }
@@ -302,7 +348,8 @@ export function startVttServer(options: VttServerOptions): VttServer {
   async function serveSessionAsset(
     res: ServerResponse,
     sessionId: string,
-    relativePath: string
+    relativePath: string,
+    req?: IncomingMessage
   ): Promise<void> {
     const filePath = storage.resolveAssetPath(sessionId, relativePath)
     if (!filePath) {
@@ -311,7 +358,7 @@ export function startVttServer(options: VttServerOptions): VttServer {
       return
     }
     try {
-      await serveFile(res, filePath, 'public, max-age=31536000, immutable')
+      await serveFile(res, filePath, 'public, max-age=31536000, immutable', req)
     } catch {
       res.writeHead(404)
       res.end('Not found')
@@ -450,7 +497,7 @@ export function startVttServer(options: VttServerOptions): VttServer {
       }
       const sessionId = rest.slice(0, slash)
       const relativePath = rest.slice(slash + 1)
-      await serveSessionAsset(res, sessionId, relativePath)
+      await serveSessionAsset(res, sessionId, relativePath, req)
       return
     }
 
@@ -759,6 +806,81 @@ export function startVttServer(options: VttServerOptions): VttServer {
       onHostEvent({ type: 'drawing:add', drawing })
     })
 
+    socket.on('note:add', (data) => {
+      const session = socketSession(socket)
+      if (!session || !data) return
+      const title = String(data.title ?? '')
+        .trim()
+        .slice(0, 200)
+      const body = String(data.body ?? '').slice(0, 50000)
+      if (!title && !body.trim()) return
+      // Игроки создают только общие заметки; GM-заметки — через IPC Мастера
+      if (socket.data.role === 'player' && data.visibility === 'gm') return
+      const note: Note = {
+        id: newId('note'),
+        title: title || 'Без названия',
+        body,
+        authorId: socket.id,
+        authorName: socket.data.playerName ?? 'Игрок',
+        visibility: 'shared',
+        tags: sanitizeTags(data.tags),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        ...(data.pdf &&
+        typeof data.pdf.documentId === 'string' &&
+        isFiniteNumber(data.pdf.page) &&
+        data.pdf.page > 0
+          ? { pdf: { documentId: data.pdf.documentId, page: Math.round(data.pdf.page) } }
+          : {})
+      }
+      sessionManager.updateSilent((current) => {
+        current.notes.push(note)
+      })
+      io.to(session.id).emit('note:add', note)
+      onHostEvent({ type: 'note:add', note })
+    })
+
+    socket.on('note:update', (data) => {
+      const session = socketSession(socket)
+      if (!session || !data || typeof data.noteId !== 'string') return
+      const existing = session.notes.find((item) => item.id === data.noteId)
+      if (!existing || existing.visibility === 'gm') return
+      const updated: Note = {
+        ...existing,
+        title:
+          typeof data.title === 'string'
+            ? data.title.slice(0, 200) || 'Без названия'
+            : existing.title,
+        body: typeof data.body === 'string' ? data.body.slice(0, 50000) : existing.body,
+        visibility: 'shared',
+        tags: data.tags !== undefined ? sanitizeTags(data.tags) : existing.tags,
+        updatedAt: Date.now(),
+        ...(data.pdf === null ? { pdf: undefined } : {}),
+        ...(data.pdf && typeof data.pdf.documentId === 'string' && isFiniteNumber(data.pdf.page)
+          ? {
+              pdf: { documentId: data.pdf.documentId, page: Math.max(1, Math.round(data.pdf.page)) }
+            }
+          : {})
+      }
+      sessionManager.updateSilent((current) => {
+        current.notes = current.notes.map((item) => (item.id === updated.id ? updated : item))
+      })
+      io.to(session.id).emit('note:update', updated)
+      onHostEvent({ type: 'note:update', note: updated })
+    })
+
+    socket.on('note:remove', (data) => {
+      const session = socketSession(socket)
+      if (!session || !data || typeof data.noteId !== 'string') return
+      const existing = session.notes.find((item) => item.id === data.noteId)
+      if (!existing || existing.visibility === 'gm') return
+      sessionManager.updateSilent((current) => {
+        current.notes = current.notes.filter((item) => item.id !== data.noteId)
+      })
+      io.to(session.id).emit('note:remove', { noteId: data.noteId })
+      onHostEvent({ type: 'note:remove', noteId: data.noteId })
+    })
+
     socket.on('text:add', (data) => {
       const session = socketSession(socket)
       if (!session || !data) return
@@ -924,6 +1046,24 @@ export function startVttServer(options: VttServerOptions): VttServer {
       if (!session) return
       io.to(session.id).emit('text:remove', { textId })
       onHostEvent({ type: 'text:remove', textId })
+    },
+    noteAdded(note) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('note:add', note)
+      onHostEvent({ type: 'note:add', note })
+    },
+    noteUpdated(note) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('note:update', note)
+      onHostEvent({ type: 'note:update', note })
+    },
+    noteRemoved(noteId) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('note:remove', { noteId })
+      onHostEvent({ type: 'note:remove', noteId })
     },
     chatMessage(message) {
       const session = sessionManager.getActive()

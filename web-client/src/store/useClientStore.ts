@@ -10,6 +10,9 @@ import type {
   MapText,
   MapTextInput,
   MapTextPatch,
+  Note,
+  NoteInput,
+  NotePatch,
   PlayerInfo,
   Session,
   Token,
@@ -64,6 +67,9 @@ interface ClientState {
   addText: (text: MapText) => void
   updateText: (text: MapText) => void
   removeText: (textId: string) => void
+  addNote: (note: Note) => void
+  updateNote: (note: Note) => void
+  removeNote: (noteId: string) => void
   addChat: (message: ChatMessageData) => void
   addRoll: (roll: DiceRollResultData) => void
   setExtensionState: (extensionId: string, state: unknown) => void
@@ -81,6 +87,9 @@ interface ClientState {
   sendText: (text: MapTextInput) => void
   sendTextUpdate: (patch: MapTextPatch) => void
   sendTextRemove: (textId: string) => void
+  sendNoteAdd: (note: NoteInput) => void
+  sendNoteUpdate: (patch: NotePatch) => void
+  sendNoteRemove: (noteId: string) => void
   sendChat: (text: string) => void
   requestRoll: (dice: string[]) => void
 
@@ -264,6 +273,27 @@ export const useClientStore = create<ClientState>()(
         if (!session) return
         set({ session: { ...session, texts: session.texts.filter((item) => item.id !== textId) } })
       },
+      addNote: (note) => {
+        const session = get().session
+        if (!session) return
+        if (session.notes.some((item) => item.id === note.id)) return
+        set({ session: { ...session, notes: [...session.notes, note] } })
+      },
+      updateNote: (note) => {
+        const session = get().session
+        if (!session) return
+        set({
+          session: {
+            ...session,
+            notes: session.notes.map((item) => (item.id === note.id ? note : item))
+          }
+        })
+      },
+      removeNote: (noteId) => {
+        const session = get().session
+        if (!session) return
+        set({ session: { ...session, notes: session.notes.filter((item) => item.id !== noteId) } })
+      },
       addChat: (message) => {
         const session = get().session
         if (!session) return
@@ -304,6 +334,15 @@ export const useClientStore = create<ClientState>()(
       },
       sendTextRemove: (textId) => {
         socket.emit('text:remove', { textId })
+      },
+      sendNoteAdd: (note) => {
+        socket.emit('note:add', note)
+      },
+      sendNoteUpdate: (patch) => {
+        socket.emit('note:update', patch)
+      },
+      sendNoteRemove: (noteId) => {
+        socket.emit('note:remove', { noteId })
       },
       sendChat: (text) => {
         const value = text.trim()

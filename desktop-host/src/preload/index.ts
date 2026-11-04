@@ -18,6 +18,9 @@ import type {
   FogOfWarData,
   MapTextInput,
   MapTextPatch,
+  NoteInput,
+  NotePatch,
+  PdfDocument,
   Session,
   SessionSummary,
   Token
@@ -61,6 +64,11 @@ const hostApi: HostApi = {
   addText: (input: MapTextInput) => ipcRenderer.invoke(IPC.textAdd, input) as Promise<void>,
   updateText: (patch: MapTextPatch) => ipcRenderer.invoke(IPC.textUpdate, patch) as Promise<void>,
   removeText: (textId: string) => ipcRenderer.invoke(IPC.textRemove, textId) as Promise<void>,
+  pickPdf: () => ipcRenderer.invoke(IPC.pdfPick) as Promise<PdfDocument | null>,
+  removePdf: (pdfId: string) => ipcRenderer.invoke(IPC.pdfRemove, pdfId) as Promise<boolean>,
+  addNote: (note: NoteInput) => ipcRenderer.invoke(IPC.noteAdd, note) as Promise<void>,
+  updateNote: (patch: NotePatch) => ipcRenderer.invoke(IPC.noteUpdate, patch) as Promise<void>,
+  removeNote: (noteId: string) => ipcRenderer.invoke(IPC.noteRemove, noteId) as Promise<void>,
   sendChat: (text: string) => ipcRenderer.invoke(IPC.chatSend, text) as Promise<void>,
   rollDice: (dice: string[]) => ipcRenderer.invoke(IPC.diceRoll, dice) as Promise<void>,
   setExtensionState: (extensionId: string, state: unknown) =>

@@ -1,10 +1,11 @@
 /* Интеграционный тест сервера VTT: сессии, сокеты, токены, чат, кубики, туман, файлы */
-import { rm } from 'node:fs/promises'
+import { rm, writeFile } from 'node:fs/promises'
 import { io, type Socket } from 'socket.io-client'
 import type {
   ClientToServerEvents,
   CombatState,
   MapText,
+  Note,
   ServerToClientEvents,
   Session,
   Token
@@ -586,6 +587,89 @@ async function main(): Promise<void> {
     `http://localhost:${PORT}/session-assets/${session.id}/..%2F..%2Fsession.json`
   )
   check(traversal.status === 403 || traversal.status === 404, 'выход за папку сессии заблокирован')
+
+  const pdfSource = '.tmp/test-pdf-source.pdf'
+  await writeFile(
+    pdfSource,
+    Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n', 'utf8')
+  )
+  const pdf = await manager.addPdf(pdfSource, 'test.pdf')
+  check(
+    pdf !== null && manager.getActive()?.pdfs.some((item) => item.id === pdf?.id) === true,
+    'PDF добавлен в библиотеку'
+  )
+  const pdfResponse = await fetch(
+    `http://localhost:${PORT}/session-assets/${session.id}/${pdf!.relativePath}`
+  )
+  check(
+    pdfResponse.status === 200 && pdfResponse.headers.get('content-type') === 'application/pdf',
+    'PDF отдаётся с правильным Content-Type'
+  )
+  const rangeResponse = await fetch(
+    `http://localhost:${PORT}/session-assets/${session.id}/${pdf!.relativePath}`,
+    { headers: { Range: 'bytes=0-9' } }
+  )
+  check(
+    rangeResponse.status === 206 &&
+      (rangeResponse.headers.get('content-range') ?? '').startsWith('bytes 0-9/'),
+    'PDF поддерживает Range-запросы'
+  )
+  check(await manager.removePdf(pdf!.id), 'PDF удаляется из библиотеки')
+  await rm(pdfSource, { force: true })
+
+  const notePromise = watch<Note>(client, 'note:add')
+  client.emit('note:add', {
+    title: 'Общая заметка',
+    body: '# Журнал\n\nТекст',
+    tags: ['журнал'],
+    visibility: 'shared'
+  })
+  const sharedNote = await notePromise
+  check(
+    sharedNote.title === 'Общая заметка' && sharedNote.visibility === 'shared',
+    'игрок создаёт общую заметку'
+  )
+
+  const gmNoteSessionPromise = watch<Session>(client, 'session:update')
+  manager.update((current) => {
+    current.notes.push({
+      id: newId('note'),
+      title: 'Секрет Мастера',
+      body: 'Не показывать игрокам',
+      authorId: 'gm',
+      authorName: 'Мастер',
+      visibility: 'gm',
+      tags: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    })
+  })
+  const gmNoteSession = await gmNoteSessionPromise
+  check(
+    gmNoteSession.notes.every((note) => note.visibility !== 'gm'),
+    'GM-заметки не попадают игрокам'
+  )
+
+  const noteUpdatePromise = watch<Note>(client, 'note:update')
+  client.emit('note:update', { noteId: sharedNote.id, title: 'Обновлённая заметка' })
+  const updatedNote = await noteUpdatePromise
+  check(updatedNote.title === 'Обновлённая заметка', 'общую заметку можно обновить')
+
+  const noteRemovePromise = watch<{ noteId: string }>(client, 'note:remove')
+  client.emit('note:remove', { noteId: sharedNote.id })
+  check((await noteRemovePromise).noteId === sharedNote.id, 'общую заметку можно удалить')
+
+  client.emit('note:add', {
+    title: 'Игрок пытается создать секрет',
+    body: 'не должно сохраниться',
+    tags: [],
+    visibility: 'gm'
+  })
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  check(
+    !manager.getActive()?.notes.some((note) => note.title === 'Игрок пытается создать секрет'),
+    'игрок не может создать GM-заметку'
+  )
 
   const health = await fetch(`http://localhost:${PORT}/api/health`)
   const healthBody = (await health.json()) as { ok: boolean; sessionId: string }

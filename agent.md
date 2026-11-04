@@ -118,8 +118,8 @@ export interface PluginDefinition {
   `chat:send`, `dice:roll`, `drawing:add`, `fog:update`
 - `session-migration`: нормализация полей сессии и версии схемы
 - `extension`: кубики, чат, рисование, туман войны, подписи токенов,
-  3D-кубики, HP/AC и состояния, инициатива, «Инициатива «Тройка»»,
-  листы «Тройки» и AZAG (см. `shared/plugins/builtins.ts`)
+  3D-кубики, HP/AC и состояния, инициатива, PDF-библиотека, заметки,
+  «Инициатива «Тройка»», листы «Тройки» и AZAG (см. `shared/plugins/builtins.ts`)
 
 ### Как добавить фичу (обязательный порядок)
 
@@ -174,7 +174,7 @@ export interface PluginDefinition {
 ```
 desktop-host/       Electron: main (сервер, сессии, хранение, туннель), preload, renderer (UI Мастера)
 web-client/         веб-клиент игрока: React + Vite + Konva
-shared/types/       Session, Token, Map/Fog/Drawing, WebSocket-события
+shared/types/       Session, Token, Map/Fog/Drawing/Text, PDF, Note, Combat, WebSocket-события
 shared/utils/       камера, сетка, кубики, туман, id, цвета, фабрика сессии
 shared/ui/          общий Konva-канвас, плавающие панели, чат, кубики, иконки
 scripts/            интеграционный тест, лаунчер, ярлыки, иконка
@@ -190,6 +190,11 @@ scripts/            интеграционный тест, лаунчер, яр�
 ### Роли и данные
 
 - GM — только десктопное приложение; веб-клиенты всегда игроки.
+- PDF-библиотека: файлы лежат в папке сессии, в JSON только `Session.pdfs` и
+  метаданные; раздача — `application/pdf` с Range. Загружает только Мастер.
+- Заметки: `Session.notes` содержит общие и GM-заметки; сервер вырезает
+  `visibility: 'gm'` для игроков. Личные «Мои» заметки — в `localStorage`
+  клиента и на сервер не уходят. Подробности — [docs/library.md](docs/library.md).
 - Статы токенов (`Token.stats`) и бой (`Session.combat`) — данные сессии.
   Сервер отдаёт игрокам только разрешённое: цифры HP/AC по режиму
   `full | bar | hidden`, скрытых бойцов и их имена вырезает `playerCombat`.

@@ -10,6 +10,8 @@ import {
   ExtensionsPanel,
   MapSwitcher,
   ModuleDock,
+  NotesPanel,
+  PdfPanel,
   PuzzleIcon
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
@@ -42,6 +44,9 @@ export function BoardView() {
   const addText = useHostStore((state) => state.addText)
   const updateText = useHostStore((state) => state.updateText)
   const removeText = useHostStore((state) => state.removeText)
+  const addNote = useHostStore((state) => state.addNote)
+  const updateNote = useHostStore((state) => state.updateNote)
+  const removeNote = useHostStore((state) => state.removeNote)
   const changeFog = useHostStore((state) => state.changeFog)
   const sendChat = useHostStore((state) => state.sendChat)
   const rollDice = useHostStore((state) => state.rollDice)
@@ -79,6 +84,10 @@ export function BoardView() {
   const statsOpen = statsEnabled && (modulePanels['token-stats'] ?? false)
   const initiativeEnabled = extensions['initiative'] ?? false
   const initiativeOpen = initiativeEnabled && (modulePanels['initiative'] ?? false)
+  const pdfEnabled = extensions['pdf-viewer'] ?? false
+  const pdfOpen = pdfEnabled && (modulePanels['pdf-viewer'] ?? false)
+  const notesEnabled = extensions['notes'] ?? false
+  const notesOpen = notesEnabled && (modulePanels['notes'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -265,6 +274,33 @@ export function BoardView() {
 
       {statsOpen && <TokenStatsPanel />}
       {initiativeOpen && <InitiativePanel />}
+
+      {notesOpen && (
+        <NotesPanel
+          sessionId={session.id}
+          role="gm"
+          ownerKey="gm"
+          notes={session.notes}
+          onAdd={(note) => addNote(note)}
+          onUpdate={(patch) => updateNote(patch)}
+          onRemove={(noteId) => removeNote(noteId)}
+          onClose={() => toggleModulePanel('notes', false)}
+          storageKey="vtt.gm.panel.notes"
+        />
+      )}
+
+      {pdfOpen && (
+        <PdfPanel
+          sessionId={session.id}
+          assetsBaseUrl={assetsBaseUrl}
+          pdfs={session.pdfs}
+          canManage
+          onPick={() => window.hostApi.pickPdf()}
+          onRemove={(pdfId) => window.hostApi.removePdf(pdfId)}
+          onClose={() => toggleModulePanel('pdf-viewer', false)}
+          storageKey="vtt.gm.panel.pdf"
+        />
+      )}
 
       <ModuleDock
         modules={dockModules}

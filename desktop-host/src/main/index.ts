@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { stat } from 'node:fs/promises'
+import { basename, join, resolve } from 'node:path'
 import type {
   ChatMessage,
   CombatState,
@@ -11,6 +12,10 @@ import type {
   MapText,
   MapTextInput,
   MapTextPatch,
+  Note,
+  NoteInput,
+  NotePatch,
+  PdfDocument,
   Session,
   Token
 } from '@vtt/shared'
@@ -452,6 +457,94 @@ function registerIpc(): void {
       current.texts = current.texts.filter((item) => item.id !== textId)
     })
     server?.textRemoved(textId)
+  })
+
+  ipcMain.handle(IPC.pdfPick, async (): Promise<PdfDocument | null> => {
+    if (!sessionManager) return null
+    const result = await dialog.showOpenDialog({
+      title: 'Добавить PDF в библиотеку',
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      properties: ['openFile']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    const filePath = result.filePaths[0]
+    if (!filePath.toLowerCase().endsWith('.pdf')) throw new Error('Выберите PDF-файл')
+    const info = await stat(filePath)
+    if (info.size > 500 * 1024 * 1024) throw new Error('PDF слишком большой (максимум 500 МБ)')
+    return sessionManager.addPdf(filePath, basename(filePath))
+  })
+
+  ipcMain.handle(IPC.pdfRemove, async (_event, pdfId: string): Promise<boolean> => {
+    if (!sessionManager || typeof pdfId !== 'string') return false
+    return sessionManager.removePdf(pdfId)
+  })
+
+  ipcMain.handle(IPC.noteAdd, async (_event, input: NoteInput) => {
+    if (!sessionManager) return
+    const title = String(input?.title ?? '')
+      .trim()
+      .slice(0, 200)
+    const body = String(input?.body ?? '').slice(0, 50000)
+    if (!title && !body.trim()) return
+    const note: Note = {
+      id: newId('note'),
+      title: title || 'Без названия',
+      body,
+      authorId: 'gm',
+      authorName: 'Мастер',
+      visibility: input?.visibility === 'gm' ? 'gm' : 'shared',
+      tags: Array.isArray(input?.tags)
+        ? input.tags
+            .filter((tag): tag is string => typeof tag === 'string')
+            .map((tag) => tag.trim().slice(0, 40))
+            .filter(Boolean)
+            .slice(0, 12)
+        : [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      ...(input?.pdf && typeof input.pdf.documentId === 'string' && Number.isFinite(input.pdf.page)
+        ? {
+            pdf: { documentId: input.pdf.documentId, page: Math.max(1, Math.round(input.pdf.page)) }
+          }
+        : {})
+    }
+    sessionManager.update((current) => {
+      current.notes.push(note)
+    })
+  })
+
+  ipcMain.handle(IPC.noteUpdate, async (_event, patch: NotePatch) => {
+    if (!sessionManager || !patch?.noteId) return
+    sessionManager.update((current) => {
+      const note = current.notes.find((item) => item.id === patch.noteId)
+      if (!note) return
+      if (typeof patch.title === 'string') note.title = patch.title.slice(0, 200) || 'Без названия'
+      if (typeof patch.body === 'string') note.body = patch.body.slice(0, 50000)
+      if (patch.visibility === 'gm' || patch.visibility === 'shared')
+        note.visibility = patch.visibility
+      if (Array.isArray(patch.tags)) {
+        note.tags = patch.tags
+          .filter((tag): tag is string => typeof tag === 'string')
+          .map((tag) => tag.trim().slice(0, 40))
+          .filter(Boolean)
+          .slice(0, 12)
+      }
+      if (patch.pdf === null) delete note.pdf
+      else if (patch.pdf && typeof patch.pdf.documentId === 'string') {
+        note.pdf = {
+          documentId: patch.pdf.documentId,
+          page: Math.max(1, Math.round(patch.pdf.page))
+        }
+      }
+      note.updatedAt = Date.now()
+    })
+  })
+
+  ipcMain.handle(IPC.noteRemove, async (_event, noteId: string) => {
+    if (!sessionManager || typeof noteId !== 'string') return
+    sessionManager.update((current) => {
+      current.notes = current.notes.filter((note) => note.id !== noteId)
+    })
   })
 
   ipcMain.handle(IPC.chatSend, async (_event, text: string) => {

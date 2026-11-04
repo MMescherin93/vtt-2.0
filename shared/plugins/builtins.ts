@@ -16,6 +16,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     id: 'azag',
     title: 'AZAG',
     description: 'Модули для игры AZAG (Dank Dungeons)'
+  },
+  {
+    id: 'library',
+    title: 'Библиотека',
+    description: 'PDF-документы, заметки и материалы кампании'
   }
 ]
 
@@ -94,6 +99,26 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     defaultEnabled: false,
     category: 'basic',
     icon: '/extensions/icons/initiative.svg',
+    panel: true
+  },
+  {
+    id: 'pdf-viewer',
+    title: 'PDF-библиотека',
+    description: 'PDF-документы кампании: загрузка Мастером, просмотр у всех участников',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'library',
+    icon: '/extensions/icons/pdf.svg',
+    panel: true
+  },
+  {
+    id: 'notes',
+    title: 'Заметки',
+    description: 'Общий журнал кампании, заметки Мастера и личные заметки',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'library',
+    icon: '/extensions/icons/notes.svg',
     panel: true
   },
   {
