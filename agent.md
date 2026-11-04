@@ -113,7 +113,7 @@ export interface PluginDefinition {
   HP/AC и состояния, инициатива
 - `board-layer`: карта, сетка, токены, статы, туман, рисунки, текст, слой превью
 - `server-command`: сессии, ассеты, токены, туман, рисование, текст, чат, кубики, приглашение/туннель
-- `extension-frame`: iframe-модуль, обмен состоянием и опциональный масштаб листа (`zoomable`)
+- `extension-frame`: iframe-модуль, обмен состоянием, масштаб содержимого (`zoomable`) и изменяемый размер окна (`resizable`)
 - `socket-event`: `client:join`, `session:request`, `token:move`, `token:update`,
   `chat:send`, `dice:roll`, `drawing:add`, `fog:update`
 - `session-migration`: нормализация полей сессии и версии схемы

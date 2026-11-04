@@ -3,6 +3,7 @@ import type { ExtensionDefinition } from '../plugins/types'
 import { FloatingPanel } from './FloatingPanel'
 import { mergeWithBaseline, withLocalSelection, writeSelection } from './extensionState'
 import { ZoomInIcon, ZoomOutIcon } from './icons'
+import { useElementSize } from './useElementSize'
 
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 2
@@ -52,6 +53,8 @@ export interface ExtensionFrameProps {
   className?: string
   /** Показывать кнопки масштабирования содержимого модуля */
   zoomable?: boolean
+  /** Разрешить менять размер окна модуля перетаскиванием */
+  resizable?: boolean
 }
 
 /**
@@ -80,9 +83,11 @@ export function ExtensionFrame({
   storageKey,
   defaultPosition = { x: 280, y: 60 },
   className,
-  zoomable = false
+  zoomable = false,
+  resizable = false
 }: ExtensionFrameProps) {
   const frameRef = useRef<HTMLIFrameElement>(null)
+  const { ref: contentRef, size: viewport } = useElementSize<HTMLDivElement>()
   const zoomKey = `${storageKey ?? `vtt.extension.${extensionId}`}:zoom`
   const [zoom, setZoom] = useState(() => loadZoom(zoomKey))
   const stateRef = useRef<unknown>(state)
@@ -114,7 +119,8 @@ export function ExtensionFrame({
   }, [zoom, zoomKey])
 
   const zoomBy = (delta: number): void => setZoom((current) => clampZoom(current + delta))
-  const frameWidth = Math.max(100, width - 2)
+  const baseWidth = viewport.width > 0 ? viewport.width : Math.max(100, width - 2)
+  const baseHeight = viewport.height > 0 ? viewport.height : height
   const zoomActions = zoomable ? (
     <div className="flex items-center gap-0.5">
       <button
@@ -248,29 +254,37 @@ export function ExtensionFrame({
       defaultPosition={defaultPosition}
       className={className}
       actions={zoomActions}
+      resizable={resizable}
+      defaultHeight={height + 40}
     >
-      <div className="overflow-auto" style={{ height: Math.max(200, height * zoom) }}>
-        <div
-          style={{
-            width: frameWidth * zoom,
-            height: height * zoom,
-            margin: zoom < 1 ? '0 auto' : undefined
-          }}
-        >
-          <iframe
-            ref={frameRef}
-            src={src}
-            title={title}
-            className="block border-0 bg-[#14161f]"
+      <div
+        ref={contentRef}
+        className="relative overflow-hidden"
+        style={{ height: resizable ? '100%' : height }}
+      >
+        <div className="h-full w-full overflow-auto">
+          <div
             style={{
-              width: frameWidth,
-              height,
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top left'
+              width: baseWidth * zoom,
+              height: baseHeight * zoom,
+              margin: zoom < 1 ? '0 auto' : undefined
             }}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-            allow="clipboard-write"
-          />
+          >
+            <iframe
+              ref={frameRef}
+              src={src}
+              title={title}
+              className="block border-0 bg-[#14161f]"
+              style={{
+                width: baseWidth,
+                height: baseHeight,
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left'
+              }}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              allow="clipboard-write"
+            />
+          </div>
         </div>
       </div>
     </FloatingPanel>
