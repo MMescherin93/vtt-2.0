@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BUILT_IN_EXTENSIONS, isExtensionVisible } from '@vtt/shared/plugins'
 import {
   Board,
+  CharacterSheetFrame,
   ChatPanel,
   DicePanel,
   ExtensionFrame,
@@ -140,7 +141,7 @@ export function BoardView() {
       )}
 
       {sheetOpen && (
-        <ExtensionFrame
+        <CharacterSheetFrame
           title="Лист персонажа «Тройка»"
           src={`${hostUrl}/extensions/troika-sheet/index.html`}
           extensionId="troika-sheet"
@@ -149,8 +150,6 @@ export function BoardView() {
           metaKey="com.troika.sheet/state"
           perClientSelection
           mergeListKey="chars"
-          zoomable
-          resizable
           state={session.extensionState['troika-sheet'] ?? null}
           onChange={(next) => publishExtensionState('troika-sheet', next)}
           onClose={() => toggleModulePanel('troika-sheet', false)}
@@ -162,7 +161,7 @@ export function BoardView() {
       )}
 
       {azagOpen && (
-        <ExtensionFrame
+        <CharacterSheetFrame
           title="Лист персонажа AZAG"
           src={`${hostUrl}/extensions/azag-sheet/index.html`}
           extensionId="azag-sheet"
@@ -171,14 +170,11 @@ export function BoardView() {
           metaKey="com.azag.sheet/state"
           perClientSelection
           mergeListKey="chars"
-          zoomable
-          resizable
           state={session.extensionState['azag-sheet'] ?? null}
           onChange={(next) => publishExtensionState('azag-sheet', next)}
           onClose={() => toggleModulePanel('azag-sheet', false)}
           width={Math.min(1440, window.innerWidth - 48)}
           height={Math.min(880, window.innerHeight - 150)}
-          className="!max-h-[96vh]"
           storageKey="vtt.player.panel.azag"
           defaultPosition={{ x: 60, y: 14 }}
         />
