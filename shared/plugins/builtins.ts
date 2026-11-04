@@ -66,6 +66,16 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     category: 'basic'
   },
   {
+    id: 'dice3d',
+    title: '3D-кубики',
+    description: 'Физические d4–d100 на 3D-столе: бросайте кубики, результат уходит в общий чат',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'basic',
+    icon: '/extensions/dice3d/icon.svg',
+    panel: true
+  },
+  {
     id: 'troika-initiative',
     title: 'Инициатива «Тройка»',
     description:

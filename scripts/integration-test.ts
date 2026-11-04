@@ -300,6 +300,31 @@ async function main(): Promise<void> {
   const azagSheet = await fetch(`http://localhost:${PORT}/extensions/azag-sheet/sheet.png`)
   check(azagSheet.status === 200, 'фон листа AZAG доступен')
 
+  const dice3dPage = await fetch(`http://localhost:${PORT}/extensions/dice3d/index.html`)
+  const dice3dHtml = await dice3dPage.text()
+  check(
+    dice3dPage.status === 200 && dice3dHtml.includes('dice-box-threejs.umd.js'),
+    'страница 3D-кубиков доступна'
+  )
+  const dice3dBundle = await fetch(
+    `http://localhost:${PORT}/extensions/dice3d/dice-box-threejs.umd.js`
+  )
+  const dice3dBundleBody = await dice3dBundle.arrayBuffer()
+  check(
+    dice3dBundle.status === 200 && dice3dBundleBody.byteLength > 400_000,
+    'движок 3D-кубиков лежит локально (без CDN)'
+  )
+  const dice3dTexture = await fetch(
+    `http://localhost:${PORT}/extensions/dice3d/assets/textures/astral.webp`
+  )
+  check(dice3dTexture.status === 200, 'текстуры 3D-кубиков доступны')
+  const dice3dApp = await fetch(`http://localhost:${PORT}/extensions/dice3d/app.js`)
+  const dice3dSource = await dice3dApp.text()
+  check(
+    dice3dApp.status === 200 && dice3dSource.includes("type: 'chat'"),
+    '3D-кубики умеют отправлять результат в чат'
+  )
+
   const azagUpdatePromise = watch<{ extensionId: string; state: unknown }>(
     client,
     'extension:update'

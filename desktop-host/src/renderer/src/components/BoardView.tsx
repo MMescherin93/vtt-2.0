@@ -65,6 +65,8 @@ export function BoardView() {
   const sheetOpen = sheetEnabled && (modulePanels['troika-sheet'] ?? false)
   const azagEnabled = extensions['azag-sheet'] ?? false
   const azagOpen = azagEnabled && (modulePanels['azag-sheet'] ?? false)
+  const dice3dEnabled = extensions['dice3d'] ?? false
+  const dice3dOpen = dice3dEnabled && (modulePanels['dice3d'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -227,6 +229,22 @@ export function BoardView() {
           className="!max-h-[96vh]"
           storageKey="vtt.gm.panel.azag"
           defaultPosition={{ x: 60, y: 14 }}
+        />
+      )}
+
+      {dice3dOpen && (
+        <ExtensionFrame
+          title="3D-кубики"
+          src={`${assetsBaseUrl}/extensions/dice3d/index.html`}
+          extensionId="dice3d"
+          role="gm"
+          state={null}
+          onChat={(text) => sendChat(text)}
+          onClose={() => toggleModulePanel('dice3d', false)}
+          width={920}
+          height={Math.min(660, window.innerHeight - 200)}
+          storageKey="vtt.gm.panel.dice3d"
+          defaultPosition={{ x: 320, y: 80 }}
         />
       )}
 

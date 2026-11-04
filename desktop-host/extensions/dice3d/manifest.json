@@ -1,0 +1,15 @@
+{
+  "name": "3D-кубики",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "description": "Физические 3D-кубики d4–d100 на столе. Результат броска уходит в общий чат VTT.",
+  "author": "MMescherin93",
+  "icon": "/extensions/dice3d/icon.svg",
+  "action": {
+    "title": "3D-кубики",
+    "icon": "/extensions/dice3d/icon.svg",
+    "popover": "/extensions/dice3d/index.html",
+    "width": 920,
+    "height": 680
+  }
+}

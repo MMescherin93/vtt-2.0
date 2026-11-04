@@ -16,6 +16,8 @@ export interface ExtensionFrameProps {
   onChange?: (state: unknown) => void
   /** Разрешить игроку сохранять состояние (модули с playerWritable) */
   allowPlayerWrite?: boolean
+  /** Модуль просит отправить текст в общий чат */
+  onChat?: (text: string) => void
   /** Ключ метаданных Owlbear, под которым модуль хранит состояние */
   metaKey?: string
   /** У каждого клиента свой выбор внутри модуля (например, текущий лист) */
@@ -50,6 +52,7 @@ export function ExtensionFrame({
   metaKey,
   perClientSelection = false,
   mergeListKey,
+  onChat,
   onClose,
   width = 780,
   height = 620,
@@ -62,6 +65,7 @@ export function ExtensionFrame({
   const roleRef = useRef(role)
   const allowPlayerWriteRef = useRef(allowPlayerWrite)
   const onChangeRef = useRef(onChange)
+  const onChatRef = useRef(onChat)
   const metaKeyRef = useRef(metaKey)
   const perClientSelectionRef = useRef(perClientSelection)
   const mergeListKeyRef = useRef(mergeListKey)
@@ -72,6 +76,7 @@ export function ExtensionFrame({
   roleRef.current = role
   allowPlayerWriteRef.current = allowPlayerWrite
   onChangeRef.current = onChange
+  onChatRef.current = onChat
   metaKeyRef.current = metaKey
   perClientSelectionRef.current = perClientSelection
   mergeListKeyRef.current = mergeListKey
@@ -98,6 +103,7 @@ export function ExtensionFrame({
         type?: string
         reqId?: number
         state?: unknown
+        text?: unknown
       } | null
       if (!data || data.__vttExt !== extensionId) return
 
@@ -114,6 +120,11 @@ export function ExtensionFrame({
         const shown = shownState(stateRef.current ?? null)
         baselineRef.current = shown
         post({ type: 'metadata', state: shown, reqId: data.reqId })
+        return
+      }
+      if (data.type === 'chat') {
+        const text = typeof data.text === 'string' ? data.text.trim().slice(0, 500) : ''
+        if (text) onChatRef.current?.(text)
         return
       }
       if (

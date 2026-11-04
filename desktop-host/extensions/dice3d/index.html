@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D-кубики</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="bar">
+      <div class="brand"><b>DICE</b><span>3D</span></div>
+
+      <div class="dice-row" id="diceRow" role="group" aria-label="Выбор кубика"></div>
+
+      <label class="count" for="count">
+        шт.
+        <input id="count" type="number" min="1" max="10" step="1" value="1">
+      </label>
+
+      <button type="button" id="reroll" class="btn ghost" title="Повторить последний бросок">↻</button>
+
+      <div id="status" class="status">загрузка…</div>
+    </header>
+
+    <div class="stage" id="stage"></div>
+
+    <div class="result" id="result">
+      <div class="result-main" id="resultText">Выберите кубик, чтобы бросить</div>
+      <ol class="history" id="history"></ol>
+    </div>
+  </div>
+
+  <script src="dice-box-threejs.umd.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
