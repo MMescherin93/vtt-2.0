@@ -45,7 +45,9 @@ export function worldToScreen(camera: Camera, point: Point): Point {
 
 /**
  * Ограничивает камеру так, чтобы карта не «уезжала» за пределы экрана.
- * Если карта меньше вьюпорта по оси — она центрируется по этой оси.
+ * Камера НЕ центрируется автоматически: если карта меньше вьюпорта, её можно
+ * двигать, но хотя бы часть остаётся видимой. Центрирование — только кнопкой
+ * «Вписать» (`fitCamera`).
  */
 export function clampCamera(camera: Camera, viewport: Size, map: Size, margin = 80): Camera {
   const scale = clampScale(camera.scale)
@@ -55,16 +57,17 @@ export function clampCamera(camera: Camera, viewport: Size, map: Size, margin = 
   let x = camera.x
   let y = camera.y
 
-  if (scaledWidth <= viewport.width) {
-    x = (viewport.width - scaledWidth) / 2
-  } else {
+  if (scaledWidth > viewport.width) {
     x = Math.min(margin, Math.max(viewport.width - scaledWidth - margin, x))
+  } else {
+    // Не центрируем: держим в кадре хотя бы margin пикселей карты
+    x = Math.min(viewport.width - margin, Math.max(margin - scaledWidth, x))
   }
 
-  if (scaledHeight <= viewport.height) {
-    y = (viewport.height - scaledHeight) / 2
-  } else {
+  if (scaledHeight > viewport.height) {
     y = Math.min(margin, Math.max(viewport.height - scaledHeight - margin, y))
+  } else {
+    y = Math.min(viewport.height - margin, Math.max(margin - scaledHeight, y))
   }
 
   return { x, y, scale }

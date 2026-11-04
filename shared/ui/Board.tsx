@@ -113,23 +113,9 @@ export function Board({
   const [spaceDown, setSpaceDown] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [dragOver, setDragOver] = useState(false)
-  const fittedRef = useRef('')
 
   const isGm = role === 'gm'
   const canEditFog = isGm && !disabled
-
-  // Восстановление/вписывание камеры и удержание её в пределах карты
-  useEffect(() => {
-    if (viewport.width < 20 || viewport.height < 20) return
-    setCamera((current) => {
-      if (fittedRef.current !== storageKey) {
-        fittedRef.current = storageKey
-        const saved = loadCamera(storageKey)
-        return saved ? clampCamera(saved, viewport, field) : fitCamera(viewport, field)
-      }
-      return clampCamera(current, viewport, field)
-    })
-  }, [viewport, field, storageKey])
 
   useEffect(() => {
     saveCamera(storageKey, camera)
