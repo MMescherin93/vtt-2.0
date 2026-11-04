@@ -26,6 +26,7 @@ import { FitIcon, ZoomInIcon, ZoomOutIcon } from './icons'
 import { useElementSize } from './useElementSize'
 import { DrawingsLayer } from './board/DrawingsLayer'
 import { FogLayer } from './board/FogLayer'
+import { GM_DIM_FOG_OPACITY } from './board/fogRender'
 import { GridLayer, type VisibleRect } from './board/GridLayer'
 import { MapLayer } from './board/MapLayer'
 import { TextLayer } from './board/TextLayer'
@@ -609,8 +610,8 @@ export function Board({
             fog={session.fogOfWar}
             width={field.width}
             height={field.height}
-            opacity={isGm ? 0.35 : 1}
-            visible={isGm ? showFogPreview : true}
+            opacity={isGm && !showFogPreview ? GM_DIM_FOG_OPACITY : 1}
+            visible
             binary={isGm && showFogPreview}
             camera={camera}
             viewport={viewport}

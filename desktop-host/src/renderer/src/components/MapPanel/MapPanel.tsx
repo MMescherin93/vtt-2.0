@@ -240,7 +240,8 @@ export function MapPanel() {
           </h3>
           <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
             Операций: {session.fogOfWar.ops.length}. Кисть закрашивает, ластик и область открывают.
-            Игроки видят только открытые участки.
+            Игроки видят только открытые участки. В режиме «туман скрыт» Мастер видит закрытые
+            области затемнёнными — карта и токены остаются читаемыми.
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             <button

@@ -267,6 +267,11 @@ export function HostToolbar() {
           <button
             type="button"
             onClick={toggleFogPreview}
+            title={
+              showFogPreview
+                ? 'Туман виден как плотная маска; нажмите, чтобы оставить только затемнение'
+                : 'Области под туманом затемнены — карту и токены видно'
+            }
             className={`rounded-md px-2 py-1 text-xs transition ${
               showFogPreview ? 'bg-white/10 text-gray-200' : 'text-gray-500 hover:text-white'
             }`}
