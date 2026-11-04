@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { extname, join, resolve, sep } from 'node:path'
 import type { Session, SessionSummary } from '@vtt/shared'
-import type { Drawing, FogOfWarData, MapAsset, MapSettings, Token } from '@vtt/shared'
+import type { Drawing, FogOfWarData, MapAsset, MapSettings, MapText, Token } from '@vtt/shared'
 import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 import {
   createSessionState,
@@ -188,6 +188,7 @@ function normalizeToken(raw: unknown): Token | null {
     rotation: isFiniteNumber(token.rotation) ? token.rotation : 0,
     hidden: Boolean(token.hidden),
     locked: Boolean(token.locked),
+    hideName: Boolean(token.hideName),
     stats: sanitizeStats(token.stats),
     conditions: sanitizeConditions(token.conditions)
   }
@@ -207,6 +208,26 @@ function normalizeDrawing(raw: unknown): Drawing | null {
     authorId: typeof drawing.authorId === 'string' ? drawing.authorId : '',
     authorName: typeof drawing.authorName === 'string' ? drawing.authorName : '',
     createdAt: isFiniteNumber(drawing.createdAt) ? drawing.createdAt : Date.now()
+  }
+}
+
+function normalizeMapText(raw: unknown): MapText | null {
+  if (!raw || typeof raw !== 'object') return null
+  const text = raw as Partial<MapText>
+  if (typeof text.id !== 'string' || typeof text.text !== 'string' || !text.text.trim()) return null
+  return {
+    id: text.id,
+    x: isFiniteNumber(text.x) ? text.x : 0,
+    y: isFiniteNumber(text.y) ? text.y : 0,
+    text: text.text.slice(0, 1000),
+    color: typeof text.color === 'string' ? text.color : '#f8fafc',
+    fontSize:
+      isFiniteNumber(text.fontSize) && text.fontSize > 0
+        ? Math.min(200, Math.max(8, text.fontSize))
+        : 24,
+    authorId: typeof text.authorId === 'string' ? text.authorId : '',
+    authorName: typeof text.authorName === 'string' ? text.authorName : '',
+    createdAt: isFiniteNumber(text.createdAt) ? text.createdAt : Date.now()
   }
 }
 
@@ -258,7 +279,15 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
       isFiniteNumber(source.settings?.gridSize) && source.settings.gridSize >= 10
         ? source.settings.gridSize
         : base.settings.gridSize,
-    showGrid: typeof source.settings?.showGrid === 'boolean' ? source.settings.showGrid : true
+    showGrid: typeof source.settings?.showGrid === 'boolean' ? source.settings.showGrid : true,
+    gridColor:
+      typeof source.settings?.gridColor === 'string' ? source.settings.gridColor : '#ffffff',
+    tokenLabelColor:
+      typeof source.settings?.tokenLabelColor === 'string'
+        ? source.settings.tokenLabelColor
+        : '#e2e8f0',
+    showTokenNames:
+      typeof source.settings?.showTokenNames === 'boolean' ? source.settings.showTokenNames : true
   }
 
   const fog: FogOfWarData = sanitizeFog(source.fogOfWar) ?? { covered: true, ops: [] }
@@ -293,6 +322,9 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
       ? source.drawings
           .map(normalizeDrawing)
           .filter((drawing): drawing is Drawing => drawing !== null)
+      : [],
+    texts: Array.isArray(source.texts)
+      ? source.texts.map(normalizeMapText).filter((text): text is MapText => text !== null)
       : [],
     chatLog: Array.isArray(source.chatLog)
       ? source.chatLog.filter(

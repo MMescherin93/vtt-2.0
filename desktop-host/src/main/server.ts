@@ -11,6 +11,7 @@ import type {
   DiceRoll,
   Drawing,
   FogOfWarData,
+  MapText,
   PlayerInfo,
   ServerToClientEvents,
   Session,
@@ -71,6 +72,9 @@ export interface VttServer {
   tokenRemoved(tokenId: string): void
   fogUpdated(fog: FogOfWarData): void
   drawingAdded(drawing: Drawing): void
+  textAdded(text: MapText): void
+  textUpdated(text: MapText): void
+  textRemoved(textId: string): void
   chatMessage(message: ChatMessage): void
   diceRolled(roll: DiceRoll): void
   /** Состояние боя изменилось (игрокам — без скрытых бойцов) */
@@ -161,6 +165,7 @@ function playerTokenPatch(patch: TokenPatch, token: Token): TokenPatch {
     ...(patch.height !== undefined ? { height: patch.height } : {}),
     ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {})
   }
+  if (patch.hideName !== undefined) result.hideName = token.hideName
   if (patch.conditions !== undefined) result.conditions = token.conditions
   if (patch.stats !== undefined) {
     if (token.stats && token.stats.visibility === 'full') {
@@ -208,6 +213,10 @@ export function applyTokenPatch(session: Session, patch: TokenPatch): TokenPatch
   if (isFiniteNumber(patch.rotation)) {
     token.rotation = clamp(patch.rotation, -3600, 3600)
     result.rotation = token.rotation
+  }
+  if (patch.hideName !== undefined) {
+    token.hideName = Boolean(patch.hideName)
+    result.hideName = token.hideName
   }
   if (patch.stats === null) {
     token.stats = sanitizeStats(null)
@@ -621,7 +630,9 @@ export function startVttServer(options: VttServerOptions): VttServer {
       // Статы и состояния меняет только Мастер через IPC
       if (
         socket.data.role === 'player' &&
-        (patch.stats !== undefined || patch.conditions !== undefined)
+        (patch.stats !== undefined ||
+          patch.conditions !== undefined ||
+          patch.hideName !== undefined)
       ) {
         return
       }
@@ -748,6 +759,73 @@ export function startVttServer(options: VttServerOptions): VttServer {
       onHostEvent({ type: 'drawing:add', drawing })
     })
 
+    socket.on('text:add', (data) => {
+      const session = socketSession(socket)
+      if (!session || !data) return
+      const value = String(data.text ?? '').slice(0, 1000)
+      if (!value.trim()) return
+
+      const text: MapText = {
+        id: newId('txt'),
+        x: clamp(isFiniteNumber(data.x) ? data.x : 0, -100000, 100000),
+        y: clamp(isFiniteNumber(data.y) ? data.y : 0, -100000, 100000),
+        text: value,
+        color: sanitizeColor(data.color),
+        fontSize: clamp(isFiniteNumber(data.fontSize) ? data.fontSize : 24, 8, 200),
+        authorId: socket.id,
+        authorName: socket.data.playerName ?? 'Игрок',
+        createdAt: Date.now()
+      }
+      sessionManager.updateSilent((current) => {
+        current.texts = [...current.texts, text]
+      })
+      io.to(session.id).emit('text:add', text)
+      onHostEvent({ type: 'text:add', text })
+    })
+
+    socket.on('text:update', (data) => {
+      const session = socketSession(socket)
+      if (!session || !data || typeof data.textId !== 'string') return
+      const existing = session.texts.find((item) => item.id === data.textId)
+      if (!existing) return
+      if (socket.data.role !== 'gm' && existing.authorId !== socket.id) {
+        emitError(socket, 'Можно менять только свой текст')
+        return
+      }
+      const value = data.text !== undefined ? String(data.text).slice(0, 1000) : existing.text
+      if (!value.trim()) return
+
+      const updated: MapText = {
+        ...existing,
+        x: isFiniteNumber(data.x) ? clamp(data.x, -100000, 100000) : existing.x,
+        y: isFiniteNumber(data.y) ? clamp(data.y, -100000, 100000) : existing.y,
+        text: value,
+        color: data.color !== undefined ? sanitizeColor(data.color) : existing.color,
+        fontSize: isFiniteNumber(data.fontSize) ? clamp(data.fontSize, 8, 200) : existing.fontSize
+      }
+      sessionManager.updateSilent((current) => {
+        current.texts = current.texts.map((item) => (item.id === updated.id ? updated : item))
+      })
+      io.to(session.id).emit('text:update', updated)
+      onHostEvent({ type: 'text:update', text: updated })
+    })
+
+    socket.on('text:remove', (data) => {
+      const session = socketSession(socket)
+      if (!session || !data || typeof data.textId !== 'string') return
+      const existing = session.texts.find((item) => item.id === data.textId)
+      if (!existing) return
+      if (socket.data.role !== 'gm' && existing.authorId !== socket.id) {
+        emitError(socket, 'Можно удалять только свой текст')
+        return
+      }
+      sessionManager.updateSilent((current) => {
+        current.texts = current.texts.filter((item) => item.id !== data.textId)
+      })
+      io.to(session.id).emit('text:remove', { textId: data.textId })
+      onHostEvent({ type: 'text:remove', textId: data.textId })
+    })
+
     socket.on('fog:update', (data) => {
       const session = socketSession(socket)
       if (!session) return
@@ -828,6 +906,24 @@ export function startVttServer(options: VttServerOptions): VttServer {
       if (!session) return
       io.to(session.id).emit('drawing:add', drawing)
       onHostEvent({ type: 'drawing:add', drawing })
+    },
+    textAdded(text) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('text:add', text)
+      onHostEvent({ type: 'text:add', text })
+    },
+    textUpdated(text) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('text:update', text)
+      onHostEvent({ type: 'text:update', text })
+    },
+    textRemoved(textId) {
+      const session = sessionManager.getActive()
+      if (!session) return
+      io.to(session.id).emit('text:remove', { textId })
+      onHostEvent({ type: 'text:remove', textId })
     },
     chatMessage(message) {
       const session = sessionManager.getActive()

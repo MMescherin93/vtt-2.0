@@ -1,4 +1,4 @@
-import type { DrawingInput, FogOfWarData } from '../../types/map'
+import type { DrawingInput, FogOfWarData, MapTextInput, MapTextPatch } from '../../types/map'
 import type { Session } from '../../types/session'
 import type { PlayerRole } from '../../types/session'
 
@@ -8,8 +8,8 @@ export interface MapFocusRequest {
   seq: number
 }
 
-/** Инструменты (ТЗ, п.8): выбор, перемещение, рисование, туман войны */
-export type Tool = 'select' | 'pan' | 'draw' | 'erase' | 'fog'
+/** Инструменты: выбор, перемещение, рисование, текст, туман войны */
+export type Tool = 'select' | 'pan' | 'draw' | 'erase' | 'text' | 'fog'
 
 /** Режимы инструмента «туман войны» (ТЗ, п.4) */
 export type FogTool = 'brush' | 'eraser' | 'rect'
@@ -33,6 +33,8 @@ export interface BoardProps {
   role: PlayerRole
   tool: Tool
   drawStyle: DrawStyle
+  /** Размер шрифта текста на карте */
+  textSize: number
   fogTool: FogTool
   /** Толщина кисти тумана в пикселях карты */
   fogBrushSize: number
@@ -47,6 +49,9 @@ export interface BoardProps {
   onMoveToken: (tokenId: string, x: number, y: number) => void
   onTransformToken: (tokenId: string, data: TokenTransform) => void
   onAddDrawing: (drawing: DrawingInput) => void
+  onAddText: (text: MapTextInput) => void
+  onUpdateText: (patch: MapTextPatch) => void
+  onRemoveText: (textId: string) => void
   onFogChange: (fog: FogOfWarData) => void
   /** Перетаскивание файлов на карту (GM: загрузка карты или токена в точку сброса) */
   onFilesDropped?: (files: File[], world: { x: number; y: number }) => void

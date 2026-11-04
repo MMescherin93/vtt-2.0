@@ -28,6 +28,7 @@ export function BoardView() {
   const status = useHostStore((state) => state.status)
   const tool = useHostStore((state) => state.tool)
   const drawStyle = useHostStore((state) => state.drawStyle)
+  const textSize = useHostStore((state) => state.textSize)
   const fogTool = useHostStore((state) => state.fogTool)
   const fogBrushSize = useHostStore((state) => state.fogBrushSize)
   const showFogPreview = useHostStore((state) => state.showFogPreview)
@@ -37,6 +38,9 @@ export function BoardView() {
   const moveToken = useHostStore((state) => state.moveToken)
   const transformToken = useHostStore((state) => state.transformToken)
   const addDrawing = useHostStore((state) => state.addDrawing)
+  const addText = useHostStore((state) => state.addText)
+  const updateText = useHostStore((state) => state.updateText)
+  const removeText = useHostStore((state) => state.removeText)
   const changeFog = useHostStore((state) => state.changeFog)
   const sendChat = useHostStore((state) => state.sendChat)
   const rollDice = useHostStore((state) => state.rollDice)
@@ -60,7 +64,8 @@ export function BoardView() {
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
-  const labelsEnabled = extensions['token-labels'] ?? true
+  const labelsEnabled =
+    (extensions['token-labels'] ?? true) && (session?.settings.showTokenNames ?? true)
   const troikaEnabled = extensions['troika-initiative'] ?? false
   const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
   const sheetEnabled = extensions['troika-sheet'] ?? false
@@ -102,6 +107,7 @@ export function BoardView() {
         role="gm"
         tool={tool}
         drawStyle={drawStyle}
+        textSize={textSize}
         fogTool={fogTool}
         fogBrushSize={fogBrushSize}
         showFogPreview={showFogPreview}
@@ -112,6 +118,9 @@ export function BoardView() {
         onMoveToken={moveToken}
         onTransformToken={transformToken}
         onAddDrawing={addDrawing}
+        onAddText={addText}
+        onUpdateText={updateText}
+        onRemoveText={removeText}
         onFogChange={changeFog}
         showTokenLabels={labelsEnabled}
         focusMap={focusRequest}

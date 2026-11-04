@@ -10,7 +10,7 @@ import {
   type ReactNode
 } from 'react'
 import { Layer, Line, Rect, Stage } from 'react-konva'
-import type { FogOfWarData } from '../types/map'
+import type { FogOfWarData, MapText } from '../types/map'
 import {
   clampCamera,
   fitCamera,
@@ -28,6 +28,7 @@ import { DrawingsLayer } from './board/DrawingsLayer'
 import { FogLayer } from './board/FogLayer'
 import { GridLayer, type VisibleRect } from './board/GridLayer'
 import { MapLayer } from './board/MapLayer'
+import { TextLayer } from './board/TextLayer'
 import { TokensLayer } from './board/TokensLayer'
 import { TokenStatsLayer } from './board/TokenStatsLayer'
 import { loadCamera, saveCamera } from './board/cameraStorage'
@@ -35,6 +36,15 @@ import type { BoardProps } from './board/types'
 
 /** Размер виртуального стола, пока карта не загружена */
 const EMPTY_FIELD: Size = { width: 1920, height: 1080 }
+
+type TextDraft = {
+  id: string | null
+  x: number
+  y: number
+  text: string
+  color: string
+  fontSize: number
+}
 
 type Draft =
   | { kind: 'draw'; mode: 'pencil' | 'eraser'; points: number[] }
@@ -79,6 +89,7 @@ export function Board({
   role,
   tool,
   drawStyle,
+  textSize,
   fogTool,
   fogBrushSize,
   showFogPreview,
@@ -89,6 +100,9 @@ export function Board({
   onMoveToken,
   onTransformToken,
   onAddDrawing,
+  onAddText,
+  onUpdateText,
+  onRemoveText,
   onFogChange,
   onFilesDropped,
   showTokenLabels = true,
@@ -120,6 +134,10 @@ export function Board({
   )
   const [spaceDown, setSpaceDown] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [textDraft, setTextDraft] = useState<TextDraft | null>(null)
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const textCommitRef = useRef(false)
   const [dragOver, setDragOver] = useState(false)
 
   const isGm = role === 'gm'
@@ -230,13 +248,113 @@ export function Board({
     [viewport, field]
   )
 
+  const commitText = useCallback(() => {
+    const current = textDraft
+    if (!current || textCommitRef.current) return
+    textCommitRef.current = true
+    setTextDraft(null)
+    if (!current.text.trim()) return
+    if (current.id) {
+      onUpdateText({
+        textId: current.id,
+        text: current.text,
+        color: current.color,
+        fontSize: current.fontSize
+      })
+    } else {
+      onAddText({
+        x: current.x,
+        y: current.y,
+        text: current.text,
+        color: current.color,
+        fontSize: current.fontSize
+      })
+    }
+  }, [textDraft, onAddText, onUpdateText])
+
+  const openTextEditor = useCallback((item: MapText) => {
+    textCommitRef.current = false
+    setSelectedTextId(item.id)
+    setTextDraft({
+      id: item.id,
+      x: item.x,
+      y: item.y,
+      text: item.text,
+      color: item.color,
+      fontSize: item.fontSize
+    })
+  }, [])
+
+  const handleSelectText = useCallback(
+    (textId: string | null) => {
+      setSelectedTextId(textId)
+      if (textId) onSelectToken(null)
+    },
+    [onSelectToken]
+  )
+
+  const textDraftKey = textDraft ? `${textDraft.id ?? 'new'}:${textDraft.x}:${textDraft.y}` : ''
+
+  useEffect(() => {
+    if (!textDraftKey) return
+    const timer = window.setTimeout(() => {
+      const element = textareaRef.current
+      element?.focus()
+      element?.setSelectionRange(element.value.length, element.value.length)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [textDraftKey])
+
+  useEffect(() => {
+    if (tool === 'select') return
+    setSelectedTextId(null)
+  }, [tool])
+
+  useEffect(() => {
+    if (!selectedTextId) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (isTypingTarget(event.target)) return
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return
+      event.preventDefault()
+      onRemoveText(selectedTextId)
+      setSelectedTextId(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedTextId, onRemoveText])
+
   const handleMouseDown = useCallback(
     (event: KonvaEventObject<MouseEvent>) => {
       const stage = event.target.getStage()
       if (!stage) return
 
+      if (tool === 'text') {
+        if (disabled) return
+        if (textDraft) {
+          commitText()
+          return
+        }
+        const point = pointerWorld(stage)
+        if (!point) return
+        setSelectedTextId(null)
+        onSelectToken(null)
+        textCommitRef.current = false
+        setTextDraft({
+          id: null,
+          x: point.x,
+          y: point.y,
+          text: '',
+          color: drawStyle.color,
+          fontSize: textSize
+        })
+        return
+      }
+
       if (tool === 'select' || tool === 'pan') {
-        if (event.target === stage) onSelectToken(null)
+        if (event.target === stage) {
+          onSelectToken(null)
+          setSelectedTextId(null)
+        }
         return
       }
       if (disabled) return
@@ -265,7 +383,18 @@ export function Board({
         }
       }
     },
-    [tool, disabled, pointerWorld, canEditFog, fogTool, onSelectToken]
+    [
+      tool,
+      disabled,
+      pointerWorld,
+      canEditFog,
+      fogTool,
+      onSelectToken,
+      textDraft,
+      commitText,
+      drawStyle.color,
+      textSize
+    ]
   )
 
   const handleMouseMove = useCallback(
@@ -361,13 +490,16 @@ export function Board({
   }, [viewport, field])
 
   const isDrawingTool = tool === 'draw' || tool === 'erase' || (tool === 'fog' && canEditFog)
-  const cursorClass = isDrawingTool
-    ? 'cursor-crosshair'
-    : panEnabled
-      ? dragOver
-        ? 'cursor-copy'
-        : 'cursor-grab'
-      : 'cursor-default'
+  const cursorClass =
+    tool === 'text'
+      ? 'cursor-text'
+      : isDrawingTool
+        ? 'cursor-crosshair'
+        : panEnabled
+          ? dragOver
+            ? 'cursor-copy'
+            : 'cursor-grab'
+          : 'cursor-default'
 
   const handleDrop = (event: ReactDragEvent<HTMLDivElement>): void => {
     event.preventDefault()
@@ -428,6 +560,7 @@ export function Board({
             gridType={session.settings.gridType}
             gridSize={session.settings.gridSize}
             showGrid={session.settings.showGrid}
+            color={session.settings.gridColor}
             width={field.width}
             height={field.height}
             cameraScale={camera.scale}
@@ -443,8 +576,12 @@ export function Board({
             interactive={tool === 'select' && !disabled}
             selectedTokenId={selectedTokenId}
             showLabels={showTokenLabels}
+            labelColor={session.settings.tokenLabelColor}
             activeTokenId={activeTokenId}
-            onSelect={onSelectToken}
+            onSelect={(tokenId) => {
+              setSelectedTextId(null)
+              onSelectToken(tokenId)
+            }}
             onMove={onMoveToken}
             onTransform={onTransformToken}
           />
@@ -455,6 +592,17 @@ export function Board({
             width={field.width}
             height={field.height}
             visible={statsVisible}
+          />
+
+          <TextLayer
+            texts={session.texts}
+            width={field.width}
+            height={field.height}
+            interactive={tool === 'select' && !disabled}
+            selectedTextId={selectedTextId}
+            onSelect={handleSelectText}
+            onMove={(textId, x, y) => onUpdateText({ textId, x, y })}
+            onEdit={openTextEditor}
           />
 
           <FogLayer
@@ -527,6 +675,53 @@ export function Board({
           <FitIcon size={16} />
         </ZoomButton>
       </div>
+
+      {textDraft && (
+        <div
+          className="absolute z-30 rounded-lg border border-indigo-400/60 bg-[#0f1117]/95 p-1.5 shadow-2xl shadow-black/60"
+          style={{
+            left: camera.x + textDraft.x * camera.scale,
+            top: camera.y + textDraft.y * camera.scale
+          }}
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <textarea
+            ref={textareaRef}
+            value={textDraft.text}
+            rows={Math.max(2, textDraft.text.split('\n').length)}
+            onChange={(event) =>
+              setTextDraft((current) =>
+                current ? { ...current, text: event.target.value } : current
+              )
+            }
+            onBlur={commitText}
+            onKeyDown={(event) => {
+              event.stopPropagation()
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setTextDraft(null)
+                return
+              }
+              if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault()
+                commitText()
+              }
+            }}
+            placeholder="Текст заметки…"
+            spellCheck={false}
+            className="block w-72 resize-both rounded border border-white/10 bg-black/40 p-2 font-semibold leading-snug text-gray-100 outline-none placeholder:text-gray-600 focus:border-indigo-400/70"
+            style={{
+              color: textDraft.color,
+              fontSize: Math.max(12, Math.min(40, textDraft.fontSize * camera.scale))
+            }}
+          />
+          <div className="mt-1 flex items-center justify-between px-0.5 text-[10px] text-gray-500">
+            <span>Ctrl+Enter — сохранить · Esc — отмена</span>
+            <span>{textDraft.fontSize} px</span>
+          </div>
+        </div>
+      )}
 
       {dragOver && (
         <div className="pointer-events-none absolute inset-3 flex items-center justify-center rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10">

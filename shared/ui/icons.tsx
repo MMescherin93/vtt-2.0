@@ -51,6 +51,14 @@ export function PencilIcon(props: IconProps) {
   )
 }
 
+export function TextIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 5h14M12 5v14M8.5 19h7" />
+    </Icon>
+  )
+}
+
 export function EraserIcon(props: IconProps) {
   return (
     <Icon {...props}>

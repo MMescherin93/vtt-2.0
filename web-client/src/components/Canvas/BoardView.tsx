@@ -22,6 +22,7 @@ export function BoardView() {
   const status = useClientStore((state) => state.status)
   const tool = useClientStore((state) => state.tool)
   const drawStyle = useClientStore((state) => state.drawStyle)
+  const textSize = useClientStore((state) => state.textSize)
   const selectedTokenId = useClientStore((state) => state.selectedTokenId)
   const panels = useClientStore((state) => state.panels)
   const selfId = useClientStore((state) => state.selfId)
@@ -29,6 +30,9 @@ export function BoardView() {
   const moveToken = useClientStore((state) => state.moveToken)
   const transformToken = useClientStore((state) => state.transformToken)
   const sendDrawing = useClientStore((state) => state.sendDrawing)
+  const sendText = useClientStore((state) => state.sendText)
+  const sendTextUpdate = useClientStore((state) => state.sendTextUpdate)
+  const sendTextRemove = useClientStore((state) => state.sendTextRemove)
   const sendChat = useClientStore((state) => state.sendChat)
   const requestRoll = useClientStore((state) => state.requestRoll)
   const togglePanel = useClientStore((state) => state.togglePanel)
@@ -45,7 +49,8 @@ export function BoardView() {
 
   const chatEnabled = extensions['chat'] ?? true
   const diceEnabled = extensions['dice'] ?? true
-  const labelsEnabled = extensions['token-labels'] ?? true
+  const labelsEnabled =
+    (extensions['token-labels'] ?? true) && (session?.settings.showTokenNames ?? true)
   const troikaEnabled = extensions['troika-initiative'] ?? false
   const troikaOpen = troikaEnabled && (modulePanels['troika-initiative'] ?? false)
   const sheetEnabled = extensions['troika-sheet'] ?? false
@@ -80,6 +85,7 @@ export function BoardView() {
         role="player"
         tool={tool}
         drawStyle={drawStyle}
+        textSize={textSize}
         fogTool="brush"
         fogBrushSize={0}
         showFogPreview={false}
@@ -90,6 +96,9 @@ export function BoardView() {
         onMoveToken={moveToken}
         onTransformToken={transformToken}
         onAddDrawing={sendDrawing}
+        onAddText={sendText}
+        onUpdateText={sendTextUpdate}
+        onRemoveText={sendTextRemove}
         onFogChange={() => {
           // Туман войны меняет только Мастер
         }}

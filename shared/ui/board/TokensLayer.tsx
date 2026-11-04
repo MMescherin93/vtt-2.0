@@ -19,6 +19,8 @@ interface TokenNodeProps {
   interactive: boolean
   /** Показывать подпись токена (расширение «Подписи токенов») */
   showLabels: boolean
+  /** Цвет подписи */
+  labelColor?: string
   selected: boolean
   isGm: boolean
   active: boolean
@@ -35,6 +37,7 @@ function TokenNode({
   assetsBaseUrl,
   interactive,
   showLabels,
+  labelColor = '#e2e8f0',
   selected,
   isGm,
   active,
@@ -108,7 +111,7 @@ function TokenNode({
   }
 
   const canDrag = interactive && !token.locked
-  const showLabel = showLabels || selected
+  const showLabel = (showLabels && !token.hideName) || selected
   const labelWidth = Math.max(token.width, 80)
 
   return (
@@ -186,7 +189,7 @@ function TokenNode({
             text={token.name}
             align="center"
             fontSize={Math.max(12, Math.min(18, token.height / 5))}
-            fill={isGm ? 'rgba(226,232,240,0.85)' : '#e2e8f0'}
+            fill={labelColor}
             listening={false}
           />
         )}
@@ -225,6 +228,8 @@ export interface TokensLayerProps {
   interactive: boolean
   /** Показывать подписи токенов */
   showLabels: boolean
+  /** Цвет подписей токенов */
+  labelColor?: string
   /** Токен, чей сейчас ход (подсветка трекера инициативы) */
   activeTokenId?: string | null
   selectedTokenId: string | null
@@ -242,6 +247,7 @@ export function TokensLayer({
   height,
   interactive,
   showLabels,
+  labelColor = '#e2e8f0',
   activeTokenId = null,
   selectedTokenId,
   onSelect,
@@ -261,6 +267,7 @@ export function TokensLayer({
           assetsBaseUrl={assetsBaseUrl}
           interactive={interactive}
           showLabels={showLabels}
+          labelColor={labelColor}
           selected={token.id === selectedTokenId}
           isGm={isGm}
           active={token.id === activeTokenId}

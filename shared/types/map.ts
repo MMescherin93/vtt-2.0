@@ -8,6 +8,12 @@ export interface MapSettings {
   /** Размер ячейки сетки в пикселях карты */
   gridSize: number
   showGrid: boolean
+  /** Цвет линий сетки (HEX) */
+  gridColor: string
+  /** Цвет подписей токенов (HEX) */
+  tokenLabelColor: string
+  /** Показывать имена токенов на карте */
+  showTokenNames: boolean
 }
 
 /** Карта сессии: изображение и его размеры в пикселях */
@@ -86,6 +92,41 @@ export interface DrawingInput {
   points: number[]
 }
 
+/** Текст на карте (инструмент «Текст») */
+export interface MapText {
+  id: string
+  /** Левый верхний угол текста в пикселях мирового полотна */
+  x: number
+  y: number
+  text: string
+  /** HEX-цвет */
+  color: string
+  /** Размер шрифта в пикселях карты */
+  fontSize: number
+  authorId: string
+  authorName: string
+  createdAt: number
+}
+
+/** Новый текст от клиента (id/автора назначает сервер) */
+export interface MapTextInput {
+  x: number
+  y: number
+  text: string
+  color: string
+  fontSize: number
+}
+
+/** Изменение текста: позиция, содержимое или стиль */
+export interface MapTextPatch {
+  textId: string
+  x?: number
+  y?: number
+  text?: string
+  color?: string
+  fontSize?: number
+}
+
 /** Изменение токена: позиция, размер, поворот и/или статы */
 export interface TokenPatch {
   tokenId: string
@@ -94,6 +135,8 @@ export interface TokenPatch {
   width?: number
   height?: number
   rotation?: number
+  /** Скрыть/показать подпись токена */
+  hideName?: boolean
   /** Частичное обновление статов; null — сбросить */
   stats?: Partial<TokenStats> | null
   /** Полная замена списка состояний */

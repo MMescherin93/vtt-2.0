@@ -7,6 +7,9 @@ import type {
   Drawing,
   DrawingInput,
   FogOfWarData,
+  MapText,
+  MapTextInput,
+  MapTextPatch,
   PlayerInfo,
   Session,
   Token,
@@ -33,6 +36,7 @@ interface ClientState {
 
   tool: Tool
   drawStyle: DrawStyle
+  textSize: number
   selectedTokenId: string | null
   panels: { chat: boolean; dice: boolean; extensions: boolean }
   /** Развёрнутые панели модулей (иконки в правом верхнем углу) */
@@ -57,6 +61,9 @@ interface ClientState {
   removeToken: (tokenId: string) => void
   setFog: (fog: FogOfWarData) => void
   addDrawing: (drawing: Drawing) => void
+  addText: (text: MapText) => void
+  updateText: (text: MapText) => void
+  removeText: (textId: string) => void
   addChat: (message: ChatMessageData) => void
   addRoll: (roll: DiceRollResultData) => void
   setExtensionState: (extensionId: string, state: unknown) => void
@@ -71,11 +78,15 @@ interface ClientState {
     data: { x: number; y: number; width: number; height: number; rotation: number }
   ) => void
   sendDrawing: (drawing: DrawingInput) => void
+  sendText: (text: MapTextInput) => void
+  sendTextUpdate: (patch: MapTextPatch) => void
+  sendTextRemove: (textId: string) => void
   sendChat: (text: string) => void
   requestRoll: (dice: string[]) => void
 
   setTool: (tool: Tool) => void
   setDrawStyle: (style: Partial<DrawStyle>) => void
+  setTextSize: (size: number) => void
   setSelectedToken: (tokenId: string | null) => void
   togglePanel: (panel: 'chat' | 'dice' | 'extensions') => void
   toggleExtension: (extensionId: string, enabled: boolean) => void
@@ -114,7 +125,10 @@ function withTokenPatch(session: Session | null, patch: TokenPatch): Session | n
   }
 }
 
-type PersistedClientUi = Pick<ClientState, 'tool' | 'drawStyle' | 'panels' | 'modulePanels'>
+type PersistedClientUi = Pick<
+  ClientState,
+  'tool' | 'drawStyle' | 'textSize' | 'panels' | 'modulePanels'
+>
 
 export const useClientStore = create<ClientState>()(
   persist<ClientState, [], [], PersistedClientUi>(
@@ -131,6 +145,7 @@ export const useClientStore = create<ClientState>()(
 
       tool: 'select',
       drawStyle: { color: '#38bdf8', size: 6 },
+      textSize: 24,
       selectedTokenId: null,
       panels: { chat: true, dice: false, extensions: false },
       modulePanels: {},
@@ -228,6 +243,27 @@ export const useClientStore = create<ClientState>()(
         if (session.drawings.some((item) => item.id === drawing.id)) return
         set({ session: { ...session, drawings: [...session.drawings, drawing] } })
       },
+      addText: (text) => {
+        const session = get().session
+        if (!session) return
+        if (session.texts.some((item) => item.id === text.id)) return
+        set({ session: { ...session, texts: [...session.texts, text] } })
+      },
+      updateText: (text) => {
+        const session = get().session
+        if (!session) return
+        set({
+          session: {
+            ...session,
+            texts: session.texts.map((item) => (item.id === text.id ? text : item))
+          }
+        })
+      },
+      removeText: (textId) => {
+        const session = get().session
+        if (!session) return
+        set({ session: { ...session, texts: session.texts.filter((item) => item.id !== textId) } })
+      },
       addChat: (message) => {
         const session = get().session
         if (!session) return
@@ -260,6 +296,15 @@ export const useClientStore = create<ClientState>()(
       sendDrawing: (drawing) => {
         socket.emit('drawing:add', drawing)
       },
+      sendText: (text) => {
+        socket.emit('text:add', text)
+      },
+      sendTextUpdate: (patch) => {
+        socket.emit('text:update', patch)
+      },
+      sendTextRemove: (textId) => {
+        socket.emit('text:remove', { textId })
+      },
       sendChat: (text) => {
         const value = text.trim()
         if (!value) return
@@ -272,6 +317,7 @@ export const useClientStore = create<ClientState>()(
 
       setTool: (tool) => set({ tool }),
       setDrawStyle: (style) => set({ drawStyle: { ...get().drawStyle, ...style } }),
+      setTextSize: (textSize) => set({ textSize: Math.max(8, Math.min(200, textSize)) }),
       setSelectedToken: (selectedTokenId) => set({ selectedTokenId }),
       togglePanel: (panel) => set({ panels: { ...get().panels, [panel]: !get().panels[panel] } }),
       setActiveMap: (activeMapId) => set({ activeMapId }),
@@ -307,6 +353,7 @@ export const useClientStore = create<ClientState>()(
       partialize: (state) => ({
         tool: state.tool,
         drawStyle: state.drawStyle,
+        textSize: state.textSize,
         panels: state.panels,
         modulePanels: state.modulePanels
       })

@@ -16,6 +16,8 @@ import type {
   CombatState,
   DrawingInput,
   FogOfWarData,
+  MapTextInput,
+  MapTextPatch,
   Session,
   SessionSummary,
   Token
@@ -56,6 +58,9 @@ const hostApi: HostApi = {
   updateFog: (fog: FogOfWarData) => ipcRenderer.invoke(IPC.fogUpdate, fog) as Promise<void>,
   addDrawing: (drawing: DrawingInput) =>
     ipcRenderer.invoke(IPC.drawingAdd, drawing) as Promise<void>,
+  addText: (input: MapTextInput) => ipcRenderer.invoke(IPC.textAdd, input) as Promise<void>,
+  updateText: (patch: MapTextPatch) => ipcRenderer.invoke(IPC.textUpdate, patch) as Promise<void>,
+  removeText: (textId: string) => ipcRenderer.invoke(IPC.textRemove, textId) as Promise<void>,
   sendChat: (text: string) => ipcRenderer.invoke(IPC.chatSend, text) as Promise<void>,
   rollDice: (dice: string[]) => ipcRenderer.invoke(IPC.diceRoll, dice) as Promise<void>,
   setExtensionState: (extensionId: string, state: unknown) =>

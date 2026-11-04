@@ -5,6 +5,7 @@ import {
   EraserIcon,
   HandIcon,
   PencilIcon,
+  TextIcon,
   ToolbarButton
 } from '@vtt/shared/ui'
 import { useClientStore } from '../../store/useClientStore'
@@ -17,6 +18,8 @@ export function ClientToolbar() {
   const setTool = useClientStore((state) => state.setTool)
   const drawStyle = useClientStore((state) => state.drawStyle)
   const setDrawStyle = useClientStore((state) => state.setDrawStyle)
+  const textSize = useClientStore((state) => state.textSize)
+  const setTextSize = useClientStore((state) => state.setTextSize)
   const panels = useClientStore((state) => state.panels)
   const togglePanel = useClientStore((state) => state.togglePanel)
   const session = useClientStore((state) => state.session)
@@ -57,6 +60,12 @@ export function ClientToolbar() {
             />
           </>
         )}
+        <ToolbarButton
+          label="Текст — клик по карте"
+          icon={<TextIcon size={18} />}
+          active={tool === 'text'}
+          onClick={() => setTool('text')}
+        />
 
         <span className="mx-1 h-6 w-px bg-white/10" />
 
@@ -107,6 +116,38 @@ export function ClientToolbar() {
               className="w-24 accent-indigo-500"
             />
             <span className="w-6 text-right text-gray-300">{drawStyle.size}</span>
+          </label>
+        </div>
+      )}
+      {tool === 'text' && (
+        <div className="pointer-events-auto mt-1.5 flex items-center gap-3 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-2 shadow-xl backdrop-blur-xl">
+          <div className="flex items-center gap-1.5">
+            {DRAW_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setDrawStyle({ color })}
+                aria-label={`Цвет текста ${color}`}
+                className={`h-5 w-5 rounded-full border transition ${
+                  drawStyle.color === color
+                    ? 'scale-110 border-white shadow-[0_0_10px_rgba(255,255,255,0.5)]'
+                    : 'border-white/20 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-400">
+            Размер
+            <input
+              type="range"
+              min={10}
+              max={120}
+              value={textSize}
+              onChange={(event) => setTextSize(Number(event.target.value))}
+              className="w-24 accent-indigo-500"
+            />
+            <span className="w-7 text-right text-gray-300">{textSize}</span>
           </label>
         </div>
       )}

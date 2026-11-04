@@ -1,6 +1,7 @@
 import { useRef, type ChangeEvent } from 'react'
 import {
   ChevronIcon,
+  EyeIcon,
   FloatingPanel,
   FogIcon,
   GridIcon,
@@ -186,6 +187,51 @@ export function MapPanel() {
               className="mt-1 w-full accent-indigo-500 disabled:opacity-40"
             />
           </label>
+
+          <label className="mt-2 flex items-center justify-between text-xs text-gray-400">
+            <span>Цвет сетки</span>
+            <input
+              type="color"
+              value={session.settings.gridColor}
+              onChange={(event) =>
+                void updateSessionPatch({ settings: { gridColor: event.target.value } })
+              }
+              className="h-6 w-10 cursor-pointer rounded border border-white/10 bg-transparent"
+            />
+          </label>
+        </section>
+
+        <section>
+          <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            <EyeIcon size={13} /> Подписи токенов
+          </h3>
+          <label className="flex items-center justify-between text-xs text-gray-400">
+            <span>Показывать имена</span>
+            <input
+              type="checkbox"
+              checked={session.settings.showTokenNames}
+              onChange={(event) =>
+                void updateSessionPatch({ settings: { showTokenNames: event.target.checked } })
+              }
+              className="h-4 w-4 accent-indigo-500"
+            />
+          </label>
+          <label className="mt-2 flex items-center justify-between text-xs text-gray-400">
+            <span>Цвет имён</span>
+            <input
+              type="color"
+              value={session.settings.tokenLabelColor}
+              onChange={(event) =>
+                void updateSessionPatch({
+                  settings: { tokenLabelColor: event.target.value }
+                })
+              }
+              className="h-6 w-10 cursor-pointer rounded border border-white/10 bg-transparent"
+            />
+          </label>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-gray-600">
+            Отдельное имя можно скрыть в панели выбранного токена.
+          </p>
         </section>
 
         <section>

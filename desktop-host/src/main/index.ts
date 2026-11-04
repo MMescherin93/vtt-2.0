@@ -8,6 +8,9 @@ import type {
   Drawing,
   DrawingInput,
   FogOfWarData,
+  MapText,
+  MapTextInput,
+  MapTextPatch,
   Session,
   Token
 } from '@vtt/shared'
@@ -242,7 +245,8 @@ function registerIpc(): void {
         }
       }
       if (patch.settings) {
-        const { gridType, gridSize, showGrid } = patch.settings
+        const { gridType, gridSize, showGrid, gridColor, tokenLabelColor, showTokenNames } =
+          patch.settings
         if (gridType === 'square' || gridType === 'hex' || gridType === 'none') {
           current.settings.gridType = gridType
         }
@@ -251,6 +255,15 @@ function registerIpc(): void {
         }
         if (typeof showGrid === 'boolean') {
           current.settings.showGrid = showGrid
+        }
+        if (typeof gridColor === 'string' && /^#[0-9a-f]{6}$/i.test(gridColor)) {
+          current.settings.gridColor = gridColor
+        }
+        if (typeof tokenLabelColor === 'string' && /^#[0-9a-f]{6}$/i.test(tokenLabelColor)) {
+          current.settings.tokenLabelColor = tokenLabelColor
+        }
+        if (typeof showTokenNames === 'boolean') {
+          current.settings.showTokenNames = showTokenNames
         }
       }
     })
@@ -295,6 +308,7 @@ function registerIpc(): void {
       rotation: 0,
       hidden: Boolean(input.hidden),
       locked: false,
+      hideName: false,
       stats: defaultStats(),
       conditions: []
     }
@@ -385,6 +399,59 @@ function registerIpc(): void {
       current.drawings = [...current.drawings, drawing]
     })
     server?.drawingAdded(drawing)
+  })
+
+  ipcMain.handle(IPC.textAdd, async (_event, input: MapTextInput) => {
+    if (!sessionManager) return
+    const value = String(input?.text ?? '').slice(0, 1000)
+    if (!value.trim()) return
+    const text: MapText = {
+      id: newId('txt'),
+      x: Number.isFinite(input.x) ? input.x : 0,
+      y: Number.isFinite(input.y) ? input.y : 0,
+      text: value,
+      color: /^#[0-9a-fA-F]{6}$/.test(input.color) ? input.color : '#f8fafc',
+      fontSize: Math.min(200, Math.max(8, Number(input.fontSize) || 24)),
+      authorId: 'gm',
+      authorName: 'Мастер',
+      createdAt: Date.now()
+    }
+    sessionManager.updateSilent((current) => {
+      current.texts = [...current.texts, text]
+    })
+    server?.textAdded(text)
+  })
+
+  ipcMain.handle(IPC.textUpdate, async (_event, patch: MapTextPatch) => {
+    if (!sessionManager) return
+    const current = sessionManager.getActive()
+    const existing = current?.texts.find((item) => item.id === patch?.textId)
+    if (!existing) return
+    const value = patch.text !== undefined ? String(patch.text).slice(0, 1000) : existing.text
+    if (!value.trim()) return
+    const updated: MapText = {
+      ...existing,
+      x: Number.isFinite(patch.x) ? patch.x! : existing.x,
+      y: Number.isFinite(patch.y) ? patch.y! : existing.y,
+      text: value,
+      color: /^#[0-9a-fA-F]{6}$/.test(patch.color ?? '') ? patch.color! : existing.color,
+      fontSize:
+        patch.fontSize !== undefined
+          ? Math.min(200, Math.max(8, patch.fontSize))
+          : existing.fontSize
+    }
+    sessionManager.updateSilent((session) => {
+      session.texts = session.texts.map((item) => (item.id === updated.id ? updated : item))
+    })
+    server?.textUpdated(updated)
+  })
+
+  ipcMain.handle(IPC.textRemove, async (_event, textId: string) => {
+    if (!sessionManager || typeof textId !== 'string') return
+    sessionManager.updateSilent((current) => {
+      current.texts = current.texts.filter((item) => item.id !== textId)
+    })
+    server?.textRemoved(textId)
   })
 
   ipcMain.handle(IPC.chatSend, async (_event, text: string) => {

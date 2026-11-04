@@ -14,6 +14,8 @@ export interface GridLayerProps {
   gridType: GridType
   gridSize: number
   showGrid: boolean
+  /** Цвет линий сетки в HEX */
+  color?: string
   width: number
   height: number
   /** Мастштаб камеры — чтобы линии были толщиной ~1 экранный пиксель */
@@ -32,6 +34,7 @@ export function GridLayer({
   gridType,
   gridSize,
   showGrid,
+  color = '#ffffff',
   width,
   height,
   cameraScale,
@@ -41,10 +44,19 @@ export function GridLayer({
   // Слишком мелкая сетка при отдалении только «шумит» — не рисуем
   if (gridSize * cameraScale < 6) return null
 
+  const rgb = color.replace('#', '')
+  const stroke =
+    rgb.length === 6
+      ? `rgba(${parseInt(rgb.slice(0, 2), 16)}, ${parseInt(rgb.slice(2, 4), 16)}, ${parseInt(
+          rgb.slice(4, 6),
+          16
+        )}, 0.3)`
+      : 'rgba(255, 255, 255, 0.16)'
+
   const sceneFunc = (context: Context): void => {
     const lineWidth = 1 / Math.max(cameraScale, 0.05)
     context.setAttr('lineWidth', lineWidth)
-    context.setAttr('strokeStyle', 'rgba(255, 255, 255, 0.16)')
+    context.setAttr('strokeStyle', stroke)
     context.beginPath()
 
     if (gridType === 'square') {

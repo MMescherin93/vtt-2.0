@@ -29,6 +29,8 @@ export interface Token {
   hidden: boolean
   /** Запрет перемещения (по умолчанию false — двигать может любой участник) */
   locked: boolean
+  /** Скрыть подпись именно этого токена */
+  hideName: boolean
   /** HP/AC; null — статы не заданы или скрыты от этого клиента */
   stats: TokenStats | null
   /** Активные состояния (id из каталога) */

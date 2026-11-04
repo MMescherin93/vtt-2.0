@@ -13,6 +13,7 @@ import {
   LinkIcon,
   LockIcon,
   PencilIcon,
+  TextIcon,
   TrashIcon,
   UnlockIcon,
   UsersIcon,
@@ -33,6 +34,8 @@ export function HostToolbar() {
   const setTool = useHostStore((state) => state.setTool)
   const drawStyle = useHostStore((state) => state.drawStyle)
   const setDrawStyle = useHostStore((state) => state.setDrawStyle)
+  const textSize = useHostStore((state) => state.textSize)
+  const setTextSize = useHostStore((state) => state.setTextSize)
   const fogTool = useHostStore((state) => state.fogTool)
   const setFogTool = useHostStore((state) => state.setFogTool)
   const fogBrushSize = useHostStore((state) => state.fogBrushSize)
@@ -97,6 +100,12 @@ export function HostToolbar() {
             />
           </>
         )}
+        <ToolbarButton
+          label="Текст — клик по карте"
+          icon={<TextIcon size={18} />}
+          active={tool === 'text'}
+          onClick={() => setTool('text')}
+        />
         {fogEnabled && (
           <ToolbarButton
             label="Туман войны (F)"
@@ -182,6 +191,40 @@ export function HostToolbar() {
             />
             <span className="w-6 text-right text-gray-300">{drawStyle.size}</span>
           </label>
+        </div>
+      )}
+
+      {tool === 'text' && (
+        <div className="pointer-events-auto mt-1.5 flex items-center gap-3 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-2 shadow-xl backdrop-blur-xl">
+          <div className="flex items-center gap-1.5">
+            {DRAW_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setDrawStyle({ color })}
+                aria-label={`Цвет текста ${color}`}
+                className={`h-5 w-5 rounded-full border transition ${
+                  drawStyle.color === color
+                    ? 'scale-110 border-white shadow-[0_0_10px_rgba(255,255,255,0.5)]'
+                    : 'border-white/20 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-400">
+            Размер
+            <input
+              type="range"
+              min={10}
+              max={120}
+              value={textSize}
+              onChange={(event) => setTextSize(Number(event.target.value))}
+              className="w-24 accent-indigo-500"
+            />
+            <span className="w-7 text-right text-gray-300">{textSize}</span>
+          </label>
+          <span className="text-[11px] text-gray-500">клик по карте · Ctrl+Enter</span>
         </div>
       )}
 
@@ -272,6 +315,20 @@ export function HostToolbar() {
             {selectedToken.stats && selectedToken.stats.hpMax > 0
               ? `${selectedToken.stats.hp}/${selectedToken.stats.hpMax}`
               : 'Статы'}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void window.hostApi.updateToken({
+                tokenId: selectedToken.id,
+                hideName: !selectedToken.hideName
+              })
+            }
+            className="flex items-center gap-1 rounded-md px-1.5 py-1 transition hover:bg-white/10"
+            title="Скрыть или показать имя этого токена"
+          >
+            {selectedToken.hideName ? <EyeOffIcon size={14} /> : <EyeIcon size={14} />}
+            {selectedToken.hideName ? 'Имя скрыто' : 'Имя'}
           </button>
           <button
             type="button"

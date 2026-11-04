@@ -1,4 +1,12 @@
-import type { Drawing, DrawingInput, FogOfWarData, TokenPatch } from './map'
+import type {
+  Drawing,
+  DrawingInput,
+  FogOfWarData,
+  MapText,
+  MapTextInput,
+  MapTextPatch,
+  TokenPatch
+} from './map'
 import type { ChatMessage, DiceRoll, PlayerInfo, Session } from './session'
 import type { Token } from './token'
 import type { CombatState } from './combat'
@@ -65,6 +73,9 @@ export interface ServerToClientEvents {
   'token:remove': (data: { tokenId: string }) => void
   'fog:update': (fog: FogOfWarData) => void
   'drawing:add': (drawing: Drawing) => void
+  'text:add': (text: MapText) => void
+  'text:update': (text: MapText) => void
+  'text:remove': (data: { textId: string }) => void
   'chat:message': (data: ChatMessageData) => void
   'dice:roll': (data: DiceRollResultData) => void
   /** Состояние расширения изменил Мастер */
@@ -90,6 +101,10 @@ export interface ClientToServerEvents {
   'dice:roll': (data: DiceRollRequestData) => void
   /** Рисовать может любой участник (ТЗ, п.5) */
   'drawing:add': (data: DrawingInput) => void
+  /** Текстовые заметки: добавлять может любой, править — автор или Мастер */
+  'text:add': (data: MapTextInput) => void
+  'text:update': (data: MapTextPatch) => void
+  'text:remove': (data: { textId: string }) => void
   /** Туман войны меняет только GM (проверка роли на сервере) */
   'fog:update': (fog: FogOfWarData) => void
 }

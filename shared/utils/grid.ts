@@ -4,7 +4,10 @@ import type { GridType, MapSettings } from '../types/map'
 export const DEFAULT_MAP_SETTINGS: MapSettings = {
   gridType: 'square',
   gridSize: 70,
-  showGrid: true
+  showGrid: true,
+  gridColor: '#ffffff',
+  tokenLabelColor: '#e2e8f0',
+  showTokenNames: true
 }
 
 export const MIN_GRID_SIZE = 20

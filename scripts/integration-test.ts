@@ -4,6 +4,7 @@ import { io, type Socket } from 'socket.io-client'
 import type {
   ClientToServerEvents,
   CombatState,
+  MapText,
   ServerToClientEvents,
   Session,
   Token
@@ -503,6 +504,62 @@ async function main(): Promise<void> {
   check(
     nextCombat.round === 2 && nextCombat.turnId === combat.order[0],
     'раунд переключается по кругу'
+  )
+
+  // Текст на карте: добавление, правка и удаление игроком
+  const textPromise = watch<MapText>(client, 'text:add')
+  client.emit('text:add', {
+    x: 100,
+    y: 120,
+    text: 'Заметка на карте',
+    color: '#f8fafc',
+    fontSize: 26
+  })
+  const mapText = await textPromise
+  check(
+    mapText.text === 'Заметка на карте' && mapText.fontSize === 26,
+    'текст на карте добавлен и разослан'
+  )
+
+  const textUpdatePromise = watch<MapText>(client, 'text:update')
+  client.emit('text:update', { textId: mapText.id, x: 150, y: 160, text: 'Новая заметка' })
+  const updatedText = await textUpdatePromise
+  check(
+    updatedText.text === 'Новая заметка' && updatedText.x === 150,
+    'текст на карте можно переместить и изменить'
+  )
+
+  const textRemovePromise = watch<{ textId: string }>(client, 'text:remove')
+  client.emit('text:remove', { textId: mapText.id })
+  const removedText = await textRemovePromise
+  check(removedText.textId === mapText.id, 'текст на карте удаляется')
+
+  // Цвета сетки/имён и скрытие имени токена
+  const stylingPromise = watch<Session>(client, 'session:update')
+  manager.update((current) => {
+    current.settings.gridColor = '#ff0000'
+    current.settings.tokenLabelColor = '#00ff00'
+    current.settings.showTokenNames = false
+    const item = current.tokens.find((entry) => entry.id === token.id)
+    if (item) item.hideName = true
+  })
+  const styling = await stylingPromise
+  check(
+    styling.settings.gridColor === '#ff0000' &&
+      styling.settings.tokenLabelColor === '#00ff00' &&
+      styling.settings.showTokenNames === false,
+    'цвет сетки, цвет имён и глобальное скрытие имён сохраняются'
+  )
+  check(
+    styling.tokens.find((entry) => entry.id === token.id)?.hideName === true,
+    'имя отдельного токена скрывается'
+  )
+
+  client.emit('token:update', { tokenId: token.id, hideName: false })
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  check(
+    manager.getActive()?.tokens.find((entry) => entry.id === token.id)?.hideName === true,
+    'игрок не может менять скрытие имени токена'
   )
 
   const fogPromise = watch<{ covered: boolean }>(client, 'fog:update')

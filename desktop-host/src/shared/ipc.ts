@@ -7,6 +7,9 @@ import type {
   FogOfWarData,
   MapData,
   MapSettings,
+  MapText,
+  MapTextInput,
+  MapTextPatch,
   PlayerInfo,
   Session,
   SessionSummary,
@@ -33,6 +36,9 @@ export const IPC = {
   tokenRemove: 'token:remove',
   fogUpdate: 'fog:update',
   drawingAdd: 'drawing:add',
+  textAdd: 'text:add',
+  textUpdate: 'text:update',
+  textRemove: 'text:remove',
   chatSend: 'chat:send',
   diceRoll: 'dice:roll',
   extensionUpdate: 'extension:update',
@@ -145,6 +151,9 @@ export type HostServerEvent =
   | { type: 'token:remove'; tokenId: string }
   | { type: 'fog:update'; fog: FogOfWarData }
   | { type: 'drawing:add'; drawing: Drawing }
+  | { type: 'text:add'; text: MapText }
+  | { type: 'text:update'; text: MapText }
+  | { type: 'text:remove'; textId: string }
   | { type: 'chat:message'; message: ChatMessage }
   | { type: 'dice:roll'; roll: DiceRoll }
   | { type: 'extension:update'; extensionId: string; state: unknown }
@@ -177,6 +186,9 @@ export interface HostApi {
   /** Сохранить состояние боя и разослать игрокам */
   setCombat(combat: CombatState | null): Promise<void>
   addDrawing(drawing: DrawingInput): Promise<void>
+  addText(text: MapTextInput): Promise<void>
+  updateText(patch: MapTextPatch): Promise<void>
+  removeText(textId: string): Promise<void>
   sendChat(text: string): Promise<void>
   rollDice(dice: string[]): Promise<void>
 

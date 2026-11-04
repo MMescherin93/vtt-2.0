@@ -4,6 +4,8 @@ import type {
   CombatState,
   DrawingInput,
   FogOfWarData,
+  MapTextInput,
+  MapTextPatch,
   PlayerInfo,
   Session,
   SessionSummary,
@@ -46,6 +48,7 @@ interface HostState {
 
   tool: Tool
   drawStyle: DrawStyle
+  textSize: number
   fogTool: FogTool
   fogBrushSize: number
   showFogPreview: boolean
@@ -72,6 +75,7 @@ interface HostState {
 
   setTool: (tool: Tool) => void
   setDrawStyle: (style: Partial<DrawStyle>) => void
+  setTextSize: (size: number) => void
   setFogTool: (tool: FogTool) => void
   setFogBrushSize: (size: number) => void
   toggleFogPreview: () => void
@@ -101,6 +105,9 @@ interface HostState {
   addQuickToken: (name: string, x?: number, y?: number) => Promise<Token | null>
 
   addDrawing: (drawing: DrawingInput) => void
+  addText: (text: MapTextInput) => void
+  updateText: (patch: MapTextPatch) => void
+  removeText: (textId: string) => void
   changeFog: (fog: FogOfWarData) => void
   sendChat: (text: string) => void
   rollDice: (dice: string[]) => void
@@ -135,6 +142,7 @@ function patchToken(
       if (patch.rotation !== undefined) next.rotation = patch.rotation
       if (patch.hidden !== undefined) next.hidden = patch.hidden
       if (patch.locked !== undefined) next.locked = patch.locked
+      if (patch.hideName !== undefined) next.hideName = patch.hideName
       if (patch.stats === null) next.stats = defaultStats()
       else if (patch.stats) next.stats = { ...(next.stats ?? defaultStats()), ...patch.stats }
       if (patch.conditions !== undefined) next.conditions = patch.conditions
@@ -149,7 +157,14 @@ const DRAW_COLORS = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#f8
 
 type PersistedHostUi = Pick<
   HostState,
-  'tool' | 'drawStyle' | 'fogTool' | 'fogBrushSize' | 'showFogPreview' | 'panels' | 'modulePanels'
+  | 'tool'
+  | 'drawStyle'
+  | 'textSize'
+  | 'fogTool'
+  | 'fogBrushSize'
+  | 'showFogPreview'
+  | 'panels'
+  | 'modulePanels'
 >
 
 export const useHostStore = create<HostState>()(
@@ -167,6 +182,7 @@ export const useHostStore = create<HostState>()(
 
       tool: 'select',
       drawStyle: { color: DRAW_COLORS[3]!, size: 6 },
+      textSize: 24,
       fogTool: 'brush',
       fogBrushSize: 140,
       showFogPreview: true,
@@ -232,6 +248,29 @@ export const useHostStore = create<HostState>()(
             if (!session) break
             if (session.drawings.some((drawing) => drawing.id === event.drawing.id)) break
             set({ session: { ...session, drawings: [...session.drawings, event.drawing] } })
+            break
+          case 'text:add':
+            if (!session) break
+            if (session.texts.some((text) => text.id === event.text.id)) break
+            set({ session: { ...session, texts: [...session.texts, event.text] } })
+            break
+          case 'text:update':
+            if (!session) break
+            set({
+              session: {
+                ...session,
+                texts: session.texts.map((text) => (text.id === event.text.id ? event.text : text))
+              }
+            })
+            break
+          case 'text:remove':
+            if (!session) break
+            set({
+              session: {
+                ...session,
+                texts: session.texts.filter((text) => text.id !== event.textId)
+              }
+            })
             break
           case 'chat:message':
             if (!session) break
@@ -325,6 +364,7 @@ export const useHostStore = create<HostState>()(
 
       setTool: (tool) => set({ tool }),
       setDrawStyle: (style) => set({ drawStyle: { ...get().drawStyle, ...style } }),
+      setTextSize: (textSize) => set({ textSize: Math.max(8, Math.min(200, textSize)) }),
       setFogTool: (fogTool) => set({ fogTool }),
       setFogBrushSize: (fogBrushSize) => set({ fogBrushSize }),
       toggleFogPreview: () => set({ showFogPreview: !get().showFogPreview }),
@@ -471,6 +511,43 @@ export const useHostStore = create<HostState>()(
         void window.hostApi.addDrawing(drawing)
       },
 
+      addText: (text) => {
+        void window.hostApi.addText(text)
+      },
+
+      updateText: (patch) => {
+        set({
+          session: get().session
+            ? {
+                ...get().session!,
+                texts: get().session!.texts.map((text) =>
+                  text.id === patch.textId
+                    ? {
+                        ...text,
+                        ...(patch.x !== undefined ? { x: patch.x } : {}),
+                        ...(patch.y !== undefined ? { y: patch.y } : {}),
+                        ...(patch.text !== undefined ? { text: patch.text } : {}),
+                        ...(patch.color !== undefined ? { color: patch.color } : {}),
+                        ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {})
+                      }
+                    : text
+                )
+              }
+            : null
+        })
+        void window.hostApi.updateText(patch)
+      },
+
+      removeText: (textId) => {
+        const session = get().session
+        if (session) {
+          set({
+            session: { ...session, texts: session.texts.filter((text) => text.id !== textId) }
+          })
+        }
+        void window.hostApi.removeText(textId)
+      },
+
       changeFog: (fog) => {
         set({ session: get().session ? { ...get().session!, fogOfWar: fog } : null })
         void window.hostApi.updateFog(fog)
@@ -513,6 +590,7 @@ export const useHostStore = create<HostState>()(
       partialize: (state) => ({
         tool: state.tool,
         drawStyle: state.drawStyle,
+        textSize: state.textSize,
         fogTool: state.fogTool,
         fogBrushSize: state.fogBrushSize,
         showFogPreview: state.showFogPreview,

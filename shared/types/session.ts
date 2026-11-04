@@ -1,4 +1,4 @@
-import type { Drawing, FogOfWarData, MapAsset, MapSettings } from './map'
+import type { Drawing, FogOfWarData, MapAsset, MapSettings, MapText } from './map'
 import type { CombatState } from './combat'
 import type { Token } from './token'
 
@@ -55,6 +55,8 @@ export interface Session {
   tokens: Token[]
   fogOfWar: FogOfWarData
   drawings: Drawing[]
+  /** Текстовые заметки на карте */
+  texts: MapText[]
   settings: MapSettings
   /** Активный бой (трекер инициативы) */
   combat: CombatState | null
