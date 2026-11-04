@@ -254,7 +254,7 @@ export function BoardView() {
         onClick={() => togglePanel('extensions')}
         title="Расширения"
         aria-label="Расширения"
-        className={`fixed bottom-4 right-16 z-20 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
+        className={`fixed bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
           panels.extensions
             ? 'border-indigo-400/60 bg-indigo-500/30 text-indigo-100'
             : 'border-white/10 bg-[#14161f]/85 text-gray-300 hover:bg-white/10 hover:text-white'

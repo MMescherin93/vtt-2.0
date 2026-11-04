@@ -496,7 +496,7 @@ export function Board({
         </Stage>
       )}
 
-      <div className="pointer-events-auto absolute bottom-4 right-4 flex flex-col items-center gap-1">
+      <div className="pointer-events-auto absolute bottom-14 right-4 flex flex-col items-center gap-1">
         <ZoomButton label="Приблизить" onClick={() => zoomBy(1.2)}>
           <ZoomInIcon size={16} />
         </ZoomButton>
