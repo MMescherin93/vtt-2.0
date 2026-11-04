@@ -1,0 +1,8 @@
+{
+  "name": "forbidden-lands-sheet",
+  "title": "Запретные земли — лист персонажа",
+  "description": "Интерактивный лист персонажа Forbidden Lands по PDF-бланку: характеристики, навыки, бой, снаряжение, отношения и заметки.",
+  "version": "1.0.0",
+  "author": "VTT",
+  "manifest_version": 1
+}

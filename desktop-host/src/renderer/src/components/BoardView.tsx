@@ -88,6 +88,8 @@ export function BoardView() {
   const pdfOpen = pdfEnabled && (modulePanels['pdf-viewer'] ?? false)
   const notesEnabled = extensions['notes'] ?? false
   const notesOpen = notesEnabled && (modulePanels['notes'] ?? false)
+  const flSheetEnabled = extensions['forbidden-lands-sheet'] ?? false
+  const flSheetOpen = flSheetEnabled && (modulePanels['forbidden-lands-sheet'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -299,6 +301,25 @@ export function BoardView() {
           onRemove={(pdfId) => window.hostApi.removePdf(pdfId)}
           onClose={() => toggleModulePanel('pdf-viewer', false)}
           storageKey="vtt.gm.panel.pdf"
+        />
+      )}
+
+      {flSheetOpen && (
+        <CharacterSheetFrame
+          title="Лист «Запретные земли»"
+          src={`${assetsBaseUrl}/extensions/forbidden-lands-sheet/index.html`}
+          extensionId="forbidden-lands-sheet"
+          role="gm"
+          metaKey="com.forbiddenlands.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
+          state={session.extensionState['forbidden-lands-sheet'] ?? null}
+          onChange={(next) => void setExtensionState('forbidden-lands-sheet', next)}
+          onClose={() => toggleModulePanel('forbidden-lands-sheet', false)}
+          width={920}
+          height={720}
+          storageKey="vtt.gm.panel.forbidden-lands"
+          defaultPosition={{ x: 240, y: 40 }}
         />
       )}
 

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запретные земли — лист персонажа</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><b>Запретные земли</b><span>лист персонажа</span></div>
+
+    <div class="controls">
+      <label class="ctrl-label" for="charSelect">Персонаж</label>
+      <select id="charSelect" class="select"></select>
+      <button type="button" id="btnNew" class="btn">＋ Новый</button>
+      <button type="button" id="btnDelete" class="btn danger">Удалить</button>
+
+      <div class="pages" role="group" aria-label="Страница листа">
+        <button type="button" class="pageTab active" data-page="0">Лицевая</button>
+        <button type="button" class="pageTab" data-page="1">Оборот</button>
+      </div>
+    </div>
+
+    <div id="status" class="status">подключение…</div>
+  </header>
+
+  <main class="sheetWrap" id="sheetWrap">
+    <div class="sheetFrame" id="sheetFrame">
+      <section class="sheetPage active" data-page="0">
+        <img class="sheetBg" src="sheet-front.png" alt="Лист персонажа — лицевая сторона" draggable="false">
+        <div class="fields" data-fields="0"></div>
+      </section>
+      <section class="sheetPage" data-page="1">
+        <img class="sheetBg" src="sheet-back.png" alt="Лист персонажа — оборот" draggable="false">
+        <div class="fields" data-fields="1"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

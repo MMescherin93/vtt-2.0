@@ -79,6 +79,7 @@
 ## Текущие листы
 
 - «Тройка» — `troika-sheet`;
-- AZAG — `azag-sheet`.
+- AZAG — `azag-sheet`;
+- «Запретные земли» — `forbidden-lands-sheet`.
 
-Оба уже используют `CharacterSheetFrame`; новые листы обязаны делать так же.
+Все они уже используют `CharacterSheetFrame`; новые листы обязаны делать так же.

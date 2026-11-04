@@ -18,6 +18,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     description: 'Модули для игры AZAG (Dank Dungeons)'
   },
   {
+    id: 'forbidden-lands',
+    title: 'Запретные земли',
+    description: 'Модули для Forbidden Lands: лист персонажа и кубы'
+  },
+  {
     id: 'library',
     title: 'Библиотека',
     description: 'PDF-документы, заметки и материалы кампании'
@@ -120,6 +125,17 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     category: 'library',
     icon: '/extensions/icons/notes.svg',
     panel: true
+  },
+  {
+    id: 'forbidden-lands-sheet',
+    title: 'Лист «Запретные земли»',
+    description: 'Лист персонажа Forbidden Lands: характеристики, навыки, бой, снаряжение, отношения',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'forbidden-lands',
+    icon: '/extensions/forbidden-lands-sheet/icon.svg',
+    panel: true,
+    metaKey: 'com.forbiddenlands.sheet/state'
   },
   {
     id: 'troika-initiative',
