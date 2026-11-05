@@ -248,6 +248,9 @@ function buildFields() {
       element = document.createElement('input')
       element.type = 'checkbox'
       element.className = `field check${field.kind === 'circle' ? ' circle' : ''}`
+      element.checked = false
+      element.defaultChecked = false
+      element.autocomplete = 'off'
     } else if (field.kind === 'track') {
       element = buildTrack(field)
     } else if (field.kind === 'select') {

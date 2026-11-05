@@ -687,11 +687,31 @@ async function main(): Promise<void> {
   const flPush = pushFlRoll(
     { base: 1, skill: 1, gear: 0 },
     rollFlPool({ base: 1, skill: 1, gear: 0 }, sequence([2, 1])),
-    sequence([6])
+    sequence([6, 6])
   )
   check(
-    flPush.successes === 1 && flPush.baseBanes === 0 && flPush.skillBanes === 1 && flPush.pushed,
-    'кубы FL: push перебрасывает пустые грани и сохраняет баны'
+    flPush.successes === 2 && flPush.baseBanes === 0 && flPush.skillBanes === 0 && flPush.pushed,
+    'кубы FL: риск перебрасывает и 1 на красных'
+  )
+  const flRedOne = rollFlPool({ base: 0, skill: 1, gear: 0 }, sequence([1]))
+  check(
+    flRedOne.successes === 0 && flRedOne.skillBanes === 0,
+    'кубы FL: 1 на красном кубе — не бан'
+  )
+  const flExtra = rollFlPool(
+    { base: 0, skill: 0, gear: 0, d8: 1, d12: 1 },
+    sequence([1, 1])
+  )
+  const flExtraMax = rollFlPool(
+    { base: 0, skill: 0, gear: 0, d8: 2, d12: 1 },
+    () => 0.99
+  )
+  check(
+    flExtra.successes === 0 &&
+      flExtra.baseBanes === 0 &&
+      flExtraMax.successes === 3 &&
+      flExtraMax.dice.length === 3,
+    'кубы FL: d8/d12 дают успех при 6+ и не дают бан за 1'
   )
   const flNegative = rollFlPool(
     { base: 0, skill: 1, gear: 0, modifier: -1 },

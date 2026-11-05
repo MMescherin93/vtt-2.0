@@ -1,5 +1,5 @@
 /** Тип кубика в пуле «Запретных земель» */
-export type FlDieType = 'base' | 'skill' | 'gear'
+export type FlDieType = 'base' | 'skill' | 'gear' | 'd8' | 'd12'
 
 export interface FlDie {
   type: FlDieType
@@ -12,6 +12,10 @@ export interface FlRollRequest {
   base: number
   skill: number
   gear: number
+  /** Дополнительные d8: 6+ — успех, 1 не фиксируется */
+  d8?: number
+  /** Дополнительные d12: 6+ — успех, 1 не фиксируется */
+  d12?: number
   modifier?: number
   help?: number
   difficulty?: number
