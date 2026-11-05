@@ -6,8 +6,19 @@ function die(random: RandomSource, sides = 6): number {
   return Math.min(sides, Math.max(1, Math.floor(random() * sides) + 1))
 }
 
-function isSuccess(item: FlDie): boolean {
-  return item.type === 'd8' || item.type === 'd12' ? item.value >= 6 : item.value === 6
+export function flDieSuccesses(item: FlDie): number {
+  if (item.type === 'base' || item.type === 'skill' || item.type === 'gear') {
+    return item.value === 6 ? 1 : 0
+  }
+  if (item.value >= 12) return 4
+  if (item.value >= 10) return 3
+  if (item.value >= 8) return 2
+  if (item.value >= 6) return 1
+  return 0
+}
+
+function isExtra(item: FlDie): boolean {
+  return item.type === 'd8' || item.type === 'd10' || item.type === 'd12'
 }
 
 function normalizeCount(value: number): number {
@@ -22,12 +33,13 @@ function countDice(
   const skillBanes = 0
   let gearBanes = 0
   for (const item of dice) {
-    if (isSuccess(item)) {
-      successes += item.negative ? -1 : 1
+    const successesOnDie = flDieSuccesses(item)
+    if (successesOnDie > 0) {
+      successes += item.negative ? -successesOnDie : successesOnDie
       continue
     }
-    // 1 на красных, d8 и d12 не является баном.
-    if (item.value !== 1 || item.type === 'skill' || item.type === 'd8' || item.type === 'd12') {
+    // 1 на красных, d8, d10 и d12 не является баном.
+    if (item.value !== 1 || item.type === 'skill' || isExtra(item)) {
       continue
     }
     if (item.type === 'base') baseBanes += 1
@@ -61,6 +73,9 @@ export function rollFlPool(request: FlRollRequest, random: RandomSource = Math.r
   for (let index = 0; index < normalizeCount(request.d8 ?? 0); index += 1) {
     dice.push({ type: 'd8', value: die(random, 8) })
   }
+  for (let index = 0; index < normalizeCount(request.d10 ?? 0); index += 1) {
+    dice.push({ type: 'd10', value: die(random, 10) })
+  }
   for (let index = 0; index < normalizeCount(request.d12 ?? 0); index += 1) {
     dice.push({ type: 'd12', value: die(random, 12) })
   }
@@ -73,7 +88,7 @@ export function rollFlPool(request: FlRollRequest, random: RandomSource = Math.r
   }
 }
 
-/** Рискнуть: перебрасываются все кубы, кроме 6; на красных, d8 и d12 — ещё и 1. */
+/** Рискнуть: перебрасываются все кубы, кроме 6; на красных, d8/d10/d12 — ещё и 1. */
 export function pushFlRoll(
   request: FlRollRequest,
   previous: FlRollResult,
@@ -84,7 +99,7 @@ export function pushFlRoll(
     const keepOne = item.type === 'base' || item.type === 'gear'
     const reroll = item.value !== 6 && (!keepOne || item.value !== 1)
     if (!reroll) return { ...item }
-    const sides = item.type === 'd8' ? 8 : item.type === 'd12' ? 12 : 6
+    const sides = item.type === 'd8' ? 8 : item.type === 'd10' ? 10 : item.type === 'd12' ? 12 : 6
     return { ...item, value: die(random, sides) }
   })
   return {
@@ -96,13 +111,13 @@ export function pushFlRoll(
 }
 
 export function formatFlRoll(result: FlRollResult): string {
-  const groups: Record<FlDie['type'], number> = { base: 0, skill: 0, gear: 0, d8: 0, d12: 0 }
+  const groups: Record<FlDie['type'], number> = { base: 0, skill: 0, gear: 0, d8: 0, d10: 0, d12: 0 }
   for (const item of result.dice) groups[item.type] += 1
   const total = result.dice.length
   const banes = result.baseBanes + result.skillBanes + result.gearBanes
   const extra =
-    groups.d8 || groups.d12
-      ? ` · d8 ${groups.d8}, d12 ${groups.d12}`
+    groups.d8 || groups.d10 || groups.d12
+      ? ` · d8 ${groups.d8}, d10 ${groups.d10}, d12 ${groups.d12}`
       : ''
   const difficulty =
     result.difficulty !== undefined && result.difficulty > 0

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FlRollResult } from '../../types/fl'
-import { flBanesSummary, formatFlRoll, pushFlRoll, rollFlPool } from '../../utils/flDice'
+import { flBanesSummary, flDieSuccesses, formatFlRoll, pushFlRoll, rollFlPool } from '../../utils/flDice'
 import { FloatingPanel } from '../FloatingPanel'
 import { DiceIcon } from '../icons'
 
@@ -15,6 +15,7 @@ const TYPE_COLORS: Record<string, string> = {
   skill: 'border-red-400 bg-red-500/90 text-white',
   gear: 'border-zinc-950 bg-zinc-900 text-zinc-100',
   d8: 'border-teal-400 bg-teal-500/90 text-white',
+  d10: 'border-amber-400 bg-amber-500/90 text-white',
   d12: 'border-violet-400 bg-violet-500/90 text-white'
 }
 
@@ -47,16 +48,44 @@ function Stepper({
 }
 
 function Die({ item }: { item: FlRollResult['dice'][number] }) {
-  const success = item.type === 'd8' || item.type === 'd12' ? item.value >= 6 : item.value === 6
+  const extra = item.type === 'd8' || item.type === 'd10' || item.type === 'd12'
+  const successes = flDieSuccesses(item)
   const skull = (item.type === 'base' || item.type === 'gear') && item.value === 1
   return (
     <span
-      className={`flex h-10 w-10 items-center justify-center rounded-lg border-2 text-lg font-black shadow-md ${
+      className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border-2 text-lg font-black shadow-md ${
         TYPE_COLORS[item.type] ?? TYPE_COLORS.base
       } ${item.negative ? 'ring-2 ring-fuchsia-400/80' : ''}`}
-      title={`${item.type}: ${item.value}${item.negative ? ' (минус)' : ''}`}
+      title={`${item.type}: ${item.value}${
+        successes > 0 ? ` (${successes} усп.)` : ''
+      }${item.negative ? ' (минус)' : ''}`}
     >
-      {success ? '⚔' : skull ? '☠' : item.value}
+      {extra ? (
+        <>
+          {successes > 0 && (
+            <span className="absolute left-1 top-0.5 text-[8px] font-bold leading-none opacity-75">
+              {item.value}
+            </span>
+          )}
+          {successes > 0 ? (
+            <span className="grid grid-cols-2 gap-x-0.5 gap-y-0 leading-none">
+              {Array.from({ length: successes }).map((_, index) => (
+                <span key={index} className="text-[10px] leading-[9px]">
+                  ⚔
+                </span>
+              ))}
+            </span>
+          ) : (
+            item.value
+          )}
+        </>
+      ) : successes > 0 ? (
+        '⚔'
+      ) : skull ? (
+        '☠'
+      ) : (
+        item.value
+      )}
     </span>
   )
 }
@@ -67,6 +96,7 @@ export function FlDicePanel({ onSendChat, onClose, storageKey }: FlDicePanelProp
   const [skill, setSkill] = useState(2)
   const [gear, setGear] = useState(0)
   const [d8, setD8] = useState(0)
+  const [d10, setD10] = useState(0)
   const [d12, setD12] = useState(0)
   const [modifier, setModifier] = useState(0)
   const [help, setHelp] = useState(0)
@@ -78,6 +108,7 @@ export function FlDicePanel({ onSendChat, onClose, storageKey }: FlDicePanelProp
     skill,
     gear,
     d8,
+    d10,
     d12,
     modifier,
     help,
@@ -115,8 +146,9 @@ export function FlDicePanel({ onSendChat, onClose, storageKey }: FlDicePanelProp
           <Stepper label="Снаряжение (чёрные)" value={gear} onChange={setGear} />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Stepper label="Дополнительные d8" value={d8} onChange={setD8} />
+          <Stepper label="Дополнительные d10" value={d10} onChange={setD10} />
           <Stepper label="Дополнительные d12" value={d12} onChange={setD12} />
         </div>
 
@@ -140,7 +172,7 @@ export function FlDicePanel({ onSendChat, onClose, storageKey }: FlDicePanelProp
             onClick={push}
             disabled={!result || result.pushed}
             className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-35"
-            title="Один раз за бросок: перебросить все кубы, кроме 6; на красных, d8 и d12 — ещё и 1"
+            title="Один раз за бросок: перебросить все кубы, кроме 6; на красных, d8, d10 и d12 — ещё и 1"
           >
             Рискнуть
           </button>
@@ -190,10 +222,10 @@ export function FlDicePanel({ onSendChat, onClose, storageKey }: FlDicePanelProp
               )}
             </div>
             <p className="text-[10px] leading-relaxed text-gray-600">
-              Белые — атрибут, красные — навык, чёрные — снаряжение. 6 — успех; на d8 и d12
-              успех при 6+. 1 на белых/чёрных — бан; на красных, d8 и d12 — нет, их можно
-              перебрасывать. Рискнуть можно один раз: 1 на белых снижает атрибут и даёт Волю,
-              1 на чёрных ломает снаряжение.
+              Белые — атрибут, красные — навык, чёрные — снаряжение. 6 — успех. На d8/d10/d12:
+              6–7 — 1 успех, 8–9 — 2, 10–11 — 3, 12 — 4. 1 на белых/чёрных — бан; на
+              красных, d8/d10/d12 — нет, их можно перебрасывать. Рискнуть можно один раз:
+              1 на белых снижает атрибут и даёт Волю, 1 на чёрных ломает снаряжение.
             </p>
           </>
         ) : (

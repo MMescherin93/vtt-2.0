@@ -10,7 +10,7 @@ import type {
   Session,
   Token
 } from '@vtt/shared'
-import { layoutMaps, newId, pushFlRoll, rollFlPool, stepTurn } from '@vtt/shared/utils'
+import { flDieSuccesses, layoutMaps, newId, pushFlRoll, rollFlPool, stepTurn } from '@vtt/shared/utils'
 import { BUILT_IN_EXTENSIONS, EXTENSION_CATEGORIES } from '@vtt/shared/plugins'
 import type { HostServerEvent } from '../desktop-host/src/shared/ipc'
 import { SessionManager } from '../desktop-host/src/main/session'
@@ -699,19 +699,29 @@ async function main(): Promise<void> {
     'кубы FL: 1 на красном кубе — не бан'
   )
   const flExtra = rollFlPool(
-    { base: 0, skill: 0, gear: 0, d8: 1, d12: 1 },
-    sequence([1, 1])
+    { base: 0, skill: 0, gear: 0, d8: 1, d10: 1, d12: 1 },
+    sequence([1, 1, 1])
   )
   const flExtraMax = rollFlPool(
-    { base: 0, skill: 0, gear: 0, d8: 2, d12: 1 },
+    { base: 0, skill: 0, gear: 0, d8: 1, d10: 1, d12: 1 },
     () => 0.99
   )
+  const flThresholds =
+    flDieSuccesses({ type: 'd8', value: 6 }) === 1 &&
+    flDieSuccesses({ type: 'd8', value: 8 }) === 2 &&
+    flDieSuccesses({ type: 'd10', value: 7 }) === 1 &&
+    flDieSuccesses({ type: 'd10', value: 9 }) === 2 &&
+    flDieSuccesses({ type: 'd10', value: 10 }) === 3 &&
+    flDieSuccesses({ type: 'd12', value: 8 }) === 2 &&
+    flDieSuccesses({ type: 'd12', value: 10 }) === 3 &&
+    flDieSuccesses({ type: 'd12', value: 12 }) === 4
   check(
     flExtra.successes === 0 &&
       flExtra.baseBanes === 0 &&
-      flExtraMax.successes === 3 &&
-      flExtraMax.dice.length === 3,
-    'кубы FL: d8/d12 дают успех при 6+ и не дают бан за 1'
+      flExtraMax.successes === 9 &&
+      flExtraMax.dice.length === 3 &&
+      flThresholds,
+    'кубы FL: d8/d10/d12 дают 1–4 успеха и не дают бан за 1'
   )
   const flNegative = rollFlPool(
     { base: 0, skill: 1, gear: 0, modifier: -1 },
