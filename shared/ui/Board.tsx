@@ -128,10 +128,15 @@ export function Board({
   }, [layout])
 
   const { ref: containerRef, size: viewport } = useElementSize<HTMLDivElement>()
-  const storageKey = `${cameraKey}:${field.width}x${field.height}`
+  // Ключ не зависит от размеров мира: добавление/удаление карт не должно
+  // сбрасывать камеру и возвращать её к «центрированию» полотна.
+  const storageKey = cameraKey
 
   const [camera, setCamera] = useState<Camera>(
-    () => loadCamera(storageKey) ?? { x: 0, y: 0, scale: 1 }
+    () =>
+      loadCamera(storageKey) ??
+      loadCamera(`${cameraKey}:${field.width}x${field.height}`) ??
+      { x: 0, y: 0, scale: 1 }
   )
   const [spaceDown, setSpaceDown] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -487,8 +492,36 @@ export function Board({
   )
 
   const fit = useCallback(() => {
-    setCamera(fitCamera(viewport, field))
-  }, [viewport, field])
+    // «Вписать» относится к карте, на которой сейчас стоит камера, а не ко
+    // всему полотну из нескольких карт. Иначе при двух и более картах камера
+    // уезжает на общий мир и карта становится слишком мелкой.
+    const centerX = (viewport.width / 2 - camera.x) / camera.scale
+    const centerY = (viewport.height / 2 - camera.y) / camera.scale
+    const active =
+      layout.items.find(
+        (item) =>
+          centerX >= item.x &&
+          centerX <= item.x + item.map.width &&
+          centerY >= item.y &&
+          centerY <= item.y + item.map.height
+      ) ?? layout.items[0]
+
+    if (!active) {
+      setCamera(fitCamera(viewport, field))
+      return
+    }
+
+    const fitted = fitCamera(
+      viewport,
+      { width: active.map.width, height: active.map.height },
+      60
+    )
+    setCamera({
+      x: fitted.x - active.x * fitted.scale,
+      y: fitted.y - active.y * fitted.scale,
+      scale: fitted.scale
+    })
+  }, [viewport, field, camera, layout])
 
   const isDrawingTool = tool === 'draw' || tool === 'erase' || (tool === 'fog' && canEditFog)
   const cursorClass =
