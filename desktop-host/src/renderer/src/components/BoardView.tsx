@@ -143,7 +143,7 @@ export function BoardView() {
         onFilesDropped={(files, world) => {
           const image = files.find((file) => file.type.startsWith('image/'))
           if (!image) {
-            setError('Можно перетаскивать только изображения (PNG, JPEG, WebP)')
+            setError('Можно перетаскивать только изображения (PNG, JPEG, WebP, GIF)')
             return
           }
           if (!hasMap) void uploadMap(image)

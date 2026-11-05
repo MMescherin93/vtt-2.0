@@ -1,7 +1,16 @@
+import { useEffect, useRef } from 'react'
 import { Image as KonvaImage, Layer, Rect, Text } from 'react-konva'
+import type Konva from 'konva'
 import type { MapPlacement } from '../../utils/maps'
 import { assetUrl } from '../assets'
 import { useImage } from '../useImage'
+
+const GIF_FRAME_MS = 1000 / 30
+
+function isGifMap(imageUrl: string): boolean {
+  const clean = imageUrl.split('?')[0]?.toLowerCase() ?? ''
+  return clean.endsWith('.gif')
+}
 
 export interface MapLayerProps {
   sessionId: string
@@ -68,8 +77,32 @@ export function MapLayer({
   hasMaps,
   canUpload
 }: MapLayerProps) {
+  const layerRef = useRef<Konva.Layer | null>(null)
+  const hasGif = placements.some((placement) => isGifMap(placement.map.imageUrl))
+
+  // Konva не перерисовывает слой сам по кадрам GIF. Пока на карте есть GIF,
+  // обновляем слой с ограничением 30 FPS — иначе браузер показывает первый кадр.
+  useEffect(() => {
+    const layer = layerRef.current
+    if (!layer || !hasGif) return
+
+    let raf = 0
+    let previous = 0
+    const tick = (time: number): void => {
+      if (!previous) previous = time
+      if (time - previous >= GIF_FRAME_MS) {
+        layer.batchDraw()
+        previous = time
+      }
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [hasGif])
+
   return (
-    <Layer listening={false}>
+    <Layer ref={layerRef} listening={false}>
       <Rect x={0} y={0} width={width} height={height} fill="#0b0d12" />
 
       {placements.map((placement) => (
