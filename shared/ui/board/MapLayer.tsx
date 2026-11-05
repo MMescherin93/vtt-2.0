@@ -3,6 +3,7 @@ import { Image as KonvaImage, Layer, Rect, Text } from 'react-konva'
 import type Konva from 'konva'
 import type { MapPlacement } from '../../utils/maps'
 import { assetUrl } from '../assets'
+import { useGifCanvas } from '../useGifCanvas'
 import { useImage } from '../useImage'
 
 const GIF_FRAME_MS = 1000 / 30
@@ -36,13 +37,16 @@ function MapImage({
 }) {
   const { map, x, y } = placement
   const url = assetUrl(assetsBaseUrl, sessionId, map.imageUrl)
+  const gif = isGifMap(map.imageUrl)
+  const gifCanvas = useGifCanvas(url, gif)
   const { image, error } = useImage(url)
+  const source = gifCanvas ?? image
 
   return (
     <>
       <Rect x={x} y={y} width={map.width} height={map.height} fill="#10131b" />
-      {image && <KonvaImage image={image} x={x} y={y} width={map.width} height={map.height} />}
-      {!image && (
+      {source && <KonvaImage image={source} x={x} y={y} width={map.width} height={map.height} />}
+      {!source && (
         <Text
           x={x}
           y={y + map.height / 2 - 10}
