@@ -173,6 +173,17 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     metaKey: 'com.troika.sheet/state'
   },
   {
+    id: 'troika-token-stats',
+    title: 'Тройка: умение и состояние',
+    description:
+      'Панель Мастера для токена: умение, выносливость, удача, особенности и все состояния',
+    scope: 'gm',
+    defaultEnabled: false,
+    category: 'troika',
+    icon: '/extensions/icons/troika-stats.svg',
+    panel: true
+  },
+  {
     id: 'azag-sheet',
     title: 'Лист персонажа AZAG',
     description:

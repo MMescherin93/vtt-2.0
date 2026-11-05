@@ -25,6 +25,7 @@ import { MapPanel } from './MapPanel/MapPanel'
 import { PlayersPanel } from './PlayersPanel/PlayersPanel'
 import { TokenPanel } from './TokenPanel/TokenPanel'
 import { TokenStatsPanel } from './TokenStatsPanel/TokenStatsPanel'
+import { TroikaStatsPanel } from './TroikaStatsPanel/TroikaStatsPanel'
 
 /** Стол Мастера: канвас, тулбар и плавающие панели */
 export function BoardView() {
@@ -84,6 +85,8 @@ export function BoardView() {
   const dice3dOpen = dice3dEnabled && (modulePanels['dice3d'] ?? false)
   const statsEnabled = extensions['token-stats'] ?? false
   const statsOpen = statsEnabled && (modulePanels['token-stats'] ?? false)
+  const troikaStatsEnabled = extensions['troika-token-stats'] ?? false
+  const troikaStatsOpen = troikaStatsEnabled && (modulePanels['troika-token-stats'] ?? false)
   const initiativeEnabled = extensions['initiative'] ?? false
   const initiativeOpen = initiativeEnabled && (modulePanels['initiative'] ?? false)
   const pdfEnabled = extensions['pdf-viewer'] ?? false
@@ -281,6 +284,7 @@ export function BoardView() {
       )}
 
       {statsOpen && <TokenStatsPanel />}
+      {troikaStatsOpen && <TroikaStatsPanel />}
       {initiativeOpen && <InitiativePanel />}
 
       {notesOpen && (
