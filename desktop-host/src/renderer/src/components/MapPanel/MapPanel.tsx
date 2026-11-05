@@ -131,9 +131,16 @@ export function MapPanel() {
           </div>
           <p className="mt-1.5 text-[10px] leading-relaxed text-gray-600">
             Карты лежат слева направо с зазором 120 px. Переключение — перетаскивание полотна;
-            токены можно переносить между картами.
+            токены можно переносить между картами. Видео при загрузке конвертируется в GIF
+            (первые 15 секунд, до 900 px).
           </p>
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFile} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/mp4,video/webm,video/quicktime"
+            hidden
+            onChange={handleFile}
+          />
         </section>
 
         <section>

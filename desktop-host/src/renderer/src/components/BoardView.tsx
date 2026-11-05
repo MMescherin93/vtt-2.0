@@ -16,6 +16,7 @@ import {
   PuzzleIcon
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
+import { isVideoFile } from '../lib/videoToGif'
 import { useHostStore } from '../store/useHostStore'
 import { HostToolbar } from './Toolbar/HostToolbar'
 import { InitiativePanel } from './InitiativePanel/InitiativePanel'
@@ -141,13 +142,15 @@ export function BoardView() {
         focusMap={focusRequest}
         onActiveMapChange={setActiveMap}
         onFilesDropped={(files, world) => {
-          const image = files.find((file) => file.type.startsWith('image/'))
-          if (!image) {
-            setError('Можно перетаскивать только изображения (PNG, JPEG, WebP, GIF)')
+          const media = files.find(
+            (file) => file.type.startsWith('image/') || isVideoFile(file)
+          )
+          if (!media) {
+            setError('Можно перетаскивать изображения (PNG, JPEG, WebP, GIF) и видео (MP4, WebM)')
             return
           }
-          if (!hasMap) void uploadMap(image)
-          else void addTokenFromFile(image, world.x, world.y)
+          if (!hasMap || isVideoFile(media)) void uploadMap(media)
+          else void addTokenFromFile(media, world.x, world.y)
         }}
       />
 

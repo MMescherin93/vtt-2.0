@@ -23,6 +23,7 @@ import type {
 } from '../../../shared/ipc'
 import type { DrawStyle, FogTool, MapFocusRequest, Tool } from '@vtt/shared/ui'
 import { defaultStats, worldCenter } from '@vtt/shared/utils'
+import { convertVideoToGif, isVideoFile } from '../lib/videoToGif'
 import { BUILT_IN_EXTENSIONS } from '@vtt/shared/plugins'
 
 export type HostScreen = 'sessions' | 'table'
@@ -450,17 +451,36 @@ export const useHostStore = create<HostState>()(
       },
 
       uploadMap: async (file) => {
-        set({ error: null })
+        set({ error: null, notice: null })
         try {
-          const data = await file.arrayBuffer()
-          const asset = await window.hostApi.addAsset({ fileName: file.name, data, kind: 'map' })
+          let data: ArrayBuffer
+          let fileName = file.name
+          let converted = ''
+          if (isVideoFile(file)) {
+            set({ notice: 'Конвертация видео в GIF… 0%' })
+            const result = await convertVideoToGif(file, {
+              onProgress: (progress) =>
+                set({
+                  notice: `Конвертация видео в GIF… ${Math.round(progress * 100)}%`
+                })
+            })
+            data = await result.blob.arrayBuffer()
+            fileName = `${file.name.replace(/\.[^.]+$/, '')}.gif`
+            converted = result.trimmed
+              ? `Видео обрезано до ${Math.round(result.duration)} с. `
+              : ''
+          } else {
+            data = await file.arrayBuffer()
+          }
+
+          const asset = await window.hostApi.addAsset({ fileName, data, kind: 'map' })
           if (!asset) return
           await window.hostApi.updateSession({
             addMap: { imageUrl: asset.relativePath, width: asset.width, height: asset.height }
           })
-          set({ notice: `Карта «${file.name}» добавлена на полотно` })
+          set({ notice: `${converted}Карта «${fileName}» добавлена на полотно` })
         } catch (error) {
-          set({ error: `Не удалось загрузить карту: ${String(error)}` })
+          set({ error: `Не удалось загрузить карту: ${String(error)}`, notice: null })
         }
       },
 
