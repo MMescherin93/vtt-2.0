@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CONDITIONS } from '@vtt/shared/utils'
 import { FloatingPanel } from '@vtt/shared/ui'
 import { useHostStore } from '../../store/useHostStore'
@@ -7,6 +7,7 @@ const STATE_KEY = 'troika-token-stats'
 
 interface TroikaTokenStats {
   skill: number
+  initiative: number
   stamina: number
   staminaMax: number
   luck: number
@@ -20,6 +21,7 @@ interface TroikaState {
 
 interface Draft {
   skill: string
+  initiative: string
   stamina: string
   staminaMax: string
   luck: string
@@ -29,6 +31,7 @@ interface Draft {
 
 const EMPTY: TroikaTokenStats = {
   skill: 0,
+  initiative: 0,
   stamina: 0,
   staminaMax: 0,
   luck: 0,
@@ -46,6 +49,9 @@ function readState(raw: unknown): TroikaState {
     const item = value as Partial<TroikaTokenStats>
     byToken[id] = {
       skill: Number.isFinite(Number(item.skill)) ? Math.max(0, Number(item.skill)) : 0,
+      initiative: Number.isFinite(Number(item.initiative))
+        ? Math.max(0, Number(item.initiative))
+        : 0,
       stamina: Number.isFinite(Number(item.stamina)) ? Math.max(0, Number(item.stamina)) : 0,
       staminaMax: Number.isFinite(Number(item.staminaMax))
         ? Math.max(0, Number(item.staminaMax))
@@ -66,6 +72,7 @@ function statsOf(state: TroikaState, tokenId: string | undefined): TroikaTokenSt
 function draftOf(stats: TroikaTokenStats): Draft {
   return {
     skill: String(stats.skill),
+    initiative: String(stats.initiative),
     stamina: String(stats.stamina),
     staminaMax: String(stats.staminaMax),
     luck: String(stats.luck),
@@ -81,7 +88,51 @@ function numberValue(value: string, fallback: number): number {
   return Number.isFinite(number) ? Math.max(0, Math.round(number)) : fallback
 }
 
-/** Панель Мастера для «Тройки»: умение, выносливость, удача и особенности. */
+type NumberFieldName = 'skill' | 'initiative' | 'stamina' | 'staminaMax' | 'luck' | 'luckMax'
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  onCommit
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  onCommit: () => void
+}) {
+  return (
+    <label className="block text-[10px] uppercase tracking-wide text-gray-500">
+      {label}
+      <input
+        value={value}
+        inputMode="numeric"
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onCommit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            onCommit()
+            event.currentTarget.blur()
+          }
+        }}
+        className="mt-1 w-full rounded-md border border-white/10 bg-black/30 px-1.5 py-1 text-xs text-gray-100 outline-none focus:border-indigo-400/60"
+      />
+    </label>
+  )
+}
+
+function Block({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border border-white/10 bg-black/15 p-2">
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+        {title}
+      </h3>
+      {children}
+    </section>
+  )
+}
+
+/** Панель Мастера для «Тройки»: умение, инициатива, выносливость, удача и особенности. */
 export function TroikaStatsPanel() {
   const session = useHostStore((state) => state.session)
   const selectedTokenId = useHostStore((state) => state.selectedTokenId)
@@ -103,7 +154,16 @@ export function TroikaStatsPanel() {
 
   useEffect(() => {
     setDraft(draftOf(stats))
-  }, [token?.id, stats.skill, stats.stamina, stats.staminaMax, stats.luck, stats.luckMax, stats.features])
+  }, [
+    token?.id,
+    stats.skill,
+    stats.initiative,
+    stats.stamina,
+    stats.staminaMax,
+    stats.luck,
+    stats.luckMax,
+    stats.features
+  ])
 
   if (!session) return null
 
@@ -119,8 +179,8 @@ export function TroikaStatsPanel() {
     void setExtensionState(STATE_KEY, next)
   }
 
-  const commitNumber = (field: keyof Draft): void => {
-    const fallback = stats[field as keyof TroikaTokenStats] as number
+  const commitNumber = (field: NumberFieldName): void => {
+    const fallback = stats[field]
     save({ [field]: numberValue(draft[field], fallback) } as Partial<TroikaTokenStats>)
   }
 
@@ -132,37 +192,18 @@ export function TroikaStatsPanel() {
     void updateToken({ tokenId: token.id, conditions: next })
   }
 
-  const NumberField = ({
-    field,
-    label,
-    hint
-  }: {
-    field: 'skill' | 'stamina' | 'staminaMax' | 'luck' | 'luckMax'
-    label: string
-    hint?: string
-  }) => (
-    <label className="block text-[10px] uppercase tracking-wide text-gray-500">
-      {label}
-      {hint && <span className="ml-1 normal-case tracking-normal text-gray-600">{hint}</span>}
-      <input
-        value={draft[field]}
-        inputMode="numeric"
-        onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))}
-        onBlur={() => commitNumber(field)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            commitNumber(field)
-            event.currentTarget.blur()
-          }
-        }}
-        className="mt-1 w-full rounded-md border border-white/10 bg-black/30 px-1.5 py-1 text-xs text-gray-100 outline-none focus:border-indigo-400/60"
-      />
-    </label>
+  const field = (name: NumberFieldName, label: string) => (
+    <NumberField
+      label={label}
+      value={draft[name]}
+      onChange={(value) => setDraft((current) => ({ ...current, [name]: value }))}
+      onCommit={() => commitNumber(name)}
+    />
   )
 
   return (
     <FloatingPanel
-      title="Тройка: умение и состояние"
+      title="Тройка! Трекер состояний"
       defaultPosition={{ x: 360, y: 96 }}
       storageKey="vtt.gm.panel.troika-stats"
       width={380}
@@ -192,19 +233,24 @@ export function TroikaStatsPanel() {
           </p>
         ) : (
           <>
-            <div>
-              <NumberField field="skill" label="Умение" />
+            <div className="grid grid-cols-2 gap-2">
+              {field('skill', 'Умение')}
+              {field('initiative', 'Инициатива')}
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <NumberField field="staminaMax" label="Выносливость" hint="макс." />
-              <NumberField field="stamina" label="Выносливость" hint="текущая" />
-            </div>
+            <Block title="Выносливость">
+              <div className="grid grid-cols-2 gap-2">
+                {field('staminaMax', 'MAX')}
+                {field('stamina', 'Текущая')}
+              </div>
+            </Block>
 
-            <div className="grid grid-cols-2 gap-2">
-              <NumberField field="luckMax" label="Удача" hint="макс." />
-              <NumberField field="luck" label="Удача" hint="текущая" />
-            </div>
+            <Block title="Удача">
+              <div className="grid grid-cols-2 gap-2">
+                {field('luckMax', 'MAX')}
+                {field('luck', 'Текущая')}
+              </div>
+            </Block>
 
             <label className="block text-[11px] uppercase tracking-wide text-gray-500">
               Особенности

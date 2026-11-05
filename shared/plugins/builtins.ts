@@ -174,9 +174,9 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
   },
   {
     id: 'troika-token-stats',
-    title: 'Тройка: умение и состояние',
+    title: 'Тройка! Трекер состояний',
     description:
-      'Панель Мастера для токена: умение, выносливость, удача, особенности и все состояния',
+      'Панель Мастера для токена: умение, инициатива, выносливость, удача, особенности и все состояния',
     scope: 'gm',
     defaultEnabled: false,
     category: 'troika',
