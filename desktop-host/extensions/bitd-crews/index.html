@@ -12,10 +12,7 @@
       <b>Клинки во тьме</b>
       <span>бланки команд</span>
     </div>
-    <label class="picker">
-      Команда
-      <select id="sheetSelect" aria-label="Выбор бланка команды"></select>
-    </label>
+    <div class="sheetName">Пустой бланк команды</div>
     <div class="pager" aria-label="Страницы PDF">
       <button type="button" id="prevPage" title="Предыдущая страница">‹</button>
       <span id="pageLabel">1 / 1</span>
@@ -29,7 +26,10 @@
     <span id="status" class="status">PDF</span>
   </header>
   <main class="viewer" id="viewer">
-    <canvas id="pdfCanvas"></canvas>
+    <div class="pageWrap" id="pageWrap">
+      <canvas id="pdfCanvas"></canvas>
+      <div class="fieldLayer" id="fieldLayer"></div>
+    </div>
     <p id="error" class="error hidden"></p>
   </main>
   <script type="module" src="app.js"></script>

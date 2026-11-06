@@ -150,3 +150,73 @@ body {
 .hidden {
   display: none;
 }
+
+.pageWrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.fieldLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.formField {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #171310;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  line-height: 1;
+  outline: none;
+  pointer-events: auto;
+}
+
+.formField:hover {
+  background: rgba(255, 241, 176, 0.28);
+}
+
+.formField:focus {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(120, 45, 35, 0.55);
+  box-shadow: 0 0 0 1px rgba(120, 45, 35, 0.25);
+}
+
+.formField[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  border: 1px solid rgba(20, 17, 14, 0.28);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.formField[type='checkbox']:checked {
+  background: rgba(120, 45, 35, 0.72);
+  border-color: rgba(80, 25, 20, 0.8);
+}
+
+.formField[type='checkbox']:checked::after {
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  font-size: 9px;
+}
+
+.sheetName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 4px 8px;
+  border: 1px solid #b9a98b;
+  border-radius: 5px;
+  background: #fffdf7;
+}

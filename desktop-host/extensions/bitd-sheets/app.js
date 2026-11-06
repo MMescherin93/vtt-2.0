@@ -1,29 +1,20 @@
 import * as pdfjs from '../vendor/pdfjs/pdf.min.mjs'
+import { FIELDS, PAGE_HEIGHT, PAGE_WIDTH } from './fields.js'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   '../vendor/pdfjs/pdf.worker.min.mjs',
   import.meta.url
 ).href
 
-const SHEETS = [
-  { id: 'empty', label: 'Пустой бланк', file: 'pdfs/empty.pdf' },
-  { id: 'artist', label: 'Артист', file: 'pdfs/artist.pdf' },
-  { id: 'vampire', label: 'Вампир', file: 'pdfs/vampire.pdf' },
-  { id: 'hunter', label: 'Ищейка', file: 'pdfs/hunter.pdf' },
-  { id: 'puppeteer', label: 'Кукловод', file: 'pdfs/puppeteer.pdf' },
-  { id: 'mystic', label: 'Мистик', file: 'pdfs/mystic.pdf' },
-  { id: 'ghost', label: 'Призрак', file: 'pdfs/ghost.pdf' },
-  { id: 'thief', label: 'Проныра', file: 'pdfs/thief.pdf' },
-  { id: 'tinker', label: 'Умелец', file: 'pdfs/tinker.pdf' }
-]
-
-const STORAGE_KEY = 'bitd-sheets-selected'
+const PDF_FILE = 'pdfs/empty.pdf'
+const STORAGE_KEY = 'bitd-sheets-fields-v1'
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 3
 
-const select = document.getElementById('sheetSelect')
 const viewer = document.getElementById('viewer')
 const canvas = document.getElementById('pdfCanvas')
+const pageWrap = document.getElementById('pageWrap')
+const fieldLayer = document.getElementById('fieldLayer')
 const pageLabel = document.getElementById('pageLabel')
 const zoomLabel = document.getElementById('zoomLabel')
 const status = document.getElementById('status')
@@ -41,14 +32,34 @@ let fitWidth = true
 let loadToken = 0
 let renderToken = 0
 let renderTask = null
+let saveTimer = 0
+
+const values = loadValues()
+
+function loadValues() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveValues() {
+  window.clearTimeout(saveTimer)
+  saveTimer = window.setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
+    } catch {
+      // локальное сохранение не критично
+    }
+  }, 250)
+}
 
 function setError(message) {
   error.textContent = message
   error.classList.toggle('hidden', !message)
-}
-
-function selectedSheet() {
-  return SHEETS.find((sheet) => sheet.id === select.value) ?? SHEETS[0]
 }
 
 function updateControls() {
@@ -58,8 +69,45 @@ function updateControls() {
   next.disabled = !pages || pageNumber >= pages
   if (zoomLabel) zoomLabel.textContent = fitWidth ? 'по ширине' : `${Math.round(scale * 100)}%`
   fitButton.classList.toggle('active', fitWidth)
-  const index = SHEETS.indexOf(selectedSheet()) + 1
-  status.textContent = `PDF · ${index} из ${SHEETS.length}`
+  status.textContent = 'PDF · пустой бланк'
+}
+
+function renderFields() {
+  fieldLayer.innerHTML = ''
+  const pageFields = FIELDS.filter((field) => field.page === pageNumber - 1)
+  if (!pageFields.length) return
+
+  const pixelScale = Math.max(0.2, canvas.clientWidth / PAGE_WIDTH)
+  fieldLayer.style.fontSize = `${Math.max(7, Math.min(15, pixelScale * 10))}px`
+
+  for (const field of pageFields) {
+    const input = document.createElement('input')
+    input.dataset.name = field.name
+    input.className = 'formField'
+    input.style.left = `${(field.x / PAGE_WIDTH) * 100}%`
+    input.style.top = `${(field.y / PAGE_HEIGHT) * 100}%`
+    input.style.width = `${(field.w / PAGE_WIDTH) * 100}%`
+    input.style.height = `${(field.h / PAGE_HEIGHT) * 100}%`
+
+    if (field.kind === 'check') {
+      input.type = 'checkbox'
+      input.checked = Boolean(values[field.name])
+      input.addEventListener('change', () => {
+        values[field.name] = input.checked
+        saveValues()
+      })
+    } else {
+      input.type = 'text'
+      input.value = typeof values[field.name] === 'string' ? values[field.name] : ''
+      input.spellcheck = false
+      input.addEventListener('input', () => {
+        values[field.name] = input.value
+        saveValues()
+      })
+    }
+
+    fieldLayer.appendChild(input)
+  }
 }
 
 async function render() {
@@ -81,9 +129,14 @@ async function render() {
     canvas.height = Math.floor(viewport.height)
     canvas.style.width = `${Math.floor(viewport.width / dpr)}px`
     canvas.style.height = `${Math.floor(viewport.height / dpr)}px`
+    pageWrap.style.width = canvas.style.width
+    pageWrap.style.height = canvas.style.height
     renderTask = page.render({ canvas, viewport })
     await renderTask.promise
-    if (token === renderToken) setError('')
+    if (token === renderToken) {
+      setError('')
+      renderFields()
+    }
   } catch (reason) {
     if ((reason && reason.name) === 'RenderingCancelledException') return
     if (token === renderToken) setError('Не удалось отобразить PDF')
@@ -102,7 +155,7 @@ async function load() {
       await doc.destroy()
       doc = null
     }
-    const task = pdfjs.getDocument({ url: selectedSheet().file })
+    const task = pdfjs.getDocument({ url: PDF_FILE })
     const loaded = await task.promise
     if (token !== loadToken) {
       await loaded.destroy()
@@ -123,31 +176,6 @@ async function load() {
     }
   }
 }
-
-for (const sheet of SHEETS) {
-  const option = document.createElement('option')
-  option.value = sheet.id
-  option.textContent = sheet.label
-  select.appendChild(option)
-}
-
-let initial = SHEETS[0].id
-try {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved && SHEETS.some((sheet) => sheet.id === saved)) initial = saved
-} catch {
-  // ignore
-}
-select.value = initial
-
-select.addEventListener('change', () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, select.value)
-  } catch {
-    // ignore
-  }
-  void load()
-})
 
 prev.addEventListener('click', () => {
   if (!doc || pageNumber <= 1) return
