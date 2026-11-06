@@ -97,10 +97,6 @@ export function BoardView() {
   const flSheetOpen = flSheetEnabled && (modulePanels['forbidden-lands-sheet'] ?? false)
   const flDiceEnabled = extensions['fl-dice'] ?? false
   const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
-  const bitdSheetsEnabled = extensions['bitd-sheets'] ?? false
-  const bitdSheetsOpen = bitdSheetsEnabled && (modulePanels['bitd-sheets'] ?? false)
-  const bitdCrewsEnabled = extensions['bitd-crews'] ?? false
-  const bitdCrewsOpen = bitdCrewsEnabled && (modulePanels['bitd-crews'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -342,36 +338,6 @@ export function BoardView() {
           onSendChat={sendChat}
           onClose={() => toggleModulePanel('fl-dice', false)}
           storageKey="vtt.gm.panel.fl-dice"
-        />
-      )}
-
-      {bitdSheetsOpen && (
-        <CharacterSheetFrame
-          title="Клинки во тьме — бланки"
-          src={`${assetsBaseUrl}/extensions/bitd-sheets/index.html`}
-          extensionId="bitd-sheets"
-          role="gm"
-          state={null}
-          onClose={() => toggleModulePanel('bitd-sheets', false)}
-          width={1000}
-          height={720}
-          storageKey="vtt.gm.panel.bitd-sheets"
-          defaultPosition={{ x: 180, y: 24 }}
-        />
-      )}
-
-      {bitdCrewsOpen && (
-        <CharacterSheetFrame
-          title="Клинки во тьме — команды"
-          src={`${assetsBaseUrl}/extensions/bitd-crews/index.html`}
-          extensionId="bitd-crews"
-          role="gm"
-          state={null}
-          onClose={() => toggleModulePanel('bitd-crews', false)}
-          width={1000}
-          height={720}
-          storageKey="vtt.gm.panel.bitd-crews"
-          defaultPosition={{ x: 220, y: 24 }}
         />
       )}
 

@@ -77,10 +77,6 @@ export function BoardView() {
   const flSheetOpen = flSheetEnabled && (modulePanels['forbidden-lands-sheet'] ?? false)
   const flDiceEnabled = extensions['fl-dice'] ?? false
   const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
-  const bitdSheetsEnabled = extensions['bitd-sheets'] ?? false
-  const bitdSheetsOpen = bitdSheetsEnabled && (modulePanels['bitd-sheets'] ?? false)
-  const bitdCrewsEnabled = extensions['bitd-crews'] ?? false
-  const bitdCrewsOpen = bitdCrewsEnabled && (modulePanels['bitd-crews'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -269,36 +265,6 @@ export function BoardView() {
           onSendChat={sendChat}
           onClose={() => toggleModulePanel('fl-dice', false)}
           storageKey="vtt.player.panel.fl-dice"
-        />
-      )}
-
-      {bitdSheetsOpen && (
-        <CharacterSheetFrame
-          title="Клинки во тьме — бланки"
-          src={`${hostUrl}/extensions/bitd-sheets/index.html`}
-          extensionId="bitd-sheets"
-          role="player"
-          state={null}
-          onClose={() => toggleModulePanel('bitd-sheets', false)}
-          width={1000}
-          height={720}
-          storageKey="vtt.player.panel.bitd-sheets"
-          defaultPosition={{ x: 180, y: 24 }}
-        />
-      )}
-
-      {bitdCrewsOpen && (
-        <CharacterSheetFrame
-          title="Клинки во тьме — команды"
-          src={`${hostUrl}/extensions/bitd-crews/index.html`}
-          extensionId="bitd-crews"
-          role="player"
-          state={null}
-          onClose={() => toggleModulePanel('bitd-crews', false)}
-          width={1000}
-          height={720}
-          storageKey="vtt.player.panel.bitd-crews"
-          defaultPosition={{ x: 220, y: 24 }}
         />
       )}
 
