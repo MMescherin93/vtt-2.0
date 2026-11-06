@@ -56,7 +56,7 @@ function updateControls() {
   pageLabel.textContent = `${pageNumber} / ${pages || 1}`
   prev.disabled = pageNumber <= 1
   next.disabled = !pages || pageNumber >= pages
-  zoomLabel.textContent = fitWidth ? 'по ширине' : `${Math.round(scale * 100)}%`
+  if (zoomLabel) zoomLabel.textContent = fitWidth ? 'по ширине' : `${Math.round(scale * 100)}%`
   fitButton.classList.toggle('active', fitWidth)
   const index = SHEETS.indexOf(selectedSheet()) + 1
   status.textContent = `PDF · ${index} из ${SHEETS.length}`
@@ -114,8 +114,9 @@ async function load() {
     scale = 1
     updateControls()
     await render()
-  } catch {
+  } catch (reason) {
     if (token === loadToken) {
+      console.error('[bitd-pdf]', reason)
       doc = null
       setError('Не удалось открыть PDF. Проверьте, что файл доступен.')
       updateControls()
