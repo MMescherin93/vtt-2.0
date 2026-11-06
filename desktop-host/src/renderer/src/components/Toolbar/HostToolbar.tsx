@@ -14,6 +14,7 @@ import {
   LockIcon,
   PencilIcon,
   TextIcon,
+  TokenIcon,
   TrashIcon,
   UnlockIcon,
   UsersIcon,
@@ -119,7 +120,7 @@ export function HostToolbar() {
 
         <ToolbarButton
           label="Токены"
-          icon={<UsersIcon size={18} />}
+          icon={<TokenIcon size={18} />}
           active={panels.tokens}
           badge={tokens.length}
           onClick={() => togglePanel('tokens')}

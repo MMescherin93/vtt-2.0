@@ -173,6 +173,18 @@ export function UsersIcon(props: IconProps) {
   )
 }
 
+/** Токен-жетон с портретом — отдельно от иконки участников */
+export function TokenIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 2.6 19 6.7v9.8L12 20.6 5 16.5V6.7Z" />
+      <circle cx="12" cy="9" r="2.6" />
+      <path d="M8.3 16.1c.5-2.3 2-3.7 3.7-3.7s3.2 1.4 3.7 3.7" />
+      <path d="M9.5 20.9h5" />
+    </Icon>
+  )
+}
+
 export function LinkIcon(props: IconProps) {
   return (
     <Icon {...props}>
