@@ -23,6 +23,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     description: 'Модули для Forbidden Lands: лист персонажа и кубы'
   },
   {
+    id: 'blades-in-the-dark',
+    title: 'Клинки во тьме',
+    description: 'Бланки персонажей и команд для Blades in the Dark'
+  },
+  {
     id: 'library',
     title: 'Библиотека',
     description: 'PDF-документы, заметки и материалы кампании'
@@ -145,6 +150,26 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     defaultEnabled: false,
     category: 'forbidden-lands',
     icon: '/extensions/icons/fl-dice.svg',
+    panel: true
+  },
+  {
+    id: 'bitd-sheets',
+    title: 'Клинки во тьме — бланки',
+    description: 'Все бланки персонажей «Клинков во тьме» с выбором типа',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'blades-in-the-dark',
+    icon: '/extensions/icons/bitd-sheets.svg',
+    panel: true
+  },
+  {
+    id: 'bitd-crews',
+    title: 'Клинки во тьме — команды',
+    description: 'Все бланки команд «Клинков во тьме» с выбором типа',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'blades-in-the-dark',
+    icon: '/extensions/icons/bitd-crews.svg',
     panel: true
   },
   {
