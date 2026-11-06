@@ -53,59 +53,134 @@ export function MapPanel() {
             <ImageIcon size={13} /> Карты · {session.maps.length}
           </h3>
 
+          <div className="mb-2 grid grid-cols-2 gap-1">
+            {(
+              [
+                ['horizontal', 'В ряд'],
+                ['vertical', 'В столбец']
+              ] as const
+            ).map(([layout, label]) => (
+              <button
+                key={layout}
+                type="button"
+                onClick={() => void updateSessionPatch({ settings: { mapLayout: layout } })}
+                className={`rounded-md border px-2 py-1 text-[11px] transition ${
+                  (session.settings.mapLayout ?? 'horizontal') === layout
+                    ? 'border-indigo-400/50 bg-indigo-500/20 text-indigo-100'
+                    : 'border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {session.maps.length === 0 ? (
             <p className="rounded-lg border border-dashed border-white/10 px-2.5 py-2 text-[11px] text-gray-500">
               Карт нет — сетка и токены работают на виртуальном столе 1920×1080
             </p>
           ) : (
             <ul className="space-y-1">
-              {session.maps.map((map, index) => (
-                <li
-                  key={map.id}
-                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs text-gray-200">
-                      {map.imageUrl.split('/').pop()}
+              {session.maps.map((map, index) => {
+                const rotation = map.rotation ?? 0
+                const scale = map.scale ?? 1
+                const vertical = session.settings.mapLayout === 'vertical'
+                const updateMap = (patch: { rotation?: number; scale?: number }): void => {
+                  void updateSessionPatch({ updateMap: { mapId: map.id, ...patch } })
+                }
+                return (
+                  <li
+                    key={map.id}
+                    className="rounded-lg border border-white/10 bg-black/20 px-2 py-1.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs text-gray-200">
+                          {map.imageUrl.split('/').pop()}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          {Math.round(map.width * scale)} × {Math.round(map.height * scale)} px
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void updateSessionPatch({
+                            moveMap: { mapId: map.id, direction: 'left' }
+                          })
+                        }
+                        disabled={index === 0}
+                        title={vertical ? 'Сдвинуть карту выше' : 'Сдвинуть карту влево'}
+                        aria-label={vertical ? 'Сдвинуть карту выше' : 'Сдвинуть карту влево'}
+                        className="flex h-6 w-5 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
+                      >
+                        <ChevronIcon size={12} className="rotate-180" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void updateSessionPatch({
+                            moveMap: { mapId: map.id, direction: 'right' }
+                          })
+                        }
+                        disabled={index === session.maps.length - 1}
+                        title={vertical ? 'Сдвинуть карту ниже' : 'Сдвинуть карту вправо'}
+                        aria-label={vertical ? 'Сдвинуть карту ниже' : 'Сдвинуть карту вправо'}
+                        className="flex h-6 w-5 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
+                      >
+                        <ChevronIcon size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void removeMap(map.id)}
+                        title="Удалить карту"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-500 transition hover:bg-red-500/15 hover:text-red-300"
+                      >
+                        <TrashIcon size={14} />
+                      </button>
                     </div>
-                    <div className="text-[10px] text-gray-500">
-                      {map.width} × {map.height} px
+
+                    <div className="mt-1 flex items-center gap-1 border-t border-white/5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => updateMap({ rotation: rotation - 15 })}
+                        title="Повернуть против часовой на 15°"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition hover:bg-white/10 hover:text-white"
+                      >
+                        ↺
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateMap({ rotation: rotation + 15 })}
+                        title="Повернуть по часовой на 15°"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition hover:bg-white/10 hover:text-white"
+                      >
+                        ↻
+                      </button>
+                      <span className="mx-1 h-4 w-px bg-white/10" />
+                      <button
+                        type="button"
+                        onClick={() => updateMap({ scale: Math.max(0.25, scale / 1.25) })}
+                        title="Уменьшить карту"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition hover:bg-white/10 hover:text-white"
+                      >
+                        −
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateMap({ scale: Math.min(4, scale * 1.25) })}
+                        title="Увеличить карту"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition hover:bg-white/10 hover:text-white"
+                      >
+                        +
+                      </button>
+                      <span className="ml-auto text-[10px] text-gray-500">
+                        {Math.round(rotation)}° · {Math.round(scale * 100)}%
+                      </span>
                     </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void updateSessionPatch({ moveMap: { mapId: map.id, direction: 'left' } })
-                    }
-                    disabled={index === 0}
-                    title="Сдвинуть карту влево"
-                    aria-label="Сдвинуть карту влево"
-                    className="flex h-6 w-5 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
-                  >
-                    <ChevronIcon size={12} className="rotate-180" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void updateSessionPatch({ moveMap: { mapId: map.id, direction: 'right' } })
-                    }
-                    disabled={index === session.maps.length - 1}
-                    title="Сдвинуть карту вправо"
-                    aria-label="Сдвинуть карту вправо"
-                    className="flex h-6 w-5 items-center justify-center rounded text-gray-500 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
-                  >
-                    <ChevronIcon size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void removeMap(map.id)}
-                    title="Удалить карту"
-                    className="flex h-6 w-6 items-center justify-center rounded text-gray-500 transition hover:bg-red-500/15 hover:text-red-300"
-                  >
-                    <TrashIcon size={14} />
-                  </button>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           )}
 
@@ -130,8 +205,8 @@ export function MapPanel() {
             )}
           </div>
           <p className="mt-1.5 text-[10px] leading-relaxed text-gray-600">
-            Карты лежат слева направо с зазором 120 px. Переключение — перетаскивание полотна;
-            токены можно переносить между картами. Видео при загрузке конвертируется в GIF
+            Карты можно ставить в ряд или в столбец, поворачивать и масштабировать кнопками под
+            каждой картой. Переключение — перетаскивание полотна; видео конвертируется в GIF
             (первые 15 секунд, до 900 px).
           </p>
           <input

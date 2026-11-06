@@ -237,6 +237,17 @@ function registerIpc(): void {
           if (moved) current.maps.splice(target, 0, moved)
         }
       }
+      if (patch.updateMap) {
+        const map = current.maps.find((item) => item.id === patch.updateMap!.mapId)
+        if (map) {
+          if (typeof patch.updateMap.rotation === 'number' && Number.isFinite(patch.updateMap.rotation)) {
+            map.rotation = Math.max(-360, Math.min(360, patch.updateMap.rotation))
+          }
+          if (typeof patch.updateMap.scale === 'number' && Number.isFinite(patch.updateMap.scale)) {
+            map.scale = Math.max(0.25, Math.min(4, patch.updateMap.scale))
+          }
+        }
+      }
       if (patch.setExtensionEnabled) {
         const { extensionId, enabled } = patch.setExtensionEnabled
         if (
@@ -270,6 +281,9 @@ function registerIpc(): void {
         if (typeof showTokenNames === 'boolean') {
           current.settings.showTokenNames = showTokenNames
         }
+        if (patch.settings.mapLayout === 'horizontal' || patch.settings.mapLayout === 'vertical') {
+          current.settings.mapLayout = patch.settings.mapLayout
+        }
       }
     })
   })
@@ -298,7 +312,7 @@ function registerIpc(): void {
     }
 
     const size = Math.min(4000, Math.max(20, Math.round(Number(input.size) || 70)))
-    const world = worldSize(session.maps)
+    const world = worldSize(session.maps, undefined, session.settings.mapLayout)
     const token: Token = {
       id: newId('tok'),
       name:

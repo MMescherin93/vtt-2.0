@@ -115,6 +115,8 @@ export interface SessionPatch {
   clearMaps?: boolean
   /** Переставить карту на соседнюю позицию */
   moveMap?: { mapId: string; direction: 'left' | 'right' }
+  /** Поворот и масштаб карты */
+  updateMap?: { mapId: string; rotation?: number; scale?: number }
   /** Включить/выключить расширение для всей сессии (только Мастер) */
   setExtensionEnabled?: { extensionId: string; enabled: boolean }
 }

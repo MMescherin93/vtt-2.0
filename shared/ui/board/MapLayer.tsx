@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Image as KonvaImage, Layer, Rect, Text } from 'react-konva'
+import { Group, Image as KonvaImage, Layer, Rect, Text } from 'react-konva'
 import type Konva from 'konva'
 import type { MapPlacement } from '../../utils/maps'
 import { assetUrl } from '../assets'
@@ -35,7 +35,7 @@ function MapImage({
   sessionId: string
   assetsBaseUrl: string
 }) {
-  const { map, x, y } = placement
+  const { map, x, y, width, height, rotation } = placement
   const url = assetUrl(assetsBaseUrl, sessionId, map.imageUrl)
   const gif = isGifMap(map.imageUrl)
   const gifCanvas = useGifCanvas(url, gif)
@@ -43,14 +43,20 @@ function MapImage({
   const source = gifCanvas ?? image
 
   return (
-    <>
-      <Rect x={x} y={y} width={map.width} height={map.height} fill="#10131b" />
-      {source && <KonvaImage image={source} x={x} y={y} width={map.width} height={map.height} />}
+    <Group
+      x={x + width / 2}
+      y={y + height / 2}
+      offsetX={width / 2}
+      offsetY={height / 2}
+      rotation={rotation}
+    >
+      <Rect x={0} y={0} width={width} height={height} fill="#10131b" />
+      {source && <KonvaImage image={source} x={0} y={0} width={width} height={height} />}
       {!source && (
         <Text
-          x={x}
-          y={y + map.height / 2 - 10}
-          width={map.width}
+          x={0}
+          y={height / 2 - 10}
+          width={width}
           align="center"
           text={error ? 'Не удалось загрузить карту' : 'Загрузка карты…'}
           fontSize={16}
@@ -59,15 +65,15 @@ function MapImage({
       )}
       {/* Тонкая рамка, чтобы карты читались на тёмном полотне */}
       <Rect
-        x={x}
-        y={y}
-        width={map.width}
-        height={map.height}
+        x={0}
+        y={0}
+        width={width}
+        height={height}
         stroke="rgba(255, 255, 255, 0.08)"
         strokeWidth={2}
         listening={false}
       />
-    </>
+    </Group>
   )
 }
 

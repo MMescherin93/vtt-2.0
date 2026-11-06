@@ -327,7 +327,9 @@ function normalizeMap(raw: unknown): MapAsset | null {
     id: typeof map.id === 'string' && map.id ? map.id : newId('map'),
     imageUrl,
     width,
-    height
+    height,
+    ...(isFiniteNumber(map.rotation) ? { rotation: Math.max(-360, Math.min(360, map.rotation)) } : {}),
+    ...(isFiniteNumber(map.scale) ? { scale: Math.max(0.25, Math.min(4, map.scale)) } : {})
   }
 }
 
@@ -372,7 +374,8 @@ export function normalizeSession(raw: unknown, fallbackId: string): Session {
         ? source.settings.tokenLabelColor
         : '#e2e8f0',
     showTokenNames:
-      typeof source.settings?.showTokenNames === 'boolean' ? source.settings.showTokenNames : true
+      typeof source.settings?.showTokenNames === 'boolean' ? source.settings.showTokenNames : true,
+    mapLayout: source.settings?.mapLayout === 'vertical' ? 'vertical' : 'horizontal'
   }
 
   const fog: FogOfWarData = sanitizeFog(source.fogOfWar) ?? { covered: true, ops: [] }

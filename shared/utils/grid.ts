@@ -7,7 +7,8 @@ export const DEFAULT_MAP_SETTINGS: MapSettings = {
   showGrid: true,
   gridColor: '#ffffff',
   tokenLabelColor: '#e2e8f0',
-  showTokenNames: true
+  showTokenNames: true,
+  mapLayout: 'horizontal'
 }
 
 export const MIN_GRID_SIZE = 20

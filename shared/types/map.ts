@@ -2,6 +2,9 @@ import type { TokenStats } from './token'
 
 export type GridType = 'square' | 'hex' | 'none'
 
+/** Как раскладывать карты на общем полотне */
+export type MapLayout = 'horizontal' | 'vertical'
+
 /** Настройки отображения карты (ТЗ, interface Session.settings) */
 export interface MapSettings {
   gridType: GridType
@@ -14,6 +17,8 @@ export interface MapSettings {
   tokenLabelColor: string
   /** Показывать имена токенов на карте */
   showTokenNames: boolean
+  /** Карты в ряд слева направо или в столбец сверху вниз */
+  mapLayout: MapLayout
 }
 
 /** Карта сессии: изображение и его размеры в пикселях */
@@ -27,6 +32,10 @@ export interface MapData {
 /** Загруженная карта сессии (несколько карт лежат рядом на общем полотне) */
 export interface MapAsset extends MapData {
   id: string
+  /** Поворот карты в градусах вокруг центра */
+  rotation?: number
+  /** Масштаб карты (1 — исходный размер) */
+  scale?: number
 }
 
 /**

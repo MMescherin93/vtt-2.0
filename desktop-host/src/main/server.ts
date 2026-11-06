@@ -204,7 +204,7 @@ export function applyTokenPatch(session: Session, patch: TokenPatch): TokenPatch
   const token = session.tokens.find((item) => item.id === patch.tokenId)
   if (!token) return null
 
-  const world = worldSize(session.maps)
+  const world = worldSize(session.maps, undefined, session.settings.mapLayout)
   const maxX = world.width > 0 ? world.width : Number.POSITIVE_INFINITY
   const maxY = world.height > 0 ? world.height : Number.POSITIVE_INFINITY
   const result: TokenPatch = { tokenId: token.id }

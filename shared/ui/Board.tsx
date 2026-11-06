@@ -21,7 +21,7 @@ import {
   type Size
 } from '../utils/camera'
 import { appendFogOp } from '../utils/fog'
-import { layoutMaps } from '../utils/maps'
+import { layoutMaps, MAP_GAP } from '../utils/maps'
 import { FitIcon, ZoomInIcon, ZoomOutIcon } from './icons'
 import { useElementSize } from './useElementSize'
 import { DrawingsLayer } from './board/DrawingsLayer'
@@ -111,7 +111,10 @@ export function Board({
   onActiveMapChange,
   disabled = false
 }: BoardProps) {
-  const layout = useMemo(() => layoutMaps(session.maps), [session.maps])
+  const layout = useMemo(
+    () => layoutMaps(session.maps, MAP_GAP, session.settings.mapLayout),
+    [session.maps, session.settings.mapLayout]
+  )
   const hasMap = session.maps.length > 0
   const statsVisible = session.enabledExtensions['token-stats'] ?? false
   const initiativeEnabled = session.enabledExtensions['initiative'] ?? false
@@ -165,13 +168,15 @@ export function Board({
 
     const fitted = fitCamera(
       viewport,
-      { width: placement.map.width, height: placement.map.height },
+      { width: placement.boundsWidth, height: placement.boundsHeight },
       60
     )
-    // Центрируем именно карту: пустое поле вокруг допустимо, поэтому без clampCamera
+    // Центрируем именно карту, а не всё полотно.
+    const centerX = placement.x + placement.width / 2
+    const centerY = placement.y + placement.height / 2
     setCamera({
-      x: fitted.x - placement.x * fitted.scale,
-      y: fitted.y - placement.y * fitted.scale,
+      x: viewport.width / 2 - centerX * fitted.scale,
+      y: viewport.height / 2 - centerY * fitted.scale,
       scale: fitted.scale
     })
   }, [focusMap, layout, viewport, field])
@@ -182,9 +187,17 @@ export function Board({
     if (!onActiveMapChange) return
     if (viewport.width < 20) return
     const centerX = (viewport.width / 2 - camera.x) / camera.scale
-    const placement = layout.items.find(
-      (item) => centerX >= item.x && centerX <= item.x + item.map.width
-    )
+    const centerY = (viewport.height / 2 - camera.y) / camera.scale
+    const placement = layout.items.find((item) => {
+      const left = item.x - (item.boundsWidth - item.width) / 2
+      const top = item.y - (item.boundsHeight - item.height) / 2
+      return (
+        centerX >= left &&
+        centerX <= left + item.boundsWidth &&
+        centerY >= top &&
+        centerY <= top + item.boundsHeight
+      )
+    })
     const mapId = placement?.map.id ?? null
     if (activeMapRef.current !== mapId) {
       activeMapRef.current = mapId
@@ -498,13 +511,16 @@ export function Board({
     const centerX = (viewport.width / 2 - camera.x) / camera.scale
     const centerY = (viewport.height / 2 - camera.y) / camera.scale
     const active =
-      layout.items.find(
-        (item) =>
-          centerX >= item.x &&
-          centerX <= item.x + item.map.width &&
-          centerY >= item.y &&
-          centerY <= item.y + item.map.height
-      ) ?? layout.items[0]
+      layout.items.find((item) => {
+        const left = item.x - (item.boundsWidth - item.width) / 2
+        const top = item.y - (item.boundsHeight - item.height) / 2
+        return (
+          centerX >= left &&
+          centerX <= left + item.boundsWidth &&
+          centerY >= top &&
+          centerY <= top + item.boundsHeight
+        )
+      }) ?? layout.items[0]
 
     if (!active) {
       setCamera(fitCamera(viewport, field))
@@ -513,12 +529,14 @@ export function Board({
 
     const fitted = fitCamera(
       viewport,
-      { width: active.map.width, height: active.map.height },
+      { width: active.boundsWidth, height: active.boundsHeight },
       60
     )
+    const mapCenterX = active.x + active.width / 2
+    const mapCenterY = active.y + active.height / 2
     setCamera({
-      x: fitted.x - active.x * fitted.scale,
-      y: fitted.y - active.y * fitted.scale,
+      x: viewport.width / 2 - mapCenterX * fitted.scale,
+      y: viewport.height / 2 - mapCenterY * fitted.scale,
       scale: fitted.scale
     })
   }, [viewport, field, camera, layout])

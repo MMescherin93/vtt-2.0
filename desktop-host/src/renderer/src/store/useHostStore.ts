@@ -539,7 +539,7 @@ export const useHostStore = create<HostState>()(
       addQuickToken: async (name, x, y) => {
         const session = get().session
         if (!session) return null
-        const center = worldCenter(session.maps)
+        const center = worldCenter(session.maps, undefined, session.settings.mapLayout)
         const centerX = x ?? center.x
         const centerY = y ?? center.y
         try {
