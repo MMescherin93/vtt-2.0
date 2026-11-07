@@ -23,6 +23,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     description: 'Модули для Forbidden Lands: лист персонажа и кубы'
   },
   {
+    id: 'agon',
+    title: 'Агон',
+    description: 'Модули для системы «Агон»: лист героя, состязания и битвы'
+  },
+  {
     id: 'library',
     title: 'Библиотека',
     description: 'PDF-документы, заметки и материалы кампании'
@@ -145,6 +150,16 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     defaultEnabled: false,
     category: 'forbidden-lands',
     icon: '/extensions/icons/fl-dice.svg',
+    panel: true
+  },
+  {
+    id: 'agon-sheet',
+    title: 'Агон — лист героя',
+    description: 'Редактируемый лист героя «Агона»: Домены, Слава, Пафос, Судьба, Узы и Милость богов',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'agon',
+    icon: '/extensions/agon-sheet/icon.svg',
     panel: true
   },
   {

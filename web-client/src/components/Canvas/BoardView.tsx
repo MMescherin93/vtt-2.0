@@ -77,6 +77,8 @@ export function BoardView() {
   const flSheetOpen = flSheetEnabled && (modulePanels['forbidden-lands-sheet'] ?? false)
   const flDiceEnabled = extensions['fl-dice'] ?? false
   const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
+  const agonSheetEnabled = extensions['agon-sheet'] ?? false
+  const agonSheetOpen = agonSheetEnabled && (modulePanels['agon-sheet'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -265,6 +267,21 @@ export function BoardView() {
           onSendChat={sendChat}
           onClose={() => toggleModulePanel('fl-dice', false)}
           storageKey="vtt.player.panel.fl-dice"
+        />
+      )}
+
+      {agonSheetOpen && (
+        <CharacterSheetFrame
+          title="Агон — лист героя"
+          src={`${hostUrl}/extensions/agon-sheet/index.html`}
+          extensionId="agon-sheet"
+          role="player"
+          state={null}
+          onClose={() => toggleModulePanel('agon-sheet', false)}
+          width={1000}
+          height={760}
+          storageKey="vtt.player.panel.agon-sheet"
+          defaultPosition={{ x: 180, y: 20 }}
         />
       )}
 

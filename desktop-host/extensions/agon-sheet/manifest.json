@@ -1,0 +1,8 @@
+{
+  "name": "agon-sheet",
+  "title": "Агон — лист героя",
+  "description": "Редактируемый лист персонажа «Агона» по PDF-бланку.",
+  "version": "1.0.0",
+  "author": "VTT",
+  "manifest_version": 1
+}
