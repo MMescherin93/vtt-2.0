@@ -142,18 +142,23 @@ body {
   appearance: none;
   -webkit-appearance: none;
   padding: 0;
-  border: 1px solid rgba(28, 23, 18, 0.25);
+  border: 1px solid transparent;
   border-radius: 2px;
   cursor: pointer;
 }
 
+.formField[type='checkbox']:hover {
+  border-color: rgba(114, 47, 55, 0.35);
+  background: rgba(255, 241, 176, 0.25);
+}
+
 .formField[type='checkbox']:checked {
-  background: rgba(114, 47, 55, 0.72);
-  border-color: rgba(80, 25, 20, 0.8);
+  background: rgba(114, 47, 55, 0.78);
+  border-color: rgba(80, 25, 20, 0.7);
 }
 
 .formField[type='checkbox']:checked::after {
-  content: 'âœ“';
+  content: '✓';
   display: flex;
   align-items: center;
   justify-content: center;
