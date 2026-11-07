@@ -40,7 +40,7 @@ function renderFields() {
 
   for (const field of FIELDS) {
     const element = document.createElement(field.kind === 'area' ? 'textarea' : 'input')
-    element.className = `formField${field.kind === 'area' ? ' area' : ''}`
+    element.className = `formField${field.kind === 'area' ? ' area' : ''}${field.name.endsWith('Die') ? ' dieField' : ''}`
     element.dataset.name = field.name
     element.setAttribute('aria-label', field.label)
     element.style.left = `${field.x}%`

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --paper: #f3eee3;
   --ink: #1c1712;
   --wine: #722f37;
@@ -153,7 +153,7 @@ body {
 }
 
 .formField[type='checkbox']:checked::after {
-  content: '✓';
+  content: 'âœ“';
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,4 +171,12 @@ body {
   .sheetWrap {
     padding: 4px;
   }
+}
+
+.formField.dieField {
+  background: #fffdf7;
+  border-color: #b9a98b;
+  color: #8f2525;
+  text-align: center;
+  font-weight: 700;
 }
