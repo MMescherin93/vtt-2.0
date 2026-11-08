@@ -90,6 +90,7 @@ export function ExtensionFrame({
   const { ref: contentRef, size: viewport } = useElementSize<HTMLDivElement>()
   const zoomKey = `${storageKey ?? `vtt.extension.${extensionId}`}:zoom`
   const [zoom, setZoom] = useState(() => loadZoom(zoomKey))
+  const [frameTitle, setFrameTitle] = useState(title)
   const stateRef = useRef<unknown>(state)
   const roleRef = useRef(role)
   const allowPlayerWriteRef = useRef(allowPlayerWrite)
@@ -117,6 +118,10 @@ export function ExtensionFrame({
       // localStorage может быть недоступен — не критично
     }
   }, [zoom, zoomKey])
+
+  useEffect(() => {
+    setFrameTitle(title)
+  }, [title])
 
   const zoomBy = (delta: number): void => setZoom((current) => clampZoom(current + delta))
   const baseWidth = viewport.width > 0 ? viewport.width : Math.max(100, width - 2)
@@ -177,6 +182,7 @@ export function ExtensionFrame({
         reqId?: number
         state?: unknown
         text?: unknown
+        title?: unknown
       } | null
       if (!data || data.__vttExt !== extensionId) return
 
@@ -193,6 +199,11 @@ export function ExtensionFrame({
         const shown = shownState(stateRef.current ?? null)
         baselineRef.current = shown
         post({ type: 'metadata', state: shown, reqId: data.reqId })
+        return
+      }
+      if (data.type === 'title') {
+        const next = typeof data.title === 'string' ? data.title.trim().slice(0, 120) : ''
+        if (next) setFrameTitle(next)
         return
       }
       if (data.type === 'chat') {
@@ -247,7 +258,7 @@ export function ExtensionFrame({
 
   return (
     <FloatingPanel
-      title={title}
+      title={frameTitle}
       onClose={onClose}
       width={width}
       storageKey={storageKey}
@@ -273,7 +284,7 @@ export function ExtensionFrame({
             <iframe
               ref={frameRef}
               src={src}
-              title={title}
+              title={frameTitle}
               className="block border-0 bg-[#14161f]"
               style={{
                 width: baseWidth,

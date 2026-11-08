@@ -29,7 +29,6 @@ let state = { currentId: null, chars: [] }
 let values = null
 let dirty = false
 let saveTimer = 0
-let selectTimer = 0
 let toastTimer = 0
 let lastSentJson = null
 let lastRemoteJson = null
@@ -220,7 +219,7 @@ function renderTextField(field) {
 
   input.addEventListener('input', () => {
     values[field.name] = input.value
-    if (field.name === 'name') scheduleSelectRefresh()
+    if (field.name === 'name') renderSelect()
     markDirty()
   })
   input.addEventListener('blur', () => {
@@ -331,6 +330,18 @@ function charLabel(char, index) {
   return name || `Герой ${index + 1}`
 }
 
+function sendTitle() {
+  if (window.parent === window) return
+  const char = currentChar()
+  const name = char ? String(char.fields.name || '').trim().slice(0, 80) : ''
+  const title = name ? `Агон — ${name}` : 'Агон — лист героя'
+  try {
+    window.parent.postMessage({ __vttExt: 'agon-sheet', type: 'title', title }, '*')
+  } catch {
+    /* окно может быть уже закрыто */
+  }
+}
+
 function renderSelect() {
   ensureState()
   charSelect.innerHTML = ''
@@ -341,11 +352,7 @@ function renderSelect() {
     charSelect.appendChild(option)
   })
   charSelect.value = state.currentId
-}
-
-function scheduleSelectRefresh() {
-  window.clearTimeout(selectTimer)
-  selectTimer = window.setTimeout(renderSelect, 300)
+  sendTitle()
 }
 
 function showCharacter(id, options = {}) {
@@ -763,6 +770,8 @@ async function init() {
   renderAll()
   renderSelect()
   updateScale()
+  // Повторно сообщаем заголовок, если первое сообщение пришло до готовности моста.
+  window.setTimeout(sendTitle, 400)
 
   if (mode.obr) {
     if (needsPublish) {
