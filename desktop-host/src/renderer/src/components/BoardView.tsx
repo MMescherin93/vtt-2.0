@@ -14,6 +14,7 @@ import {
   NotesPanel,
   PdfPanel,
   PuzzleIcon,
+  RootMovesPanel,
   RootRollPanel
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
@@ -104,6 +105,8 @@ export function BoardView() {
   const rootSheetOpen = rootSheetEnabled && (modulePanels['root-sheet'] ?? false)
   const rootRollEnabled = extensions['root-roll'] ?? false
   const rootRollOpen = rootRollEnabled && (modulePanels['root-roll'] ?? false)
+  const rootMovesEnabled = extensions['root-moves'] ?? false
+  const rootMovesOpen = rootMovesEnabled && (modulePanels['root-moves'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -391,6 +394,18 @@ export function BoardView() {
           onSendChat={sendChat}
           onClose={() => toggleModulePanel('root-roll', false)}
           storageKey="vtt.gm.panel.root-roll"
+        />
+      )}
+
+      {rootMovesOpen && (
+        <RootMovesPanel
+          state={session.extensionState['root-moves'] ?? null}
+          onChange={(next) => void setExtensionState('root-moves', next)}
+          sheetState={session.extensionState['root-sheet'] ?? null}
+          onSheetChange={(next) => void setExtensionState('root-sheet', next)}
+          onSendChat={sendChat}
+          onClose={() => toggleModulePanel('root-moves', false)}
+          storageKey="vtt.gm.panel.root-moves"
         />
       )}
 

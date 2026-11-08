@@ -194,6 +194,17 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     panel: true
   },
   {
+    id: 'root-moves',
+    title: 'Корни — ходы',
+    description: 'Библиотека ходов Root: базовые, оружейные, дорожные, сессионные, репутационные и ходы плейбуков',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'root',
+    icon: '/extensions/icons/root-moves.svg',
+    panel: true,
+    playerWritable: true
+  },
+  {
     id: 'troika-initiative',
     title: 'Инициатива «Тройка»',
     description:
