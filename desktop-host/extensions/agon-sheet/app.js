@@ -540,9 +540,13 @@ function applyRemoteState(raw) {
   const char = currentChar()
   values = char ? char.fields : defaultFields()
 
-  const focused = document.activeElement && fieldLayer.contains(document.activeElement)
+  const active = document.activeElement
+  const editingText =
+    active &&
+    fieldLayer.contains(active) &&
+    ((active.tagName === 'INPUT' && active.type === 'text') || active.tagName === 'SELECT')
   const currentChanged = state.currentId !== previousId
-  if (focused && !currentChanged) {
+  if (editingText && !currentChanged) {
     // Не перерисовываем поле под курсором, но обновляем список и портрет.
     renderSelect()
     renderPortrait()
