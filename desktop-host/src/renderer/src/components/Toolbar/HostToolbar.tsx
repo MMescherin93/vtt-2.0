@@ -71,7 +71,7 @@ export function HostToolbar() {
   }
 
   return (
-    <div className="pointer-events-none fixed left-1/2 top-3 z-20 flex -translate-x-1/2 flex-col items-center">
+    <div className="pointer-events-none fixed left-1/2 top-3 z-40 flex -translate-x-1/2 flex-col items-center">
       <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-white/10 bg-[#14161f]/85 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl">
         <ToolbarButton
           label="Выбор (V)"

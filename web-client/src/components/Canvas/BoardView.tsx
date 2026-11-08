@@ -133,7 +133,7 @@ export function BoardView() {
         onActiveMapChange={setActiveMap}
       />
 
-      <div className="pointer-events-none fixed left-3 top-3 z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-1.5 shadow-xl backdrop-blur-xl">
+      <div className="pointer-events-none fixed left-3 top-3 z-40 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-3 py-1.5 shadow-xl backdrop-blur-xl">
         <span
           className={`h-2 w-2 rounded-full ${
             status === 'connected' ? 'bg-green-500' : 'bg-amber-500'
@@ -392,7 +392,7 @@ export function BoardView() {
         onClick={() => togglePanel('extensions')}
         title="Расширения"
         aria-label="Расширения"
-        className={`fixed bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
+        className={`fixed bottom-4 right-4 z-40 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
           panels.extensions
             ? 'border-indigo-400/60 bg-indigo-500/30 text-indigo-100'
             : 'border-white/10 bg-[#14161f]/85 text-gray-300 hover:bg-white/10 hover:text-white'
@@ -402,13 +402,13 @@ export function BoardView() {
       </button>
 
       {status !== 'connected' && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-sm text-amber-100 shadow-xl backdrop-blur">
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-sm text-amber-100 shadow-xl backdrop-blur">
           {status === 'connecting' ? 'Подключение к столу…' : 'Связь потеряна — переподключение…'}
         </div>
       )}
 
       {notice && (
-        <div className="fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-white/10 bg-[#14161f]/90 px-4 py-2 text-sm text-gray-200 shadow-xl backdrop-blur">
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-white/10 bg-[#14161f]/90 px-4 py-2 text-sm text-gray-200 shadow-xl backdrop-blur">
           {notice}
         </div>
       )}

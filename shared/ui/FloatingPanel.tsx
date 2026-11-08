@@ -1,9 +1,22 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
-import { XIcon } from './icons'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
+} from 'react'
+import { GripIcon, XIcon } from './icons'
 
 interface Position {
   x: number
   y: number
+}
+
+interface PanelSize {
+  width: number
+  height: number
 }
 
 export interface FloatingPanelProps {
@@ -29,13 +42,44 @@ export interface FloatingPanelProps {
   fixed?: boolean
 }
 
-interface PanelSize {
-  width: number
-  height: number
-}
+/** Отступ панели от краёв окна */
+const VIEWPORT_MARGIN = 8
+/**
+ * Верхняя и нижняя полосы окна заняты тулбаром, доком модулей и кнопками
+ * управления. Панель не должна начинаться под ними и не должна занимать
+ * их целиком, иначе заголовок не схватить, а кнопки «под» панелью.
+ */
+const TOP_CHROME_INSET = 64
+const BOTTOM_CHROME_INSET = 64
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
+}
+
+function getViewport(): PanelSize {
+  if (typeof window === 'undefined') return { width: 1280, height: 800 }
+  return { width: window.innerWidth, height: window.innerHeight }
+}
+
+/**
+ * Держит панель в пределах окна. Если панель шире окна, разрешаем сдвигать
+ * её влево-вправо, чтобы дотянуться до обоих краёв, но не «прибиваем» к
+ * отрицательной координате (из-за этого панель раньше застревала).
+ */
+function clampPosition(
+  position: Position,
+  width: number,
+  height: number,
+  viewport: PanelSize
+): Position {
+  const maxX = Math.max(0, viewport.width - width - VIEWPORT_MARGIN)
+  const minX = Math.min(0, viewport.width - width - VIEWPORT_MARGIN)
+  const maxY = Math.max(0, viewport.height - height - VIEWPORT_MARGIN)
+  const minY = Math.min(TOP_CHROME_INSET, maxY)
+  return {
+    x: clamp(position.x, minX, maxX),
+    y: clamp(position.y, minY, maxY)
+  }
 }
 
 function loadSize(
@@ -76,6 +120,10 @@ function loadPosition(storageKey: string | undefined, fallback: Position): Posit
 /**
  * Плавающая перетаскиваемая панель (ТЗ, UI/UX: панели не закреплены,
  * их можно перетаскивать, они полупрозрачны и не перекрывают карту целиком).
+ *
+ * Панель всегда остаётся в пределах окна: размер ужимается под вьюпорт,
+ * заголовок не уезжает за экран, а перетаскивание работает даже над iframe
+ * (на время жеста iframe перестают перехватывать указатель).
  */
 export function FloatingPanel({
   title,
@@ -99,8 +147,11 @@ export function FloatingPanel({
   const [size, setSize] = useState<PanelSize>(() =>
     loadSize(storageKey, width, resizable ? defaultHeight : 0)
   )
-  const dragRef = useRef<{ offsetX: number; offsetY: number } | null>(null)
+  const [viewport, setViewport] = useState<PanelSize>(getViewport)
+  const [interacting, setInteracting] = useState(false)
+  const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const resizeRef = useRef<{
+    pointerId: number
     direction: 'x' | 'y' | 'both'
     startX: number
     startY: number
@@ -108,152 +159,255 @@ export function FloatingPanel({
     height: number
   } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  // Актуальные ограничения для обработчиков window: они навешиваются один раз.
+  const limitsRef = useRef({ width, defaultHeight, minWidth, minHeight })
+  limitsRef.current = { width, defaultHeight, minWidth, minHeight }
+
+  const maximumWidth = Math.max(minWidth, viewport.width - VIEWPORT_MARGIN * 2)
+  const maximumHeight = Math.max(
+    minHeight,
+    viewport.height - TOP_CHROME_INSET - BOTTOM_CHROME_INSET
+  )
+  const panelWidth = resizable ? Math.min(size.width, maximumWidth) : width
 
   useEffect(() => {
     if (!storageKey) return
-    try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(
-          resizable ? { ...position, width: size.width, height: size.height } : position
+    // Запись откладываем: при перетаскивании позиция меняется на каждый кадр.
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify(
+            resizable ? { ...position, width: size.width, height: size.height } : position
+          )
         )
-      )
-    } catch {
-      // localStorage может быть недоступен — не критично
-    }
+      } catch {
+        // localStorage может быть недоступен — не критично
+      }
+    }, 150)
+    return () => window.clearTimeout(timer)
   }, [position, size, storageKey, resizable])
 
-  // При изменении размера окна не даём панели уехать за пределы экрана
   useEffect(() => {
-    const onResize = (): void => {
-      setPosition((current) => {
-        const maxX = Math.max(8, window.innerWidth - 120)
-        const maxY = Math.max(8, window.innerHeight - 80)
-        return { x: Math.min(current.x, maxX), y: Math.min(current.y, maxY) }
-      })
-      if (!resizable) return
-      setSize((current) => ({
-        width: Math.min(current.width, Math.max(minWidth, window.innerWidth - 8)),
-        height: Math.min(current.height, Math.max(minHeight, window.innerHeight - 8))
-      }))
-    }
+    const onResize = (): void => setViewport(getViewport())
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [resizable, minWidth, minHeight])
+    const visualViewport = window.visualViewport
+    visualViewport?.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      visualViewport?.removeEventListener('resize', onResize)
+    }
+  }, [])
 
-  const handlePointerDown = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (fixed) return
-      if (event.button !== 0) return
-      const target = event.target as HTMLElement
-      if (target.closest('button, input, select, textarea, a')) return
-      dragRef.current = {
-        offsetX: event.clientX - position.x,
-        offsetY: event.clientY - position.y
-      }
-      event.currentTarget.setPointerCapture(event.pointerId)
-    },
-    [fixed, position.x, position.y]
-  )
+  // Ужимаем панель под окно и не даём ей уехать за край (в т.ч. после
+  // сохранённой позиции с большего монитора).
+  useLayoutEffect(() => {
+    if (fixed) return
+    if (resizable) {
+      setSize((current) => {
+        const nextWidth = Math.min(current.width, maximumWidth)
+        const nextHeight = Math.min(current.height, maximumHeight)
+        return nextWidth === current.width && nextHeight === current.height
+          ? current
+          : { width: nextWidth, height: nextHeight }
+      })
+    }
+    const element = panelRef.current
+    const currentWidth = resizable
+      ? Math.min(size.width, maximumWidth)
+      : (element?.offsetWidth ?? width)
+    const currentHeight = resizable
+      ? Math.min(size.height, maximumHeight)
+      : (element?.offsetHeight ?? defaultHeight)
+    setPosition((current) => {
+      const next = clampPosition(current, currentWidth, currentHeight, viewport)
+      return next.x === current.x && next.y === current.y ? current : next
+    })
+  }, [
+    fixed,
+    resizable,
+    viewport,
+    maximumWidth,
+    maximumHeight,
+    size.width,
+    size.height,
+    width,
+    defaultHeight
+  ])
 
-  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current
-    if (!drag) return
-    const width = panelRef.current?.offsetWidth ?? 300
-    const height = panelRef.current?.offsetHeight ?? 200
-    setPosition({
-      x: Math.min(Math.max(0, event.clientX - drag.offsetX), window.innerWidth - width),
-      y: Math.min(Math.max(0, event.clientY - drag.offsetY), window.innerHeight - height)
+  /** На время жеста iframe внутри панели не должны перехватывать указатель. */
+  const setFramesInteractive = useCallback((interactive: boolean) => {
+    document.querySelectorAll('iframe').forEach((frame) => {
+      frame.style.pointerEvents = interactive ? '' : 'none'
     })
   }, [])
 
-  const handlePointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
+  const finishInteraction = useCallback(() => {
+    if (!dragRef.current && !resizeRef.current) return
     dragRef.current = null
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
+    resizeRef.current = null
+    setInteracting(false)
+    setFramesInteractive(true)
+    document.body.style.removeProperty('cursor')
+    document.body.style.removeProperty('user-select')
+  }, [setFramesInteractive])
+
+  // Слушаем window, а не только заголовок: так перетаскивание не обрывается,
+  // когда указатель уходит за пределы панели или на её iframe.
+  useEffect(() => {
+    const onPointerMove = (event: PointerEvent): void => {
+      const drag = dragRef.current
+      if (drag) {
+        if (event.pointerId !== drag.pointerId) return
+        // Кнопку могли отпустить за пределами окна — жест считаем завершённым.
+        if (event.pointerType === 'mouse' && event.buttons === 0) {
+          finishInteraction()
+          return
+        }
+        event.preventDefault()
+        const panel = panelRef.current
+        if (!panel) return
+        setPosition(
+          clampPosition(
+            { x: event.clientX - drag.offsetX, y: event.clientY - drag.offsetY },
+            panel.offsetWidth,
+            panel.offsetHeight,
+            getViewport()
+          )
+        )
+        return
+      }
+
+      const resize = resizeRef.current
+      if (!resize || event.pointerId !== resize.pointerId) return
+      if (event.pointerType === 'mouse' && event.buttons === 0) {
+        finishInteraction()
+        return
+      }
+      event.preventDefault()
+      const currentViewport = getViewport()
+      const limits = limitsRef.current
+      const maxWidth = Math.max(limits.minWidth, currentViewport.width - VIEWPORT_MARGIN * 2)
+      const maxHeight = Math.max(
+        limits.minHeight,
+        currentViewport.height - TOP_CHROME_INSET - BOTTOM_CHROME_INSET
+      )
+      const nextWidth =
+        resize.direction === 'y'
+          ? resize.width
+          : clamp(resize.width + event.clientX - resize.startX, limits.minWidth, maxWidth)
+      const nextHeight =
+        resize.direction === 'x'
+          ? resize.height
+          : clamp(resize.height + event.clientY - resize.startY, limits.minHeight, maxHeight)
+      setSize({ width: nextWidth, height: nextHeight })
+      setPosition((current) => clampPosition(current, nextWidth, nextHeight, currentViewport))
     }
-  }, [])
+
+    const onPointerUp = (event: PointerEvent): void => {
+      const active = dragRef.current ?? resizeRef.current
+      if (!active || active.pointerId !== event.pointerId) return
+      finishInteraction()
+    }
+
+    const onWindowBlur = (): void => finishInteraction()
+
+    window.addEventListener('pointermove', onPointerMove, { passive: false })
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+    window.addEventListener('blur', onWindowBlur)
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+      window.removeEventListener('blur', onWindowBlur)
+      setFramesInteractive(true)
+    }
+  }, [finishInteraction, setFramesInteractive])
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (fixed) return
+      if (event.button !== 0) return
+      const target = event.target as HTMLElement
+      if (target.closest('button, input, select, textarea, a, [role="button"]')) return
+      event.preventDefault()
+      dragRef.current = {
+        pointerId: event.pointerId,
+        offsetX: event.clientX - position.x,
+        offsetY: event.clientY - position.y
+      }
+      setInteracting(true)
+      setFramesInteractive(false)
+      document.body.style.cursor = 'grabbing'
+      document.body.style.userSelect = 'none'
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Захват не критичен: движение обрабатывают window-обработчики
+      }
+    },
+    [fixed, position.x, position.y, setFramesInteractive]
+  )
 
   const startResize = useCallback(
-    (direction: 'x' | 'y' | 'both') => (event: PointerEvent<HTMLDivElement>) => {
-      if (!resizable) return
+    (direction: 'x' | 'y' | 'both') => (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!resizable || event.button !== 0) return
       event.preventDefault()
       event.stopPropagation()
       const rect = panelRef.current?.getBoundingClientRect()
       resizeRef.current = {
+        pointerId: event.pointerId,
         direction,
         startX: event.clientX,
         startY: event.clientY,
         width: rect?.width ?? size.width,
         height: rect?.height ?? size.height
       }
-      event.currentTarget.setPointerCapture(event.pointerId)
+      setInteracting(true)
+      setFramesInteractive(false)
+      document.body.style.cursor =
+        direction === 'x' ? 'ew-resize' : direction === 'y' ? 'ns-resize' : 'nwse-resize'
+      document.body.style.userSelect = 'none'
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Захват не критичен: движение обрабатывают window-обработчики
+      }
     },
-    [resizable, size.height, size.width]
+    [resizable, size.width, size.height, setFramesInteractive]
   )
-
-  const handleResizeMove = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      const resize = resizeRef.current
-      if (!resize) return
-      const maxWidth = Math.max(minWidth, window.innerWidth - 8)
-      const maxHeight = Math.max(minHeight, window.innerHeight - 8)
-      const width =
-        resize.direction === 'y'
-          ? resize.width
-          : clamp(resize.width + event.clientX - resize.startX, minWidth, maxWidth)
-      const height =
-        resize.direction === 'x'
-          ? resize.height
-          : clamp(resize.height + event.clientY - resize.startY, minHeight, maxHeight)
-      setSize({ width, height })
-    },
-    [minHeight, minWidth]
-  )
-
-  const handleResizeEnd = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    resizeRef.current = null
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-  }, [])
 
   return (
     <div
       ref={panelRef}
-      className={`pointer-events-auto fixed z-30 flex max-h-[80vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#14161f]/85 shadow-2xl shadow-black/50 backdrop-blur-xl ${className}`}
+      className={`pointer-events-auto fixed z-30 flex max-h-[80vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#14161f]/85 shadow-2xl shadow-black/50 backdrop-blur-xl ${
+        interacting ? 'select-none' : ''
+      } ${className}`}
       style={{
         left: fixed ? undefined : position.x,
         top: fixed ? undefined : position.y,
-        width: resizable ? size.width : width,
-        height: resizable ? size.height : undefined,
-        maxHeight: resizable ? 'calc(100vh - 16px)' : undefined
+        width: panelWidth,
+        height: resizable ? Math.min(size.height, maximumHeight) : undefined,
+        maxWidth: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
+        maxHeight: resizable && !fixed ? maximumHeight : undefined
       }}
     >
       {resizable && !fixed && (
         <>
           <div
-            className="absolute right-0 top-9 bottom-4 z-20 w-1.5 cursor-ew-resize"
+            className="absolute right-0 top-9 bottom-4 z-20 w-1.5 cursor-ew-resize touch-none"
             onPointerDown={startResize('x')}
-            onPointerMove={handleResizeMove}
-            onPointerUp={handleResizeEnd}
-            onPointerCancel={handleResizeEnd}
             aria-label="Изменить ширину окна"
           />
           <div
-            className="absolute bottom-0 left-2 right-4 z-20 h-1.5 cursor-ns-resize"
+            className="absolute bottom-0 left-2 right-4 z-20 h-1.5 cursor-ns-resize touch-none"
             onPointerDown={startResize('y')}
-            onPointerMove={handleResizeMove}
-            onPointerUp={handleResizeEnd}
-            onPointerCancel={handleResizeEnd}
             aria-label="Изменить высоту окна"
           />
           <div
-            className="group absolute bottom-0 right-0 z-20 h-4 w-4 cursor-nwse-resize"
+            className="group absolute bottom-0 right-0 z-20 h-4 w-4 cursor-nwse-resize touch-none"
             onPointerDown={startResize('both')}
-            onPointerMove={handleResizeMove}
-            onPointerUp={handleResizeEnd}
-            onPointerCancel={handleResizeEnd}
             aria-label="Изменить размер окна"
             title="Потяните, чтобы изменить размер окна"
           >
@@ -263,14 +417,21 @@ export function FloatingPanel({
       )}
 
       <div
-        className={`flex select-none items-center gap-2 border-b border-white/10 px-3 py-2 ${
-          fixed ? '' : 'cursor-grab active:cursor-grabbing'
+        className={`flex touch-none select-none items-center gap-2 border-b border-white/10 px-3 py-2 ${
+          fixed ? '' : 'cursor-grab'
         }`}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onDragStart={(event) => event.preventDefault()}
       >
+        {!fixed && (
+          <span
+            className="flex h-5 w-3 shrink-0 items-center justify-center text-gray-500"
+            title="Перетащите, чтобы переместить окно"
+            aria-hidden="true"
+          >
+            <GripIcon size={12} />
+          </span>
+        )}
         {icon && <span className="text-indigo-300">{icon}</span>}
         <span className="truncate text-sm font-semibold text-gray-100">{title}</span>
         <div className="ml-auto flex items-center gap-1">

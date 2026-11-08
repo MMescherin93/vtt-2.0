@@ -713,7 +713,7 @@ export function Board({
         </Stage>
       )}
 
-      <div className="pointer-events-auto absolute bottom-14 right-4 flex flex-col items-center gap-1">
+      <div className="pointer-events-auto absolute bottom-14 right-4 z-40 flex flex-col items-center gap-1">
         <ZoomButton label="Приблизить" onClick={() => zoomBy(1.2)}>
           <ZoomInIcon size={16} />
         </ZoomButton>
@@ -730,7 +730,7 @@ export function Board({
 
       {textDraft && (
         <div
-          className="absolute z-30 rounded-lg border border-indigo-400/60 bg-[#0f1117]/95 p-1.5 shadow-2xl shadow-black/60"
+          className="absolute z-40 rounded-lg border border-indigo-400/60 bg-[#0f1117]/95 p-1.5 shadow-2xl shadow-black/60"
           style={{
             left: camera.x + textDraft.x * camera.scale,
             top: camera.y + textDraft.y * camera.scale

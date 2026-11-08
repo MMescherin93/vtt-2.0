@@ -25,7 +25,7 @@ export function MapSwitcher({
   if (maps.length === 0) return null
 
   return (
-    <div className="pointer-events-auto fixed bottom-4 left-4 z-20 flex max-w-[60vw] items-center gap-1.5 overflow-x-auto rounded-xl border border-white/10 bg-[#14161f]/85 p-1.5 shadow-xl backdrop-blur-xl">
+    <div className="pointer-events-auto fixed bottom-4 left-4 z-40 flex max-w-[60vw] items-center gap-1.5 overflow-x-auto rounded-xl border border-white/10 bg-[#14161f]/85 p-1.5 shadow-xl backdrop-blur-xl">
       {maps.map((map, index) => {
         const active = map.id === activeMapId
         const fileName = map.imageUrl.split('/').pop() ?? 'карта'

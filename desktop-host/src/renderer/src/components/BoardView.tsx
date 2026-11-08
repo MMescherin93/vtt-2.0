@@ -167,7 +167,7 @@ export function BoardView() {
         }}
       />
 
-      <div className="pointer-events-none fixed left-3 top-3 z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-2.5 py-1.5 shadow-xl backdrop-blur-xl">
+      <div className="pointer-events-none fixed left-3 top-3 z-40 flex items-center gap-2 rounded-xl border border-white/10 bg-[#14161f]/85 px-2.5 py-1.5 shadow-xl backdrop-blur-xl">
         <button
           type="button"
           onClick={() => setScreen('sessions')}
@@ -435,7 +435,7 @@ export function BoardView() {
         onClick={() => togglePanel('extensions')}
         title="Расширения"
         aria-label="Расширения"
-        className={`fixed bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
+        className={`fixed bottom-4 right-4 z-40 flex h-9 w-9 items-center justify-center rounded-lg border shadow-xl backdrop-blur-xl transition ${
           panels.extensions
             ? 'border-indigo-400/60 bg-indigo-500/30 text-indigo-100'
             : 'border-white/10 bg-[#14161f]/85 text-gray-300 hover:bg-white/10 hover:text-white'
@@ -445,13 +445,13 @@ export function BoardView() {
       </button>
 
       {notice && (
-        <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-100 shadow-xl backdrop-blur">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 text-sm text-emerald-100 shadow-xl backdrop-blur">
           {notice}
         </div>
       )}
 
       {error && (
-        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-red-400/30 bg-red-500/15 px-4 py-2 text-sm text-red-100 shadow-xl backdrop-blur">
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-red-400/30 bg-red-500/15 px-4 py-2 text-sm text-red-100 shadow-xl backdrop-blur">
           <span>{error}</span>
           <button
             type="button"
