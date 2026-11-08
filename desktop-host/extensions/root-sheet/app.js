@@ -211,8 +211,9 @@ function normalizeRoster(raw) {
   }
 
   // Первая версия хранила один лист без списка персонажей.
+  // Даём ему стабильный id, чтобы все клиенты мигрировали в один и тот же лист.
   if (Object.keys(raw).length > 0) {
-    const character = blankCharacter(raw)
+    const character = { id: 'root-legacy', fields: normalizeFields(raw) }
     return { version: 2, currentId: character.id, chars: [character] }
   }
 
