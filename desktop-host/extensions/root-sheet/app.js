@@ -583,11 +583,17 @@ window.addEventListener('message', (event) => {
   }
 })
 
-try {
-  window.parent.postMessage({ __vttExt: 'root-sheet', type: 'hello' }, '*')
-} catch {
-  // автономный режим
+function sayHello() {
+  try {
+    window.parent.postMessage({ __vttExt: 'root-sheet', type: 'hello' }, '*')
+  } catch {
+    // автономный режим
+  }
 }
+
+sayHello()
+window.setTimeout(sayHello, 300)
+window.setTimeout(sayHello, 1000)
 
 fillOptions()
 bindIdentity()
