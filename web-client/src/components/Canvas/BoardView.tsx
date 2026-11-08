@@ -12,7 +12,8 @@ import {
   ModuleDock,
   NotesPanel,
   PdfPanel,
-  PuzzleIcon
+  PuzzleIcon,
+  RootRollPanel
 } from '@vtt/shared/ui'
 import { useClientStore } from '../../store/useClientStore'
 import { hostUrl } from '../../socket'
@@ -79,6 +80,10 @@ export function BoardView() {
   const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
   const agonSheetEnabled = extensions['agon-sheet'] ?? false
   const agonSheetOpen = agonSheetEnabled && (modulePanels['agon-sheet'] ?? false)
+  const rootSheetEnabled = extensions['root-sheet'] ?? false
+  const rootSheetOpen = rootSheetEnabled && (modulePanels['root-sheet'] ?? false)
+  const rootRollEnabled = extensions['root-roll'] ?? false
+  const rootRollOpen = rootRollEnabled && (modulePanels['root-roll'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -287,6 +292,33 @@ export function BoardView() {
           height={760}
           storageKey="vtt.player.panel.agon-sheet"
           defaultPosition={{ x: 180, y: 20 }}
+        />
+      )}
+
+      {rootSheetOpen && (
+        <CharacterSheetFrame
+          title="Корни — лист персонажа"
+          src={`${hostUrl}/extensions/root-sheet/index.html`}
+          extensionId="root-sheet"
+          role="player"
+          allowPlayerWrite
+          metaKey="com.root.sheet/state"
+          state={session.extensionState['root-sheet'] ?? null}
+          onChange={(next) => publishExtensionState('root-sheet', next)}
+          onChat={sendChat}
+          onClose={() => toggleModulePanel('root-sheet', false)}
+          width={1000}
+          height={760}
+          storageKey="vtt.player.panel.root-sheet"
+          defaultPosition={{ x: 160, y: 18 }}
+        />
+      )}
+
+      {rootRollOpen && (
+        <RootRollPanel
+          onSendChat={sendChat}
+          onClose={() => toggleModulePanel('root-roll', false)}
+          storageKey="vtt.player.panel.root-roll"
         />
       )}
 

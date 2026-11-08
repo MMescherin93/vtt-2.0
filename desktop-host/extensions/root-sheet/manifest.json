@@ -1,0 +1,8 @@
+{
+  "name": "root-sheet",
+  "title": "Корни — лист персонажа",
+  "description": "Лист персонажа Root RPG: плейбук, характеристики, урон, истощение, репутация, ходы и связи.",
+  "version": "1.0.0",
+  "author": "VTT",
+  "manifest_version": 1
+}

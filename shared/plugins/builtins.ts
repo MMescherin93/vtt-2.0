@@ -28,6 +28,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     description: 'Модули для системы «Агон»: лист героя, состязания и битвы'
   },
   {
+    id: 'root',
+    title: 'Корни',
+    description: 'Модули для Root: The Roleplaying Game — лист персонажа и броски'
+  },
+  {
     id: 'library',
     title: 'Библиотека',
     description: 'PDF-документы, заметки и материалы кампании'
@@ -164,6 +169,29 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     panel: true,
     playerWritable: true,
     metaKey: 'com.agon.sheet/state'
+  },
+  {
+    id: 'root-sheet',
+    title: 'Корни — лист персонажа',
+    description:
+      'Лист персонажа Root RPG: плейбук, Обаяние/Хитрость/Ловкость/Удача/Мощь, Урон, Истощение, Репутация, ходы, связи и снаряжение',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'root',
+    icon: '/extensions/root-sheet/icon.svg',
+    panel: true,
+    playerWritable: true,
+    metaKey: 'com.root.sheet/state'
+  },
+  {
+    id: 'root-roll',
+    title: 'Корни — броски',
+    description: 'PbtA-броски Root: 2d6 + характеристика, 10+ / 7–9 / 6−, преимущество и помеха',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'root',
+    icon: '/extensions/icons/root-roll.svg',
+    panel: true
   },
   {
     id: 'troika-initiative',

@@ -13,7 +13,8 @@ import {
   ModuleDock,
   NotesPanel,
   PdfPanel,
-  PuzzleIcon
+  PuzzleIcon,
+  RootRollPanel
 } from '@vtt/shared/ui'
 import { useAssetsBaseUrl } from '../lib/host'
 import { isVideoFile } from '../lib/videoToGif'
@@ -99,6 +100,10 @@ export function BoardView() {
   const flDiceOpen = flDiceEnabled && (modulePanels['fl-dice'] ?? false)
   const agonSheetEnabled = extensions['agon-sheet'] ?? false
   const agonSheetOpen = agonSheetEnabled && (modulePanels['agon-sheet'] ?? false)
+  const rootSheetEnabled = extensions['root-sheet'] ?? false
+  const rootSheetOpen = rootSheetEnabled && (modulePanels['root-sheet'] ?? false)
+  const rootRollEnabled = extensions['root-roll'] ?? false
+  const rootRollOpen = rootRollEnabled && (modulePanels['root-roll'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -359,6 +364,33 @@ export function BoardView() {
           height={760}
           storageKey="vtt.gm.panel.agon-sheet"
           defaultPosition={{ x: 180, y: 20 }}
+        />
+      )}
+
+      {rootSheetOpen && (
+        <CharacterSheetFrame
+          title="Корни — лист персонажа"
+          src={`${assetsBaseUrl}/extensions/root-sheet/index.html`}
+          extensionId="root-sheet"
+          role="gm"
+          allowPlayerWrite
+          metaKey="com.root.sheet/state"
+          state={session.extensionState['root-sheet'] ?? null}
+          onChange={(next) => void setExtensionState('root-sheet', next)}
+          onChat={sendChat}
+          onClose={() => toggleModulePanel('root-sheet', false)}
+          width={1000}
+          height={760}
+          storageKey="vtt.gm.panel.root-sheet"
+          defaultPosition={{ x: 160, y: 18 }}
+        />
+      )}
+
+      {rootRollOpen && (
+        <RootRollPanel
+          onSendChat={sendChat}
+          onClose={() => toggleModulePanel('root-roll', false)}
+          storageKey="vtt.gm.panel.root-roll"
         />
       )}
 

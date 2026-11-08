@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Корни — лист персонажа</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">К</span>
+      <div><b>КОРНИ</b><small>лист персонажа</small></div>
+    </div>
+    <span id="status" class="status">сохранено локально</span>
+    <button id="reset" class="ghost" type="button">Сбросить лист</button>
+  </header>
+
+  <main class="sheet">
+    <section class="card identity">
+      <div class="cardTitle">Кто вы в Лесу</div>
+      <div class="idGrid">
+        <label class="wide">Имя<input data-key="name" autocomplete="off"></label>
+        <label>Плейбук<select data-key="playbook" id="playbook"></select></label>
+        <label>Вид<select data-key="species" id="species"></select></label>
+        <label>Местоимения<input data-key="pronouns" autocomplete="off"></label>
+        <label>Внешность<input data-key="look" autocomplete="off"></label>
+        <label>Стремление<input data-key="drive" autocomplete="off"></label>
+        <label>Натура<input data-key="nature" autocomplete="off"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="cardTitle">Характеристики <span>2d6 + значение</span></div>
+      <div id="stats" class="stats"></div>
+    </section>
+
+    <div class="columns">
+      <section class="card">
+        <div class="cardTitle">Состояние</div>
+        <div id="tracks" class="tracks"></div>
+      </section>
+      <section class="card">
+        <div class="cardTitle">Репутация</div>
+        <div id="reputation" class="reputation"></div>
+      </section>
+    </div>
+
+    <div class="columns">
+      <section class="card listCard">
+        <div class="cardTitle">Ходы <button class="add" data-add="moves" type="button">+ ход</button></div>
+        <div id="moves" class="list"></div>
+      </section>
+      <section class="card listCard">
+        <div class="cardTitle">Связи <button class="add" data-add="connections" type="button">+ связь</button></div>
+        <div id="connections" class="list"></div>
+      </section>
+    </div>
+
+    <div class="columns">
+      <section class="card listCard">
+        <div class="cardTitle">Снаряжение <button class="add" data-add="gear" type="button">+ предмет</button></div>
+        <div id="gear" class="list"></div>
+      </section>
+      <section class="card">
+        <div class="cardTitle">Вопросы предыстории</div>
+        <textarea data-key="background" rows="5" placeholder="Ответы на вопросы плейбука"></textarea>
+        <div class="cardTitle second">Заметки</div>
+        <textarea data-key="notes" rows="4" placeholder="Всё, что важно помнить"></textarea>
+      </section>
+    </div>
+
+    <section id="lastRoll" class="lastRoll hidden"></section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
