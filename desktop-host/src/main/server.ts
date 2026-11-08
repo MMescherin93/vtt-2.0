@@ -770,7 +770,8 @@ export function startVttServer(options: VttServerOptions): VttServer {
       } catch {
         return
       }
-      if (size > 200_000) {
+      // Листы с портретами (data URL) заметно больше обычных модулей.
+      if (size > 1_500_000) {
         emitError(socket, 'Слишком большой объём данных модуля')
         return
       }

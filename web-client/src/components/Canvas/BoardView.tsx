@@ -276,7 +276,12 @@ export function BoardView() {
           src={`${hostUrl}/extensions/agon-sheet/index.html`}
           extensionId="agon-sheet"
           role="player"
-          state={null}
+          allowPlayerWrite
+          metaKey="com.agon.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
+          state={session.extensionState['agon-sheet'] ?? null}
+          onChange={(next) => publishExtensionState('agon-sheet', next)}
           onClose={() => toggleModulePanel('agon-sheet', false)}
           width={1000}
           height={760}

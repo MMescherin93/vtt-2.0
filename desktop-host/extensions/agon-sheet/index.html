@@ -1,23 +1,74 @@
 <!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Агон — лист героя</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <header class="topbar">
-    <div class="brand"><b>Агон</b><span>лист героя</span></div>
-    <div class="hint">Заполняйте прямо на листе</div>
-    <button type="button" id="reset" class="reset">Сбросить поля</button>
-  </header>
-  <main class="sheetWrap">
-    <div class="sheet" id="sheet">
-      <img src="sheet.png" alt="Лист персонажа «Агон»" draggable="false">
-      <div class="fieldLayer" id="fieldLayer"></div>
-    </div>
-  </main>
-  <script type="module" src="app.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Агон — лист героя</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="toolbar no-print">
+      <div class="brand">
+        <b>АГОН</b>
+        <span>лист героя</span>
+      </div>
+
+      <div class="toolbar-group">
+        <label class="ctrl-label" for="charSelect">Герой</label>
+        <select id="charSelect" class="select" aria-label="Выбрать лист героя"></select>
+        <button type="button" id="btnNew" class="btn btn-primary" title="Создать нового героя">
+          ＋ Новый
+        </button>
+        <button type="button" id="btnDelete" class="btn btn-danger" title="Удалить текущего героя">
+          Удалить
+        </button>
+        <button type="button" id="btnReset" class="btn" title="Очистить поля текущего героя">
+          Сбросить
+        </button>
+      </div>
+
+      <div class="toolbar-status" id="toolbarStatus" title="Листы общие для всех участников">
+        <span class="dot"></span>
+        <span>Правки общие для стола</span>
+      </div>
+    </header>
+
+    <main class="sheetWrap" id="sheetWrap">
+      <div class="sheet" id="sheet">
+        <img src="sheet.png" alt="Лист персонажа «Агон»" draggable="false" />
+
+        <div class="fieldLayer" id="fieldLayer"></div>
+
+        <div
+          class="portrait"
+          id="portrait"
+          role="button"
+          tabindex="0"
+          aria-label="Загрузить изображение героя"
+          title="Нажмите, чтобы загрузить изображение"
+        >
+          <img id="portraitImage" alt="Изображение героя" draggable="false" />
+          <div class="portraitEmpty" id="portraitEmpty">
+            <span>Загрузка<br />изображения</span>
+          </div>
+          <div class="portraitHover" aria-hidden="true"><span>Заменить</span></div>
+          <button
+            type="button"
+            class="portraitRemove"
+            id="portraitRemove"
+            title="Удалить изображение"
+            aria-label="Удалить изображение"
+          >
+            ×
+          </button>
+          <input type="file" id="portraitInput" accept="image/*" hidden />
+        </div>
+      </div>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

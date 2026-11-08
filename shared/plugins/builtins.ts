@@ -155,12 +155,15 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
   {
     id: 'agon-sheet',
     title: 'Агон — лист героя',
-    description: 'Редактируемый лист героя «Агона»: Домены, Слава, Пафос, Судьба, Узы и Милость богов',
+    description:
+      'Листы героев «Агона»: несколько персонажей, Домены, Слава, Пафос, Судьба, Милость богов и портрет. Любой участник может менять листы',
     scope: 'both',
     defaultEnabled: false,
     category: 'agon',
     icon: '/extensions/agon-sheet/icon.svg',
-    panel: true
+    panel: true,
+    playerWritable: true,
+    metaKey: 'com.agon.sheet/state'
   },
   {
     id: 'troika-initiative',

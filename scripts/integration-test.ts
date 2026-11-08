@@ -350,6 +350,22 @@ async function main(): Promise<void> {
     'игрок может сохранить лист AZAG'
   )
 
+  // Лист «Агона» тоже общий и доступен игрокам
+  const agonUpdatePromise = watch<{ extensionId: string; state: unknown }>(
+    client,
+    'extension:update'
+  )
+  client.emit('extension:update', {
+    extensionId: 'agon-sheet',
+    state: { currentId: 'g1', chars: [{ id: 'g1', fields: { name: 'Адраст' } }] }
+  })
+  const agonUpdate = await agonUpdatePromise
+  check(
+    agonUpdate.extensionId === 'agon-sheet' &&
+      Array.isArray((agonUpdate.state as { chars?: unknown[] }).chars),
+    'игрок может сохранить лист «Агона»'
+  )
+
   // Лист персонажа может сохранять любой игрок
   const sheetPromise = watch<{ extensionId: string; state: unknown }>(client, 'extension:update')
   client.emit('extension:update', {
