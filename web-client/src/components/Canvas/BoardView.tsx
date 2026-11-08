@@ -306,6 +306,8 @@ export function BoardView() {
           role="player"
           allowPlayerWrite
           metaKey="com.root.sheet/state"
+          perClientSelection
+          mergeListKey="chars"
           state={session.extensionState['root-sheet'] ?? null}
           onChange={(next) => publishExtensionState('root-sheet', next)}
           onChat={sendChat}

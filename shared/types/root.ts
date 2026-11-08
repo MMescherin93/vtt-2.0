@@ -1,13 +1,7 @@
 import type { RootStat } from '../utils/rootDice'
 
 export type RootMoveCategory =
-  | 'basic'
-  | 'weapon'
-  | 'travel'
-  | 'session'
-  | 'reputation'
-  | 'playbook'
-  | 'custom'
+  'basic' | 'weapon' | 'travel' | 'session' | 'reputation' | 'playbook' | 'custom'
 
 export interface RootMove {
   id: string
@@ -28,7 +22,7 @@ export const ROOT_MOVE_CATEGORIES: Array<{ id: RootMoveCategory; label: string }
   { id: 'travel', label: 'Дорожные' },
   { id: 'session', label: 'Сессионные' },
   { id: 'reputation', label: 'Репутация' },
-  { id: 'playbook', label: 'Плейбуки' },
+  { id: 'playbook', label: 'Архетипы' },
   { id: 'custom', label: 'Свои' }
 ]
 

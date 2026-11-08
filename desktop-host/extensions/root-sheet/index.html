@@ -12,6 +12,16 @@
       <span class="mark">К</span>
       <div><b>КОРНИ</b><small>лист персонажа</small></div>
     </div>
+
+    <div class="charBar">
+      <label class="charPick">
+        Лист
+        <select id="charSelect" aria-label="Выбрать лист бродяги"></select>
+      </label>
+      <button id="newChar" class="ghost" type="button" title="Создать нового бродягу">＋ Новый</button>
+      <button id="deleteChar" class="ghost" type="button" title="Удалить текущий лист">Удалить</button>
+    </div>
+
     <span id="status" class="status">сохранено локально</span>
     <button id="reset" class="ghost" type="button">Сбросить лист</button>
   </header>
@@ -21,12 +31,12 @@
       <div class="cardTitle">Кто вы в Лесу</div>
       <div class="idGrid">
         <label class="wide">Имя<input data-key="name" autocomplete="off"></label>
-        <label>Плейбук<select data-key="playbook" id="playbook"></select></label>
+        <label>Архетип<select data-key="playbook" id="playbook"></select></label>
         <label>Вид<select data-key="species" id="species"></select></label>
         <label>Местоимения<input data-key="pronouns" autocomplete="off"></label>
         <label>Внешность<input data-key="look" autocomplete="off"></label>
-        <label>Стремление<input data-key="drive" autocomplete="off"></label>
-        <label>Натура<input data-key="nature" autocomplete="off"></label>
+        <label>Мотив<input data-key="drive" autocomplete="off"></label>
+        <label>Характер<input data-key="nature" autocomplete="off"></label>
       </div>
     </section>
 

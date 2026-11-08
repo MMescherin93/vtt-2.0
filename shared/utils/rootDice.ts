@@ -19,9 +19,9 @@ export interface RootRollResult {
 }
 
 export const ROOT_STATS: Array<{ id: RootStat; label: string }> = [
-  { id: 'charm', label: 'Обаяние' },
+  { id: 'charm', label: 'Шарм' },
   { id: 'cunning', label: 'Хитрость' },
-  { id: 'finesse', label: 'Ловкость' },
+  { id: 'finesse', label: 'Сноровка' },
   { id: 'luck', label: 'Удача' },
   { id: 'might', label: 'Мощь' }
 ]
@@ -65,7 +65,16 @@ export function rollRootMove({
 
 export function formatRootRoll(result: RootRollResult): string {
   const mode =
-    result.mode === 'advantage' ? ' · преимущество' : result.mode === 'disadvantage' ? ' · помеха' : ''
-  const modifier = result.modifier === 0 ? '' : result.modifier > 0 ? ` + ${result.modifier}` : ` − ${Math.abs(result.modifier)}`
+    result.mode === 'advantage'
+      ? ' · преимущество'
+      : result.mode === 'disadvantage'
+        ? ' · помеха'
+        : ''
+  const modifier =
+    result.modifier === 0
+      ? ''
+      : result.modifier > 0
+        ? ` + ${result.modifier}`
+        : ` − ${Math.abs(result.modifier)}`
   return `Корни · ${rootStatLabel(result.stat)}${mode}: [${result.kept.join(', ')}]${modifier} = ${result.total} — ${result.outcome}`
 }

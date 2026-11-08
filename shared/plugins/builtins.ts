@@ -30,7 +30,7 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
   {
     id: 'root',
     title: 'Корни',
-    description: 'Модули для Root: The Roleplaying Game — лист персонажа и броски'
+    description: 'Модули для Root: The Roleplaying Game — листы бродяг, броски и ходы'
   },
   {
     id: 'library',
@@ -139,7 +139,8 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
   {
     id: 'forbidden-lands-sheet',
     title: 'Лист «Запретные земли»',
-    description: 'Лист персонажа Forbidden Lands: характеристики, навыки, бой, снаряжение, отношения',
+    description:
+      'Лист персонажа Forbidden Lands: характеристики, навыки, бой, снаряжение, отношения',
     scope: 'both',
     defaultEnabled: false,
     category: 'forbidden-lands',
@@ -174,7 +175,7 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     id: 'root-sheet',
     title: 'Корни — лист персонажа',
     description:
-      'Лист персонажа Root RPG: плейбук, Обаяние/Хитрость/Ловкость/Удача/Мощь, Урон, Истощение, Репутация, ходы, связи и снаряжение',
+      'Листы бродяг Root RPG: архетип, Шарм/Хитрость/Сноровка/Удача/Мощь, Травмы, Истощение, Затраты, Репутация, ходы, связи и снаряжение. Любой участник может создать свой лист',
     scope: 'both',
     defaultEnabled: false,
     category: 'root',
@@ -196,7 +197,8 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
   {
     id: 'root-moves',
     title: 'Корни — ходы',
-    description: 'Библиотека ходов Root: базовые, оружейные, дорожные, сессионные, репутационные и ходы плейбуков',
+    description:
+      'Библиотека ходов Root: базовые, оружейные, дорожные, сессионные, репутационные и ходы плейбуков',
     scope: 'both',
     defaultEnabled: false,
     category: 'root',

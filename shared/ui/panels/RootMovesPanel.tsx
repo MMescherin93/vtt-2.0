@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { RootMove, RootMoveCategory, RootMovesLibrary } from '../../types/root'
 import { ROOT_MOVE_CATEGORIES, rootMoveCategoryLabel } from '../../types/root'
 import { formatRootRoll, ROOT_STATS, rollRootMove, type RootStat } from '../../utils/rootDice'
+import { readSelection } from '../extensionState'
 import { FloatingPanel } from '../FloatingPanel'
 import { DiceIcon } from '../icons'
 
@@ -55,6 +56,82 @@ function sheetMoveId(move: RootMove): string {
   return `sheet_${move.id}`
 }
 
+interface AddMoveResult {
+  next: Record<string, unknown>
+  added: boolean
+}
+
+/**
+ * Добавляет ход в текущий лист. Поддерживает и новый формат
+ * `{ currentId, chars: [{ id, fields }] }`, и старый одиночный лист.
+ */
+function withMoveInSheet(base: Record<string, unknown>, move: RootMove): AddMoveResult | null {
+  const chars = Array.isArray(base.chars) ? (base.chars as unknown[]) : null
+  if (chars && chars.length > 0) {
+    // У каждого клиента свой выбранный лист; он хранится в localStorage
+    // (тем же ключом пользуется ExtensionFrame).
+    const localId = readSelection('root-sheet')
+    const fallbackId = typeof base.currentId === 'string' ? base.currentId : ''
+    const currentId =
+      localId &&
+      chars.some(
+        (item) => item && typeof item === 'object' && (item as { id?: unknown }).id === localId
+      )
+        ? localId
+        : fallbackId
+    let index = chars.findIndex(
+      (item) => item && typeof item === 'object' && (item as { id?: unknown }).id === currentId
+    )
+    if (index < 0) index = 0
+
+    const character = chars[index]
+    if (!character || typeof character !== 'object') return null
+    const record = character as Record<string, unknown>
+    const nestedFields =
+      record.fields && typeof record.fields === 'object'
+        ? { ...(record.fields as Record<string, unknown>) }
+        : null
+    const source = nestedFields ?? record
+    const existing = Array.isArray(source.moves) ? source.moves : []
+    if (
+      existing.some(
+        (item) =>
+          item && typeof item === 'object' && (item as { id?: string }).id === sheetMoveId(move)
+      )
+    ) {
+      return { next: base, added: false }
+    }
+
+    const nextMoves = [
+      ...existing,
+      { id: sheetMoveId(move), name: move.name || 'Ход', text: move.text }
+    ]
+    const nextChars = chars.slice()
+    nextChars[index] = nestedFields
+      ? { ...record, fields: { ...nestedFields, moves: nextMoves } }
+      : { ...record, moves: nextMoves }
+    return { next: { ...base, chars: nextChars }, added: true }
+  }
+
+  // Старый формат: один лист без списка персонажей.
+  const existing = Array.isArray(base.moves) ? base.moves : []
+  if (
+    existing.some(
+      (item) =>
+        item && typeof item === 'object' && (item as { id?: string }).id === sheetMoveId(move)
+    )
+  ) {
+    return { next: base, added: false }
+  }
+  return {
+    next: {
+      ...base,
+      moves: [...existing, { id: sheetMoveId(move), name: move.name || 'Ход', text: move.text }]
+    },
+    added: true
+  }
+}
+
 export function RootMovesPanel({
   state,
   onChange,
@@ -101,25 +178,21 @@ export function RootMovesPanel({
 
   const addToSheet = (move: RootMove): void => {
     if (!onSheetChange) return
-    const base =
-      sheetState && typeof sheetState === 'object'
-        ? { ...(sheetState as Record<string, unknown>) }
-        : {}
-    const existing = Array.isArray(base.moves) ? base.moves : []
-    if (existing.some((item) => item && typeof item === 'object' && (item as { id?: string }).id === sheetMoveId(move))) {
-      setAdded(move.id)
+    if (!sheetState || typeof sheetState !== 'object') {
+      setLastRoll('Сначала откройте лист персонажа')
       return
     }
-    const nextMoves = [
-      ...existing,
-      {
-        id: sheetMoveId(move),
-        name: move.name || 'Ход',
-        text: move.text
-      }
-    ]
-    onSheetChange({ ...base, moves: nextMoves })
+
+    const result = withMoveInSheet({ ...(sheetState as Record<string, unknown>) }, move)
+    if (!result) {
+      setLastRoll('Не удалось добавить ход в лист')
+      return
+    }
+    if (result.added) onSheetChange(result.next)
     setAdded(move.id)
+    if (!result.added) {
+      setLastRoll('Этот ход уже есть в листе')
+    }
     window.setTimeout(() => setAdded((current) => (current === move.id ? null : current)), 1800)
   }
 

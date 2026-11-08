@@ -1,57 +1,86 @@
-const STORAGE_KEY = 'root-sheet-v1'
+const STORAGE_KEY = 'root-sheet-v2'
+const LEGACY_KEY = 'root-sheet-v1'
+const MAX_CHARS = 30
 const MAX_LIST = 40
 
 const PLAYBOOKS = [
-  '— выберите плейбук —',
-  'Искатель приключений',
-  'Арбитр',
-  'Задира',
+  '— выберите архетип —',
+  'Авантюрист',
+  'Судья',
+  'Налётчик',
   'Следопыт',
   'Ронин',
-  'Плут',
+  'Поджигатель',
   'Вор',
-  'Мастер',
-  'Бродяга',
-  'Чемпион',
+  'Ремесленник',
+  'Скиталец',
+  'Герой',
   'Летописец',
-  'Посланник',
   'Изгнанник',
+  'Посол',
   'Еретик',
   'Пират',
-  'Принц',
-  'Рассказчик',
-  'Налётчик',
+  'Наследник',
+  'Сказитель',
+  'Разбойник',
   'Искатель'
 ]
 
+/** Старые названия архетипов из первой версии листа. */
+const LEGACY_PLAYBOOKS = {
+  'Искатель приключений': 'Авантюрист',
+  Арбитр: 'Судья',
+  Задира: 'Налётчик',
+  Плут: 'Поджигатель',
+  Мастер: 'Ремесленник',
+  Бродяга: 'Скиталец',
+  Чемпион: 'Герой',
+  Посланник: 'Посол',
+  Принц: 'Наследник',
+  Рассказчик: 'Сказитель'
+}
+
 const SPECIES = [
   '— выберите вид —',
-  'Птица',
+  'Барсук',
+  'Бобр',
+  'Голубая сойка',
   'Кошка',
   'Лиса',
+  'Ястреб',
   'Ящерица',
-  'Крот',
   'Мышь',
+  'Опоссум',
   'Выдра',
-  'Кролик',
+  'Сова',
   'Енот',
-  'Крыса',
+  'Кролик',
   'Белка',
-  'Волк'
+  'Волк',
+  'Птица',
+  'Крот',
+  'Крыса'
 ]
 
 const STATS = [
-  { id: 'charm', label: 'Обаяние' },
+  { id: 'charm', label: 'Шарм' },
   { id: 'cunning', label: 'Хитрость' },
-  { id: 'finesse', label: 'Ловкость' },
+  { id: 'finesse', label: 'Сноровка' },
   { id: 'luck', label: 'Удача' },
   { id: 'might', label: 'Мощь' }
 ]
 
 const REPUTATION = [
-  { id: 'marquisate', label: 'Маркиза де Кот' },
-  { id: 'eyrie', label: 'Династии Скопа' },
+  { id: 'denizens', label: 'Обитатели' },
+  { id: 'marquisate', label: 'Маркиса де Коте' },
+  { id: 'eyrie', label: 'Крылатые династии' },
   { id: 'alliance', label: 'Лесной союз' }
+]
+
+const TRACKS = [
+  { id: 'injury', label: 'Травмы' },
+  { id: 'exhaustion', label: 'Истощение' },
+  { id: 'depletion', label: 'Затраты' }
 ]
 
 const LIST_TYPES = {
@@ -76,7 +105,7 @@ function clampNumber(value, min, max) {
   return Math.max(min, Math.min(max, Math.round(number)))
 }
 
-function blankState() {
+function blankFields() {
   return {
     name: '',
     playbook: PLAYBOOKS[0],
@@ -86,15 +115,25 @@ function blankState() {
     drive: '',
     nature: '',
     stats: { charm: 0, cunning: 0, finesse: 0, luck: 0, might: 0 },
-    harm: [false, false, false, false],
-    depletion: [false, false, false, false],
-    reputation: { marquisate: 0, eyrie: 0, alliance: 0 },
+    injury: [false, false, false, false, false],
+    exhaustion: [false, false, false, false, false],
+    depletion: [false, false, false, false, false],
+    reputation: { denizens: 0, marquisate: 0, eyrie: 0, alliance: 0 },
     moves: [],
     connections: [],
     gear: [],
     background: '',
     notes: ''
   }
+}
+
+function blankCharacter(fields) {
+  return { id: makeId(), fields: normalizeFields(fields) }
+}
+
+function blankRoster() {
+  const character = blankCharacter()
+  return { version: 2, currentId: character.id, chars: [character] }
 }
 
 function normalizeList(raw) {
@@ -106,61 +145,168 @@ function normalizeList(raw) {
   }))
 }
 
-function normalize(raw) {
-  const base = blankState()
-  if (!raw || typeof raw !== 'object') return base
-  const next = { ...base }
-  for (const key of ['name', 'pronouns', 'look', 'drive', 'nature', 'background', 'notes']) {
-    if (typeof raw[key] === 'string') next[key] = raw[key].slice(0, key === 'background' || key === 'notes' ? 6000 : 240)
-  }
-  if (PLAYBOOKS.includes(raw.playbook)) next.playbook = raw.playbook
-  if (SPECIES.includes(raw.species)) next.species = raw.species
-  for (const stat of STATS) {
-    next.stats[stat.id] = clampNumber(raw.stats && raw.stats[stat.id], -1, 4)
-  }
-  for (const key of ['harm', 'depletion']) {
-    next[key] = Array.from({ length: 4 }, (_, index) => Boolean(raw[key] && raw[key][index]))
-  }
-  for (const rep of REPUTATION) {
-    next.reputation[rep.id] = clampNumber(raw.reputation && raw.reputation[rep.id], -3, 3)
-  }
-  for (const kind of Object.keys(LIST_TYPES)) next[kind] = normalizeList(raw[kind])
-  return next
+function readTrack(value) {
+  if (!Array.isArray(value)) return [false, false, false, false, false]
+  return Array.from({ length: 5 }, (_, index) => Boolean(value[index]))
 }
 
-let state = blankState()
+function mapPlaybook(value) {
+  if (typeof value !== 'string') return ''
+  return LEGACY_PLAYBOOKS[value] ?? value
+}
+
+function normalizeFields(raw) {
+  const base = blankFields()
+  if (!raw || typeof raw !== 'object') return base
+
+  for (const key of ['name', 'pronouns', 'look', 'drive', 'nature', 'background', 'notes']) {
+    if (typeof raw[key] === 'string') {
+      const limit = key === 'background' || key === 'notes' ? 6000 : 240
+      base[key] = raw[key].slice(0, limit)
+    }
+  }
+
+  const playbook = mapPlaybook(raw.playbook)
+  if (PLAYBOOKS.includes(playbook)) base.playbook = playbook
+  if (SPECIES.includes(raw.species)) base.species = raw.species
+
+  for (const stat of STATS) {
+    base.stats[stat.id] = clampNumber(raw.stats && raw.stats[stat.id], -1, 4)
+  }
+
+  // Старые листы хранили только два трека: harm (Урон) и depletion (Истощение).
+  // Новый формат: injury / exhaustion / depletion (Травмы / Истощение / Затраты).
+  const legacyTracks = raw.injury === undefined && raw.exhaustion === undefined
+  base.injury = readTrack(legacyTracks ? raw.harm : raw.injury)
+  base.exhaustion = readTrack(legacyTracks ? raw.depletion : raw.exhaustion)
+  base.depletion = readTrack(legacyTracks ? undefined : raw.depletion)
+
+  for (const rep of REPUTATION) {
+    base.reputation[rep.id] = clampNumber(raw.reputation && raw.reputation[rep.id], -3, 3)
+  }
+
+  for (const kind of Object.keys(LIST_TYPES)) base[kind] = normalizeList(raw[kind])
+  return base
+}
+
+function normalizeRoster(raw) {
+  if (!raw || typeof raw !== 'object') return blankRoster()
+
+  if (Array.isArray(raw.chars)) {
+    const seen = new Set()
+    const chars = []
+    for (const item of raw.chars.slice(0, MAX_CHARS)) {
+      if (!item || typeof item !== 'object') continue
+      let id = typeof item.id === 'string' && item.id ? item.id.slice(0, 80) : makeId()
+      while (seen.has(id)) id = makeId()
+      seen.add(id)
+      const fields = item.fields && typeof item.fields === 'object' ? item.fields : item
+      chars.push({ id, fields: normalizeFields(fields) })
+    }
+    if (chars.length === 0) return blankRoster()
+
+    let currentId = typeof raw.currentId === 'string' ? raw.currentId : ''
+    if (!chars.some((character) => character.id === currentId)) currentId = chars[0].id
+    return { version: 2, currentId, chars }
+  }
+
+  // Первая версия хранила один лист без списка персонажей.
+  if (Object.keys(raw).length > 0) {
+    const character = blankCharacter(raw)
+    return { version: 2, currentId: character.id, chars: [character] }
+  }
+
+  return blankRoster()
+}
+
+let roster = blankRoster()
+let state = roster.chars[0].fields
 let saveTimer = 0
 let remoteConnected = false
 let lastSentJson = null
-let applyingRemote = false
+let dirty = false
 
-function load() {
+function currentChar() {
+  return roster.chars.find((character) => character.id === roster.currentId) || roster.chars[0] || null
+}
+
+function ensureRoster() {
+  if (!Array.isArray(roster.chars) || roster.chars.length === 0) {
+    roster = blankRoster()
+  }
+  if (roster.chars.length > MAX_CHARS) roster.chars = roster.chars.slice(0, MAX_CHARS)
+  if (!roster.chars.some((character) => character.id === roster.currentId)) {
+    roster.currentId = roster.chars[0].id
+  }
+}
+
+function charLabel(character, index) {
+  const name = String(character.fields.name || '').trim()
+  return name || `Бродяга ${index + 1}`
+}
+
+function sendTitle() {
+  if (window.parent === window) return
+  const character = currentChar()
+  const name = character ? String(character.fields.name || '').trim().slice(0, 80) : ''
+  const title = name ? `Корни — ${name}` : 'Корни — лист персонажа'
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? normalize(JSON.parse(raw)) : blankState()
+    window.parent.postMessage({ __vttExt: 'root-sheet', type: 'title', title }, '*')
   } catch {
-    return blankState()
+    // окно может быть уже закрыто
+  }
+}
+
+function snapshot() {
+  const character = currentChar()
+  if (character) character.fields = state
+  return {
+    version: 2,
+    currentId: roster.currentId,
+    chars: roster.chars
+  }
+}
+
+function loadRoster() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_KEY)
+    return raw ? normalizeRoster(JSON.parse(raw)) : blankRoster()
+  } catch {
+    return blankRoster()
   }
 }
 
 function save() {
   window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(() => {
-    const json = JSON.stringify(state)
+    const payload = snapshot()
+    let json
+    try {
+      json = JSON.stringify(payload)
+    } catch {
+      return
+    }
+
     try {
       localStorage.setItem(STORAGE_KEY, json)
     } catch {
       // локальный резерв не критичен
     }
+
     if (!remoteConnected) {
+      dirty = false
       $('status').textContent = 'сохранено локально'
       return
     }
-    if (json === lastSentJson) return
+    if (json === lastSentJson) {
+      dirty = false
+      return
+    }
     lastSentJson = json
+    dirty = false
     $('status').textContent = 'общее · сохраняется…'
     try {
-      window.parent.postMessage({ __vttExt: 'root-sheet', type: 'setMetadata', state }, '*')
+      window.parent.postMessage({ __vttExt: 'root-sheet', type: 'setMetadata', state: payload }, '*')
     } catch {
       $('status').textContent = 'не удалось отправить'
     }
@@ -168,6 +314,7 @@ function save() {
 }
 
 function markChanged() {
+  dirty = true
   $('status').textContent = 'есть изменения…'
   save()
 }
@@ -185,10 +332,25 @@ function fillOptions() {
   $('species').innerHTML = SPECIES.map((value) => `<option value="${value}">${value}</option>`).join('')
 }
 
+function renderCharSelect() {
+  const select = $('charSelect')
+  if (!select) return
+  ensureRoster()
+  select.innerHTML = roster.chars
+    .map(
+      (character, index) =>
+        `<option value="${character.id}">${escapeHtml(charLabel(character, index))}</option>`
+    )
+    .join('')
+  select.value = roster.currentId
+  sendTitle()
+}
+
 function bindIdentity() {
   for (const element of document.querySelectorAll('[data-key]')) {
     element.addEventListener('input', () => {
       state[element.dataset.key] = element.value
+      if (element.dataset.key === 'name') renderCharSelect()
       markChanged()
     })
   }
@@ -226,23 +388,20 @@ function renderStats() {
 }
 
 function renderTracks() {
-  const labels = { harm: 'Урон', depletion: 'Истощение' }
-  $('tracks').innerHTML = Object.entries(labels)
-    .map(
-      ([key, label]) => `
-        <div class="track">
-          <h4>${label}</h4>
-          <div class="trackBoxes">
-            ${state[key]
-              .map(
-                (checked, index) =>
-                  `<input type="checkbox" data-track="${key}" data-index="${index}" ${checked ? 'checked' : ''} aria-label="${label} ${index + 1}">`
-              )
-              .join('')}
-          </div>
-        </div>`
-    )
-    .join('')
+  $('tracks').innerHTML = TRACKS.map(
+    (track) => `
+      <div class="track">
+        <h4>${track.label}</h4>
+        <div class="trackBoxes">
+          ${state[track.id]
+            .map(
+              (checked, index) =>
+                `<input type="checkbox" data-track="${track.id}" data-index="${index}" ${checked ? 'checked' : ''} aria-label="${track.label} ${index + 1}">`
+            )
+            .join('')}
+        </div>
+      </div>`
+  ).join('')
 
   for (const input of $('tracks').querySelectorAll('[data-track]')) {
     input.addEventListener('change', () => {
@@ -325,8 +484,8 @@ function escapeHtml(value) {
 function rollStat(statId) {
   const stat = STATS.find((item) => item.id === statId)
   if (!stat) return
-  const d1 = Math.floor(Math.random() * 6) + 1
-  const d2 = Math.floor(Math.random() * 6) + 1
+  const d1 = d6()
+  const d2 = d6()
   const modifier = state.stats[statId] ?? 0
   const total = d1 + d2 + modifier
   const outcome = total >= 10 ? '10+' : total >= 7 ? '7–9' : '6−'
@@ -337,6 +496,16 @@ function rollStat(statId) {
   postChat(text)
 }
 
+function d6() {
+  try {
+    const buffer = new Uint8Array(1)
+    crypto.getRandomValues(buffer)
+    return (buffer[0] % 6) + 1
+  } catch {
+    return Math.floor(Math.random() * 6) + 1
+  }
+}
+
 function renderAll() {
   renderIdentity()
   renderStats()
@@ -345,14 +514,63 @@ function renderAll() {
   for (const kind of Object.keys(LIST_TYPES)) renderList(kind)
 }
 
-function applyRemote(raw) {
-  const next = normalize(raw)
-  const json = JSON.stringify(next)
-  if (json === lastSentJson || json === JSON.stringify(state)) return
-  applyingRemote = true
-  state = next
+function showCharacter(id, options = {}) {
+  ensureRoster()
+  roster.currentId = roster.chars.some((character) => character.id === id) ? id : roster.chars[0].id
+  state = currentChar().fields
   renderAll()
-  applyingRemote = false
+  renderCharSelect()
+  if (options.save !== false) save()
+}
+
+function addCharacter() {
+  ensureRoster()
+  if (roster.chars.length >= MAX_CHARS) return
+  const character = blankCharacter()
+  roster.chars.push(character)
+  showCharacter(character.id)
+  $('status').textContent = 'создан новый бродяга'
+  window.setTimeout(() => {
+    const input = document.querySelector('[data-key="name"]')
+    if (input) input.focus()
+  }, 60)
+}
+
+function deleteCharacter() {
+  ensureRoster()
+  const character = currentChar()
+  if (!character) return
+  const label = charLabel(character, roster.chars.indexOf(character))
+  const question =
+    roster.chars.length === 1
+      ? `Удалить лист «${label}»? Вместо него будет создан пустой.`
+      : `Удалить лист «${label}»?`
+  if (!window.confirm(question)) return
+
+  roster.chars = roster.chars.filter((item) => item.id !== character.id)
+  if (roster.chars.length === 0) roster.chars.push(blankCharacter())
+  showCharacter(roster.chars[0].id)
+  $('status').textContent = 'лист удалён'
+}
+
+function applyRemote(raw) {
+  const next = normalizeRoster(raw)
+  const json = JSON.stringify(next)
+  if (json === lastSentJson || json === JSON.stringify(snapshot())) return
+
+  if (dirty) {
+    const local = currentChar()
+    const incoming = local ? next.chars.find((character) => character.id === local.id) : null
+    if (incoming) incoming.fields = { ...incoming.fields, ...state }
+  }
+
+  // currentId уже подставлен хостом под локальный выбор клиента
+  // (perClientSelection), поэтому доверяем ему.
+  roster = next
+  ensureRoster()
+  state = currentChar().fields
+  renderAll()
+  renderCharSelect()
 }
 
 window.addEventListener('message', (event) => {
@@ -373,8 +591,12 @@ try {
 
 fillOptions()
 bindIdentity()
-state = load()
+roster = loadRoster()
+ensureRoster()
+state = currentChar().fields
 renderAll()
+renderCharSelect()
+window.setTimeout(sendTitle, 400)
 
 for (const button of document.querySelectorAll('[data-add]')) {
   button.addEventListener('click', () => {
@@ -386,17 +608,28 @@ for (const button of document.querySelectorAll('[data-add]')) {
   })
 }
 
+$('charSelect').addEventListener('change', () => showCharacter($('charSelect').value))
+$('newChar').addEventListener('click', addCharacter)
+$('deleteChar').addEventListener('click', deleteCharacter)
+
 $('reset').addEventListener('click', () => {
-  if (!window.confirm('Сбросить лист персонажа?')) return
-  state = blankState()
+  if (!window.confirm('Сбросить поля текущего листа?')) return
+  const character = currentChar()
+  if (!character) return
+  state = blankFields()
+  character.fields = state
   lastSentJson = null
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // ignore
-  }
   renderAll()
+  renderCharSelect()
   save()
   $('lastRoll').classList.add('hidden')
   $('status').textContent = 'лист сброшен'
+})
+
+window.addEventListener('pagehide', () => {
+  if (dirty) save()
+})
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && dirty) save()
 })
