@@ -241,6 +241,15 @@ function cardById(id) {
   return state.cards.find((card) => card.id === id) || null
 }
 
+/** Игроку показываем только карточки, выданные героям. */
+function visibleCards() {
+  if (isGm()) return state.cards
+  const ids = new Set(
+    state.chars.filter((char) => char.kind === 'hero' && char.equipment).map((char) => char.equipment)
+  )
+  return state.cards.filter((card) => ids.has(card.id))
+}
+
 function activeEquipment(char = currentChar()) {
   if (!char || !char.equipment) return null
   return cardById(char.equipment)
@@ -1150,6 +1159,16 @@ function renderCheck() {
   }
 
   $('checkBonus').checked = checkBonus
+  const info = $('checkSkillInfo')
+  if (checkSkill) {
+    info.innerHTML = ''
+    const name = document.createElement('b')
+    name.textContent = `${checkSkill.title}: `
+    info.append(name, document.createTextNode(checkSkill.description))
+    info.classList.remove('hidden')
+  } else {
+    info.classList.add('hidden')
+  }
   const pool = char.pools[checkStat] || 0
   const dice = 1 + pool + (checkBonus ? 1 : 0)
   const skillText = checkSkill ? ` · ${checkSkill.title}` : ''
@@ -1431,12 +1450,19 @@ let activeCardId = null
 
 function openCards(cardId) {
   $('cardsModal').classList.remove('hidden')
-  if (cardId && cardById(cardId)) activeCardId = cardId
-  if (!activeCardId && state.cards[0]) activeCardId = state.cards[0].id
+  const list = visibleCards()
+  if (cardId && list.some((card) => card.id === cardId)) activeCardId = cardId
+  if (!activeCardId || !list.some((card) => card.id === activeCardId)) {
+    activeCardId = list[0] ? list[0].id : null
+  }
   renderCards()
 }
 
 function renderCards() {
+  const list = visibleCards()
+  if (activeCardId && !list.some((card) => card.id === activeCardId)) {
+    activeCardId = list[0] ? list[0].id : null
+  }
   renderCardList()
   const card = activeCardId ? cardById(activeCardId) : null
   renderCardPreview(card)
@@ -1446,13 +1472,16 @@ function renderCards() {
 function renderCardList() {
   const list = $('cardList')
   list.innerHTML = ''
-  if (state.cards.length === 0) {
+  const source = visibleCards()
+  if (source.length === 0) {
     const empty = document.createElement('p')
     empty.className = 'muted'
-    empty.textContent = 'Карточек пока нет.'
+    empty.textContent = isGm()
+      ? 'Карточек пока нет.'
+      : 'Мастер ещё не выдал снаряжение.'
     list.appendChild(empty)
   }
-  for (const card of state.cards) {
+  for (const card of source) {
     const row = document.createElement('button')
     row.type = 'button'
     row.className = `card-row ${card.id === activeCardId ? 'active' : ''}`
