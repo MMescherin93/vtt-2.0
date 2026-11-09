@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { BUILT_IN_EXTENSIONS, isExtensionVisible } from '@vtt/shared/plugins'
 import {
   Board,
@@ -107,6 +107,8 @@ export function BoardView() {
   const rootRollOpen = rootRollEnabled && (modulePanels['root-roll'] ?? false)
   const rootMovesEnabled = extensions['root-moves'] ?? false
   const rootMovesOpen = rootMovesEnabled && (modulePanels['root-moves'] ?? false)
+  const herokidsEnabled = extensions['herokids'] ?? false
+  const herokidsOpen = herokidsEnabled && (modulePanels['herokids'] ?? false)
 
   // Активированные модули с панелью получают иконку в доке справа сверху
   const dockModules = BUILT_IN_EXTENSIONS.filter(
@@ -411,6 +413,24 @@ export function BoardView() {
         />
       )}
 
+      {herokidsOpen && (
+        <CharacterSheetFrame
+          title="Hero Kids — лист персонажа"
+          src={`${assetsBaseUrl}/extensions/herokids/index.html`}
+          extensionId="herokids"
+          role="gm"
+          metaKey="com.herokids/state"
+          state={session.extensionState['herokids'] ?? null}
+          onChange={(next) => void setExtensionState('herokids', next)}
+          onChat={sendChat}
+          onClose={() => toggleModulePanel('herokids', false)}
+          width={Math.min(1240, window.innerWidth - 48)}
+          height={Math.min(960, window.innerHeight - 140)}
+          storageKey="vtt.gm.panel.herokids"
+          defaultPosition={{ x: 40, y: 12 }}
+        />
+      )}
+
       <ModuleDock
         modules={dockModules}
         open={modulePanels}
@@ -465,3 +485,4 @@ export function BoardView() {
     </div>
   )
 }
+

@@ -33,6 +33,11 @@ export const EXTENSION_CATEGORIES: ExtensionCategory[] = [
     description: 'Модули для Root: The Roleplaying Game — листы бродяг, броски и ходы'
   },
   {
+    id: 'herokids',
+    title: 'Hero Kids',
+    description: 'Модули игры «Маленькие герои»: лист персонажа и карточки снаряжения'
+  },
+  {
     id: 'library',
     title: 'Библиотека',
     description: 'PDF-документы, заметки и материалы кампании'
@@ -254,6 +259,18 @@ export const BUILT_IN_EXTENSIONS: ExtensionDefinition[] = [
     panel: true,
     playerWritable: true,
     metaKey: 'com.azag.sheet/state'
+  },
+  {
+    id: 'herokids',
+    title: 'Hero Kids — лист персонажа',
+    description:
+      'Лист героя и монстра по карточке из книги: пулы кубиков, здоровье, навыки и предметы, карточки снаряжения, броски 3D-кубиков. Создаёт и заполняет Мастер, игроки бросают',
+    scope: 'both',
+    defaultEnabled: false,
+    category: 'herokids',
+    icon: '/extensions/herokids/icon.svg',
+    panel: true,
+    metaKey: 'com.herokids/state'
   }
 ]
 
