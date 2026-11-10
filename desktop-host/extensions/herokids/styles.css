@@ -76,10 +76,10 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 
 .name {
   position: absolute;
-  left: 36.8%;
-  top: 19.9%;
-  width: 36%;
-  height: 4.4%;
+  left: 25.2%;
+  top: 17.9%;
+  width: 49%;
+  height: 3.7%;
   border: 0;
   outline: 0;
   background: transparent;
@@ -87,48 +87,21 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   font-weight: 700;
   font-size: 21px;
   color: var(--ink);
-  text-align: center;
-  letter-spacing: 0.2px;
-}
-.name-row {
-  position: absolute;
-  left: 34.0%;
-  top: 18.5%;
-  width: 34.0%;
-  height: 3.7%;
-  display: flex;
-  align-items: center;
-  z-index: 12;
-}
-.name-row .name {
-  position: static;
-  left: auto;
-  top: auto;
-  width: auto;
-  height: 100%;
   text-align: left;
+  letter-spacing: 0.2px;
   padding: 0 2px;
 }
-.name-row .class-name {
-  flex: 0 0 auto;
-  field-sizing: content;
-  min-width: 1ch;
-  max-width: 16%;
-}
-.name-colon {
-  flex: 0 0 auto;
-  padding: 0 5px 0 1px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-weight: 700;
-  font-size: 21px;
-  color: var(--ink);
-  pointer-events: none;
-}
-.name-row .hero-name {
-  flex: 1 1 auto;
-  min-width: 0;
-}
 .name[readonly] { cursor: default; }
+.name-underline {
+  position: absolute;
+  left: 25.2%;
+  top: 21.45%;
+  width: 49%;
+  height: 2px;
+  background: rgba(74, 58, 34, 0.62);
+  pointer-events: none;
+  z-index: 11;
+}
 .name:not([readonly]) {
   background: transparent;
   border: 1.5px dashed transparent;
@@ -136,8 +109,8 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   cursor: text;
   z-index: 12;
   pointer-events: auto;
-  height: 4.4%;
-  top: 19.9%;
+  height: 3.7%;
+  top: 17.9%;
 }
 .name:not([readonly]):hover {
   border-color: rgba(138, 106, 26, 0.45);
@@ -151,10 +124,6 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 .sheet.editing .name:not([readonly]) {
   border-color: rgba(138, 106, 26, 0.55);
   background: rgba(255, 252, 240, 0.35);
-}
-.name-row input.name {
-  top: auto;
-  height: 100%;
 }
 
 /* Кубики пулов */

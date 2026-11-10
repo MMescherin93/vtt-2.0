@@ -10,11 +10,8 @@
     <div class="app" id="app">
       <div class="stage" id="stage">
         <div class="sheet hero" id="sheet">
-          <div class="name-row">
-            <input id="classInput" class="name class-name" maxlength="30" readonly aria-label="Класс" placeholder="Класс" />
-            <span class="name-colon" aria-hidden="true">:</span>
-            <input id="nameInput" class="name hero-name" maxlength="40" readonly aria-label="Имя" placeholder="Имя героя" />
-          </div>
+          <input id="nameInput" class="name" maxlength="40" readonly aria-label="Имя" placeholder="Имя героя" />
+          <div class="name-underline" aria-hidden="true"></div>
 
           <div class="pools" id="pools"></div>
           <div class="health" id="health"></div>
@@ -80,7 +77,6 @@
         </header>
         <div class="form-grid">
           <label>Имя<input id="setName" maxlength="40" autocomplete="off" /></label>
-          <label>Архетип<input id="setArchetype" maxlength="30" autocomplete="off" /></label>
           <label>Тип
             <select id="setKind">
               <option value="hero">Герой</option>

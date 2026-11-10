@@ -74,7 +74,6 @@ function blankChar(kind = 'hero') {
     id: uid('h'),
     kind,
     name: '',
-    archetype: kind === 'monster' ? 'Монстр' : 'Воин',
     portrait: '',
     pools: blankPools(),
     healthMax: kind === 'monster' ? 1 : 3,
@@ -143,7 +142,6 @@ function normalizeChar(raw) {
     id: typeof src.id === 'string' && src.id ? src.id.slice(0, 40) : uid('h'),
     kind,
     name: text(src.name, 40),
-    archetype: text(src.archetype, 30) || (kind === 'monster' ? 'Монстр' : 'Воин'),
     portrait: safePortrait,
     pools,
     healthMax,
@@ -439,11 +437,9 @@ function renderSheet() {
   const char = currentChar()
   const sheet = $('sheet')
   const nameInput = $('nameInput')
-  const classInput = $('classInput')
   if (!char) {
     sheet.classList.add('monster')
     nameInput.value = ''
-    classInput.value = ''
     $('pools').innerHTML = ''
     $('health').innerHTML = ''
     $('inventory').innerHTML = ''
@@ -456,11 +452,8 @@ function renderSheet() {
   sheet.classList.toggle('monster', char.kind === 'monster')
   sheet.classList.toggle('editing', isGm() && editMode)
   nameInput.value = char.name
-  classInput.value = char.archetype
   nameInput.readOnly = !isGm()
-  classInput.readOnly = !isGm()
   nameInput.placeholder = char.kind === 'monster' ? 'Имя монстра' : 'Имя героя'
-  classInput.placeholder = char.kind === 'monster' ? 'Тип' : 'Класс'
 
   const portrait = $('portraitImg')
   const frame = $('portraitFrame')
@@ -708,7 +701,7 @@ function renderDock() {
       const option = document.createElement('option')
       const name = item.name || (item.kind === 'monster' ? 'Монстр' : 'Герой')
       option.value = item.id
-      option.textContent = `${name} · ${item.archetype || KIND_LABELS[item.kind]}`
+      option.textContent = name
       select.appendChild(option)
     }
     select.value = char ? char.id : list[0].id
@@ -773,7 +766,6 @@ function openSettings() {
   settingsChar = char
   $('settingsTitle').textContent = char.kind === 'monster' ? 'Настройки монстра' : 'Настройки героя'
   $('setName').value = char.name
-  $('setArchetype').value = char.archetype
   $('setKind').value = char.kind
   $('setHealth').value = char.kind === 'hero' ? '3' : String(char.healthMax)
   $('setHealth').disabled = char.kind === 'hero'
@@ -972,8 +964,6 @@ function saveSettings() {
   if (!char) return
   char.name = text($('setName').value, 40)
   char.kind = $('setKind').value === 'monster' ? 'monster' : 'hero'
-  char.archetype =
-    text($('setArchetype').value, 30) || (char.kind === 'monster' ? 'Монстр' : 'Воин')
   char.healthMax =
     char.kind === 'hero' ? 3 : clamp(round($('setHealth').value) || 1, 1, 4)
   char.damage = clamp(char.damage, 0, char.healthMax)
@@ -990,7 +980,6 @@ function addChar(kind) {
   const char = blankChar(kind)
   char.name = kind === 'monster' ? 'Новый монстр' : 'Новый герой'
   if (kind === 'monster') {
-    char.archetype = 'Монстр'
     char.pools = { melee: 1, ranged: 0, magic: 0, armor: 1 }
     char.attack = 'Атака по соседней цели.'
   }
@@ -2189,16 +2178,7 @@ function bind() {
     if (!char || !isGm()) return
     char.name = text($('nameInput').value, 40)
     const option = $('charSelect').selectedOptions[0]
-    if (option) option.textContent = `${char.name || 'Без имени'} · ${char.archetype || KIND_LABELS[char.kind]}`
-    scheduleSave()
-  })
-
-  $('classInput').addEventListener('input', () => {
-    const char = currentChar()
-    if (!char || !isGm()) return
-    char.archetype = text($('classInput').value, 30)
-    const option = $('charSelect').selectedOptions[0]
-    if (option) option.textContent = `${char.name || 'Без имени'} · ${char.archetype || KIND_LABELS[char.kind]}`
+    if (option) option.textContent = char.name || 'Без имени'
     scheduleSave()
   })
 
@@ -2297,7 +2277,6 @@ function seedDemo() {
   })
   const hero = normalizeChar({
     name: 'Костя',
-    archetype: 'Воин',
     kind: 'hero',
     portrait: 'portrait-warrior.png',
     pools: { melee: 2, ranged: 0, magic: 0, armor: 2 },
@@ -2321,7 +2300,6 @@ function seedDemo() {
 function seedMonster() {
   const monster = normalizeChar({
     name: 'Огромная крыса',
-    archetype: 'Монстр',
     kind: 'monster',
     portrait: 'portrait-rat.png',
     pools: { melee: 1, ranged: 0, magic: 0, armor: 1 },
@@ -2404,6 +2382,7 @@ init().catch((error) => {
   const status = $('status')
   if (status) status.textContent = 'ошибка загрузки'
 })
+
 
 
 
