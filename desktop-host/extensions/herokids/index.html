@@ -37,12 +37,12 @@
         <div class="sep"></div>
         <div class="rolls" id="rolls"></div>
         <div class="sep"></div>
-        <button id="cardsBtn" class="round-btn" type="button" title="Карточки снаряжения">🗂</button>
+        <button id="libraryItemsBtn" class="lib-btn" type="button" title="Библиотека предметов и навыков">📖 <span>Предметы и навыки</span></button>
         <div class="sep gmOnly"></div>
         <div class="tools gmOnly">
           <button id="modeBtn" class="round-btn" type="button" title="Режим редактирования">✏️</button>
           <button id="editBtn" class="round-btn" type="button" title="Настройки листа">⚙</button>
-          <button id="libraryBtn" class="round-btn" type="button" title="Библиотека навыков и предметов">📚</button>
+          <button id="libraryBtn" class="round-btn" type="button" title="Добавить навыки и предметы из книги">📚</button>
           <button id="moreBtn" class="round-btn" type="button" title="Ещё">⋯</button>
         </div>
       </div>
@@ -96,15 +96,32 @@
         <div class="section-label">Пулы кубиков <span id="buildHint"></span></div>
         <div class="pool-editor" id="poolEditor"></div>
 
+        <div class="section-label">Навыки и предметы</div>
+        <div class="inv-editor">
+          <div class="inv-row">
+            <label for="skillSelect">Навык</label>
+            <div class="inv-add">
+              <select id="skillSelect"></select>
+              <button type="button" class="ghost" id="skillAdd">Добавить</button>
+            </div>
+            <div class="chips" id="skillChips"></div>
+          </div>
+          <div class="inv-row">
+            <label for="itemSelect">Предмет</label>
+            <div class="inv-add">
+              <select id="itemSelect"></select>
+              <button type="button" class="ghost" id="itemAdd">Добавить</button>
+            </div>
+            <div class="chips" id="itemChips"></div>
+          </div>
+        </div>
+
         <div class="section-label">Портрет</div>
         <div class="portrait-row">
           <button type="button" class="ghost" id="portraitPick">Выбрать файл…</button>
           <button type="button" class="ghost" id="portraitClear">Убрать</button>
           <span class="muted">PNG, JPEG или WebP до 10 МБ. Сжимается автоматически.</span>
         </div>
-
-        <div class="section-label">Активное снаряжение</div>
-        <select id="setEquipment" class="wide"></select>
 
         <footer class="modal-foot">
           <button type="button" class="ghost" data-close>Отмена</button>
@@ -131,16 +148,30 @@
     <div class="modal hidden" id="cardsModal">
       <div class="cards-box">
         <header class="modal-head">
-          <h2>Карточки снаряжения</h2>
-          <button type="button" class="primary gmOnly" id="newCardBtn">+ Новая</button>
+          <h2>Библиотека предметов и навыков</h2>
+          <button type="button" class="primary gmOnly" id="newCardBtn">+ Карточка</button>
           <button type="button" class="x" data-close>×</button>
         </header>
-        <div class="cards-layout">
+        <div class="tabs cards-tabs" id="cardsTabs">
+          <button type="button" data-tab="items">Карточки предметов</button>
+          <button type="button" data-tab="skills">Навыки и инвентарь</button>
+        </div>
+        <div class="cards-layout" id="cardsLayout">
           <aside class="card-list" id="cardList"></aside>
           <div class="card-preview-wrap">
             <div class="item-card" id="cardPreview"></div>
           </div>
           <div class="card-editor" id="cardEditor"></div>
+        </div>
+        <div class="skills-layout hidden" id="skillsLayout">
+          <section class="skills-col">
+            <h3>Навыки</h3>
+            <div id="skillsList"></div>
+          </section>
+          <section class="skills-col">
+            <h3>Инвентарь</h3>
+            <div id="itemsList"></div>
+          </section>
         </div>
       </div>
     </div>
@@ -210,6 +241,9 @@
     <script type="module" src="app.js"></script>
   </body>
 </html>
+
+
+
 
 
 

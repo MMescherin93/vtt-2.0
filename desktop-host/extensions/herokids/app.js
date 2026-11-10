@@ -42,7 +42,6 @@ const CATALOG_BY_ID = new Map(CATALOG.map((item) => [item.id, item]))
 const SKILLS = CATALOG.filter((item) => item.category === 'skill')
 const ITEMS = CATALOG.filter((item) => item.category === 'item')
 const ABILITIES = CATALOG.filter((item) => item.category === 'ability')
-const ART_ICONS = CATALOG.filter((item) => item.category !== 'stat' || item.id === 'melee' || item.id === 'armor')
 
 const $ = (id) => document.getElementById(id)
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
@@ -58,17 +57,6 @@ function uid(prefix) {
 
 function text(value, max) {
   return String(value ?? '').slice(0, max)
-}
-
-function iconSrc(id) {
-  const item = CATALOG_BY_ID.get(id)
-  return item ? item.file : ''
-}
-
-function artSrc(art) {
-  if (!art) return ''
-  if (art.startsWith('data:image/')) return art
-  return iconSrc(art)
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,8 +81,7 @@ function blankChar(kind = 'hero') {
     action: '',
     ability: '',
     skills: [],
-    items: [],
-    equipment: null
+    items: []
   }
 }
 
@@ -106,12 +93,12 @@ function blankCard() {
   return {
     id: uid('c'),
     title: 'Новая карточка',
-    kind: 'equipment',
-    art: 'melee',
+    kind: 'item',
+    art: '',
     flavor: '',
     effect: '',
-    note: CARD_NOTES.equipment,
-    bonuses: {}
+    note: CARD_NOTES.item,
+    assignedTo: []
   }
 }
 
@@ -157,21 +144,24 @@ function normalizeChar(raw) {
     action: text(src.action, 400),
     ability: text(src.ability, 400),
     skills,
-    items,
-    equipment: typeof src.equipment === 'string' ? src.equipment : null
+    items
   }
 }
 
 function normalizeCard(raw) {
   const src = raw && typeof raw === 'object' ? raw : {}
   const kind = Object.prototype.hasOwnProperty.call(CARD_KINDS, src.kind) ? src.kind : 'equipment'
-  const bonuses = {}
-  for (const pool of POOLS) {
-    const value = round(src.bonuses && src.bonuses[pool.id])
-    if (value) bonuses[pool.id] = clamp(value, -2, 2)
-  }
-  let art = typeof src.art === 'string' ? src.art.slice(0, MAX_PORTRAIT) : 'melee'
-  if (art && !art.startsWith('data:image/') && !CATALOG_BY_ID.has(art)) art = 'melee'
+  const art =
+    typeof src.art === 'string' &&
+    src.art.startsWith('data:image/') &&
+    src.art.length <= MAX_PORTRAIT
+      ? src.art
+      : ''
+  const assignedTo = Array.isArray(src.assignedTo)
+    ? src.assignedTo
+        .filter((id, index, list) => typeof id === 'string' && id && list.indexOf(id) === index)
+        .slice(0, MAX_CHARS)
+    : []
   return {
     id: typeof src.id === 'string' && src.id ? src.id.slice(0, 40) : uid('c'),
     title: text(src.title, 40) || 'Без названия',
@@ -180,16 +170,30 @@ function normalizeCard(raw) {
     flavor: text(src.flavor, 90),
     effect: text(src.effect, 260),
     note: text(src.note, 200) || CARD_NOTES[kind],
-    bonuses
+    assignedTo
   }
 }
 
 function normalizeState(raw) {
   if (!raw || typeof raw !== 'object') return null
-  const chars = Array.isArray(raw.chars) ? raw.chars.slice(0, MAX_CHARS).map(normalizeChar) : []
+  const rawChars = Array.isArray(raw.chars) ? raw.chars.slice(0, MAX_CHARS) : []
+  const chars = rawChars.map(normalizeChar)
   const cards = Array.isArray(raw.cards) ? raw.cards.slice(0, MAX_CARDS).map(normalizeCard) : []
+
+  // Миграция старого поля equipment: карточка становится выданной герою.
+  for (const rawChar of rawChars) {
+    const legacy = rawChar && typeof rawChar.equipment === 'string' ? rawChar.equipment : ''
+    if (!legacy) continue
+    const id = typeof rawChar.id === 'string' ? rawChar.id : ''
+    const card = cards.find((item) => item.id === legacy)
+    if (card && id && !card.assignedTo.includes(id)) card.assignedTo.push(id)
+  }
+
+  const alive = new Set(chars.map((char) => char.id))
+  for (const card of cards) card.assignedTo = card.assignedTo.filter((id) => alive.has(id))
+
   let currentId = typeof raw.currentId === 'string' ? raw.currentId : null
-  if (currentId && !chars.some((char) => char.id === currentId)) currentId = null
+  if (currentId && !alive.has(currentId)) currentId = null
   return { version: 1, currentId, chars, cards }
 }
 
@@ -241,23 +245,11 @@ function cardById(id) {
   return state.cards.find((card) => card.id === id) || null
 }
 
-/** Игроку показываем только карточки, выданные героям. */
-function visibleCards() {
+/** Игроку показываем только карточки, выданные его текущему герою. */
+function visibleCards(char = currentChar()) {
   if (isGm()) return state.cards
-  const ids = new Set(
-    state.chars.filter((char) => char.kind === 'hero' && char.equipment).map((char) => char.equipment)
-  )
-  return state.cards.filter((card) => ids.has(card.id))
-}
-
-function activeEquipment(char = currentChar()) {
-  if (!char || !char.equipment) return null
-  return cardById(char.equipment)
-}
-
-function equipmentBonus(poolId, char = currentChar()) {
-  const card = activeEquipment(char)
-  return card && card.bonuses ? round(card.bonuses[poolId]) : 0
+  if (!char) return []
+  return state.cards.filter((card) => card.assignedTo.includes(char.id))
 }
 
 function ensureSelection() {
@@ -451,8 +443,9 @@ function renderSheet() {
   }
 
   sheet.classList.toggle('monster', char.kind === 'monster')
+  sheet.classList.toggle('editing', isGm() && editMode)
   nameInput.value = char.name
-  nameInput.readOnly = !(isGm() && editMode)
+  nameInput.readOnly = !isGm()
   nameInput.placeholder = char.kind === 'monster' ? 'Имя монстра' : 'Имя героя'
 
   const portrait = $('portraitImg')
@@ -567,71 +560,63 @@ function renderBlocks(char) {
 function renderInventory(char) {
   const root = $('inventory')
   root.innerHTML = ''
+  root.classList.toggle('editing', isGm() && editMode)
+  root.title = isGm() && editMode ? 'Нажмите, чтобы изменить навыки и предметы' : ''
   if (char.kind === 'monster') return
 
-  const card = activeEquipment(char)
-  if (card) {
-    const slot = document.createElement('button')
-    slot.type = 'button'
-    slot.className = 'slot equipment'
-    slot.title = `${card.title} (${CARD_KINDS[card.kind]})`
-    const img = document.createElement('img')
-    img.src = artSrc(card.art) || 'icons/stat-melee.png'
-    img.alt = ''
-    slot.appendChild(img)
-    const sum = Object.values(card.bonuses || {}).reduce((total, value) => total + round(value), 0)
-    if (sum) {
-      const badge = document.createElement('span')
-      badge.className = 'count bonus'
-      badge.textContent = `${sum > 0 ? '+' : ''}${sum}`
-      slot.appendChild(badge)
-    }
-    slot.addEventListener('click', () => openCards(card.id))
-    root.appendChild(slot)
-  }
-
+  const entries = []
   for (const id of char.skills) {
     const item = CATALOG_BY_ID.get(id)
-    if (!item) continue
-    const slot = document.createElement('button')
-    slot.type = 'button'
-    slot.className = 'slot'
-    slot.title = `${item.title} — проверка (стр. ${item.page})`
-    const img = document.createElement('img')
-    img.src = item.file
-    img.alt = item.title
-    slot.appendChild(img)
-    slot.addEventListener('click', () => {
-      if (isGm() && editMode) {
-        char.skills = char.skills.filter((skill) => skill !== id)
-        scheduleSave()
-        renderInventory(char)
-        return
-      }
-      openCheck({ skill: item })
-    })
-    root.appendChild(slot)
+    if (item) entries.push({ kind: 'skill', item })
+  }
+  for (const row of char.items) {
+    const item = CATALOG_BY_ID.get(row.id)
+    if (item) entries.push({ kind: 'item', item, count: row.count })
   }
 
-  for (const entry of char.items) {
-    const item = CATALOG_BY_ID.get(entry.id)
-    if (!item) continue
+  const maxVisible = 15
+  const shown = entries.length > 16 ? entries.slice(0, maxVisible) : entries
+  for (const entry of shown) {
     const slot = document.createElement('button')
     slot.type = 'button'
     slot.className = 'slot'
-    slot.title = `${item.title} × ${entry.count}`
+    const item = entry.item
+    slot.title =
+      entry.kind === 'skill'
+        ? `${item.title} — проверка (стр. ${item.page})`
+        : `${item.title} × ${entry.count}`
     const img = document.createElement('img')
     img.src = item.file
     img.alt = item.title
     slot.appendChild(img)
-    if (entry.count > 1) {
+    if (entry.kind === 'item' && entry.count > 1) {
       const badge = document.createElement('span')
       badge.className = 'count'
       badge.textContent = String(entry.count)
       slot.appendChild(badge)
     }
-    slot.addEventListener('click', () => openItem(entry.id))
+    slot.addEventListener('click', () => {
+      if (isGm() && editMode) {
+        openSettings()
+        return
+      }
+      if (entry.kind === 'skill') openCheck({ skill: item })
+      else openItem(item.id)
+    })
     root.appendChild(slot)
+  }
+
+  if (entries.length > shown.length) {
+    const more = document.createElement('button')
+    more.type = 'button'
+    more.className = 'slot'
+    more.title = 'Показать всё'
+    more.textContent = `+${entries.length - shown.length}`
+    more.addEventListener('click', () => {
+      if (isGm() && editMode) openSettings()
+      else openSkillsTab()
+    })
+    root.appendChild(more)
   }
 }
 
@@ -673,7 +658,7 @@ function renderDock() {
 
 function rollCount(poolId, char) {
   if (!char) return 0
-  return clamp(round(char.pools[poolId]) + equipmentBonus(poolId, char), 0, 10)
+  return clamp(round(char.pools[poolId]), 0, 10)
 }
 
 function renderRolls(char) {
@@ -732,7 +717,7 @@ function openSettings() {
   $('setHealth').value = String(char.healthMax)
   draftPools = { ...char.pools }
   renderPoolEditor()
-  renderEquipmentSelect()
+  renderSettingsInventory()
   $('settingsModal').classList.remove('hidden')
   setTimeout(() => $('setName').focus(), 30)
 }
@@ -786,20 +771,169 @@ function renderBuildHint() {
   hint.classList.toggle('bad', cost !== 4)
 }
 
-function renderEquipmentSelect() {
-  const select = $('setEquipment')
-  select.innerHTML = ''
-  const none = document.createElement('option')
-  none.value = ''
-  none.textContent = '— без снаряжения —'
-  select.appendChild(none)
-  for (const card of state.cards) {
+function renderSettingsInventory() {
+  const char = settingsChar
+  if (!char) return
+
+  const skillSelect = $('skillSelect')
+  skillSelect.innerHTML = ''
+  const skillPlaceholder = document.createElement('option')
+  skillPlaceholder.value = ''
+  skillPlaceholder.textContent = '— выбрать навык —'
+  skillSelect.appendChild(skillPlaceholder)
+  for (const skill of SKILLS) {
+    if (char.skills.includes(skill.id)) continue
     const option = document.createElement('option')
-    option.value = card.id
-    option.textContent = `${card.title} · ${CARD_KINDS[card.kind]}`
-    select.appendChild(option)
+    option.value = skill.id
+    option.textContent = skill.title
+    skillSelect.appendChild(option)
   }
-  select.value = settingsChar && settingsChar.equipment ? settingsChar.equipment : ''
+
+  const itemSelect = $('itemSelect')
+  itemSelect.innerHTML = ''
+  const itemPlaceholder = document.createElement('option')
+  itemPlaceholder.value = ''
+  itemPlaceholder.textContent = '— выбрать предмет —'
+  itemSelect.appendChild(itemPlaceholder)
+  for (const item of ITEMS) {
+    const option = document.createElement('option')
+    option.value = item.id
+    option.textContent = item.title
+    itemSelect.appendChild(option)
+  }
+
+  const skillChips = $('skillChips')
+  skillChips.innerHTML = ''
+  if (char.kind === 'monster') {
+    const note = document.createElement('span')
+    note.className = 'muted'
+    note.textContent = 'У монстра нет навыков — только способности.'
+    skillChips.appendChild(note)
+  } else if (char.skills.length === 0) {
+    const note = document.createElement('span')
+    note.className = 'muted'
+    note.textContent = 'Навыки не выбраны.'
+    skillChips.appendChild(note)
+  }
+  for (const id of char.skills) {
+    const skill = CATALOG_BY_ID.get(id)
+    if (!skill) continue
+    skillChips.appendChild(makeChip(skill, null, () => {
+      char.skills = char.skills.filter((row) => row !== id)
+      scheduleSave()
+      renderSettingsInventory()
+      renderSheet()
+    }))
+  }
+
+  const itemChips = $('itemChips')
+  itemChips.innerHTML = ''
+  if (char.items.length === 0) {
+    const note = document.createElement('span')
+    note.className = 'muted'
+    note.textContent = 'Предметы не выбраны.'
+    itemChips.appendChild(note)
+  }
+  for (const row of char.items) {
+    const item = CATALOG_BY_ID.get(row.id)
+    if (!item) continue
+    const chip = makeChip(item, row.count, () => {
+      char.items = char.items.filter((entry) => entry.id !== row.id)
+      scheduleSave()
+      renderSettingsInventory()
+      renderSheet()
+    })
+    const minus = document.createElement('button')
+    minus.type = 'button'
+    minus.textContent = '−'
+    minus.title = 'Меньше'
+    minus.addEventListener('click', (event) => {
+      event.stopPropagation()
+      row.count = clamp(row.count - 1, 0, 99)
+      if (row.count === 0) char.items = char.items.filter((entry) => entry.id !== row.id)
+      scheduleSave()
+      renderSettingsInventory()
+      renderSheet()
+    })
+    const plus = document.createElement('button')
+    plus.type = 'button'
+    plus.textContent = '+'
+    plus.title = 'Больше'
+    plus.addEventListener('click', (event) => {
+      event.stopPropagation()
+      row.count = clamp(row.count + 1, 1, 99)
+      scheduleSave()
+      renderSettingsInventory()
+      renderSheet()
+    })
+    chip.insertBefore(minus, chip.lastChild)
+    chip.insertBefore(plus, chip.lastChild)
+    itemChips.appendChild(chip)
+  }
+}
+
+function makeChip(item, count, onRemove) {
+  const chip = document.createElement('span')
+  chip.className = 'chip'
+  const img = document.createElement('img')
+  img.src = item.file
+  img.alt = ''
+  chip.appendChild(img)
+  const title = document.createElement('span')
+  title.textContent = item.title
+  chip.appendChild(title)
+  if (count) {
+    const badge = document.createElement('span')
+    badge.className = 'cnt'
+    badge.textContent = `×${count}`
+    chip.appendChild(badge)
+  }
+  const remove = document.createElement('button')
+  remove.type = 'button'
+  remove.textContent = '✕'
+  remove.title = 'Убрать'
+  remove.addEventListener('click', (event) => {
+    event.stopPropagation()
+    onRemove()
+  })
+  chip.appendChild(remove)
+  return chip
+}
+
+function addSkillFromSettings() {
+  const char = settingsChar
+  const id = $('skillSelect').value
+  if (!char || !isGm() || !id) return
+  const skill = CATALOG_BY_ID.get(id)
+  if (!skill || skill.category !== 'skill') return
+  if (char.skills.length >= 10) {
+    toast('У героя уже 10 навыков')
+    return
+  }
+  if (!char.skills.includes(id)) char.skills.push(id)
+  scheduleSave()
+  renderSettingsInventory()
+  renderSheet()
+}
+
+function addItemFromSettings() {
+  const char = settingsChar
+  const id = $('itemSelect').value
+  if (!char || !isGm() || !id) return
+  const item = CATALOG_BY_ID.get(id)
+  if (!item || item.category !== 'item') return
+  const row = char.items.find((entry) => entry.id === id)
+  if (row) row.count = clamp(row.count + 1, 1, 99)
+  else {
+    if (char.items.length >= 20) {
+      toast('Слишком много предметов')
+      return
+    }
+    char.items.push({ id, count: 1 })
+  }
+  scheduleSave()
+  renderSettingsInventory()
+  renderSheet()
 }
 
 function saveSettings() {
@@ -812,7 +946,6 @@ function saveSettings() {
   char.healthMax = clamp(round($('setHealth').value) || 3, 1, 4)
   char.damage = clamp(char.damage, 0, char.healthMax)
   char.pools = { ...draftPools }
-  char.equipment = $('setEquipment').value || null
   if (char.kind === 'monster') char.skills = []
   closeModal($('settingsModal'))
   scheduleSave()
@@ -856,6 +989,9 @@ function deleteChar() {
   if (!char || !isGm()) return
   if (!window.confirm(`Удалить лист «${char.name || 'Без имени'}»?`)) return
   state.chars = state.chars.filter((item) => item.id !== char.id)
+  for (const card of state.cards) {
+    card.assignedTo = card.assignedTo.filter((id) => id !== char.id)
+  }
   state.currentId = state.chars[0] ? state.chars[0].id : null
   writeSelect(state.currentId || '')
   scheduleSave()
@@ -937,8 +1073,7 @@ function renderLibrary() {
   const items = [
     ['skill', 'Навыки'],
     ['item', 'Предметы'],
-    ['ability', 'Способности'],
-    ['equipment', 'Снаряжение']
+    ['ability', 'Способности']
   ]
   for (const [id, label] of items) {
     const button = document.createElement('button')
@@ -955,30 +1090,6 @@ function renderLibrary() {
 
   const grid = $('libGrid')
   grid.innerHTML = ''
-  if (libTab === 'equipment') {
-    for (const card of state.cards) {
-      const cell = document.createElement('button')
-      cell.type = 'button'
-      cell.className = 'lib-item'
-      const ico = document.createElement('span')
-      ico.className = 'ico'
-      const img = document.createElement('img')
-      img.src = artSrc(card.art) || 'icons/stat-melee.png'
-      img.alt = ''
-      ico.appendChild(img)
-      const label = document.createElement('span')
-      label.textContent = card.title
-      cell.append(ico, label)
-      cell.addEventListener('click', () => {
-        $('libraryModal').classList.add('hidden')
-        openCards(card.id)
-      })
-      grid.appendChild(cell)
-    }
-    if (state.cards.length === 0) grid.innerHTML = '<p class="muted">Карточек пока нет — создайте во вкладке «Карточки».</p>'
-    return
-  }
-
   const source = libTab === 'skill' ? SKILLS : libTab === 'item' ? ITEMS : ABILITIES
   const query = libSearch.trim().toLowerCase()
   const char = currentChar()
@@ -1411,8 +1522,7 @@ function rollPool(poolId) {
     toast('Герой в нокауте — нужен союзник или отдых')
     return
   }
-  const bonus = equipmentBonus(poolId, char)
-  const label = `${pool.title}${bonus ? ` · снаряжение +${bonus}` : ''}`
+  const label = pool.title
   rollDice(count, label, (values) => {
     const max = Math.max(...values)
     if (poolId === 'armor') {
@@ -1447,14 +1557,21 @@ function postChat(value) {
 /* ------------------------------------------------------------------ */
 
 let activeCardId = null
+let cardTab = 'items'
 
-function openCards(cardId) {
+function openCards() {
+  cardTab = 'items'
   $('cardsModal').classList.remove('hidden')
   const list = visibleCards()
-  if (cardId && list.some((card) => card.id === cardId)) activeCardId = cardId
   if (!activeCardId || !list.some((card) => card.id === activeCardId)) {
     activeCardId = list[0] ? list[0].id : null
   }
+  renderCards()
+}
+
+function openSkillsTab() {
+  cardTab = 'skills'
+  $('cardsModal').classList.remove('hidden')
   renderCards()
 }
 
@@ -1463,10 +1580,89 @@ function renderCards() {
   if (activeCardId && !list.some((card) => card.id === activeCardId)) {
     activeCardId = list[0] ? list[0].id : null
   }
+  const itemsTab = cardTab === 'items'
+  $('cardsLayout').classList.toggle('hidden', !itemsTab)
+  $('skillsLayout').classList.toggle('hidden', itemsTab)
+  $('newCardBtn').classList.toggle('hidden', !itemsTab || !isGm())
+  for (const button of $('cardsTabs').querySelectorAll('[data-tab]')) {
+    button.classList.toggle('active', button.dataset.tab === cardTab)
+  }
+  if (!itemsTab) {
+    renderSkillsLibrary()
+    return
+  }
   renderCardList()
   const card = activeCardId ? cardById(activeCardId) : null
   renderCardPreview(card)
   renderCardEditor(card)
+}
+
+function renderSkillsLibrary() {
+  const char = currentChar()
+  const skillsList = $('skillsList')
+  const itemsList = $('itemsList')
+  skillsList.innerHTML = ''
+  itemsList.innerHTML = ''
+
+  if (!char) {
+    skillsList.innerHTML = '<p class="muted">Нет выбранного листа.</p>'
+    itemsList.innerHTML = '<p class="muted">Нет выбранного листа.</p>'
+    return
+  }
+
+  if (char.skills.length === 0) {
+    skillsList.innerHTML = '<p class="muted">Навыки не выбраны.</p>'
+  }
+  for (const id of char.skills) {
+    const skill = CATALOG_BY_ID.get(id)
+    if (!skill) continue
+    const row = document.createElement('div')
+    row.className = 'skill-row'
+    row.title = 'Бросок проверки'
+    const ico = document.createElement('span')
+    ico.className = 'ico'
+    const img = document.createElement('img')
+    img.src = skill.file
+    img.alt = ''
+    ico.appendChild(img)
+    const textBox = document.createElement('div')
+    const title = document.createElement('b')
+    title.textContent = skill.title
+    const description = document.createElement('p')
+    description.textContent = skill.description
+    textBox.append(title, description)
+    row.append(ico, textBox)
+    row.addEventListener('click', () => openCheck({ skill }))
+    skillsList.appendChild(row)
+  }
+
+  if (char.items.length === 0) {
+    itemsList.innerHTML = '<p class="muted">Инвентарь пуст.</p>'
+  }
+  for (const entry of char.items) {
+    const item = CATALOG_BY_ID.get(entry.id)
+    if (!item) continue
+    const row = document.createElement('div')
+    row.className = 'skill-row'
+    const ico = document.createElement('span')
+    ico.className = 'ico'
+    const img = document.createElement('img')
+    img.src = item.file
+    img.alt = ''
+    ico.appendChild(img)
+    const textBox = document.createElement('div')
+    const title = document.createElement('b')
+    title.textContent = item.title
+    const description = document.createElement('p')
+    description.textContent = item.description
+    textBox.append(title, description)
+    const count = document.createElement('span')
+    count.className = 'count'
+    count.textContent = `×${entry.count}`
+    row.append(ico, textBox, count)
+    row.addEventListener('click', () => openItem(entry.id))
+    itemsList.appendChild(row)
+  }
 }
 
 function renderCardList() {
@@ -1487,10 +1683,15 @@ function renderCardList() {
     row.className = `card-row ${card.id === activeCardId ? 'active' : ''}`
     const thumb = document.createElement('span')
     thumb.className = 'thumb'
-    const img = document.createElement('img')
-    img.src = artSrc(card.art) || 'icons/stat-melee.png'
-    img.alt = ''
-    thumb.appendChild(img)
+    if (card.art) {
+      const img = document.createElement('img')
+      img.src = card.art
+      img.alt = ''
+      thumb.appendChild(img)
+    } else {
+      thumb.classList.add('empty')
+      thumb.textContent = '—'
+    }
     const meta = document.createElement('span')
     meta.className = 'meta'
     const title = document.createElement('b')
@@ -1535,10 +1736,17 @@ function renderCardPreview(card) {
   body.className = 'body'
   const art = document.createElement('div')
   art.className = 'art'
-  const img = document.createElement('img')
-  img.src = artSrc(card.art) || 'icons/stat-melee.png'
-  img.alt = ''
-  art.appendChild(img)
+  if (card.art) {
+    const img = document.createElement('img')
+    img.src = card.art
+    img.alt = ''
+    art.appendChild(img)
+  } else {
+    const empty = document.createElement('div')
+    empty.className = 'art-empty'
+    empty.textContent = 'Нет изображения'
+    art.appendChild(empty)
+  }
   const flavor = document.createElement('div')
   flavor.className = 'flavor'
   flavor.textContent = card.flavor
@@ -1562,33 +1770,12 @@ function renderCardEditor(card) {
   if (!isGm()) {
     const info = document.createElement('div')
     info.className = 'card-readonly'
-    const lines = []
-    const bonuses = Object.entries(card.bonuses || {})
-      .filter(([, value]) => value)
-      .map(([pool, value]) => `${POOL_BY_ID[pool].label} ${value > 0 ? '+' : ''}${value}`)
-    if (bonuses.length) lines.push(`Бонусы: ${bonuses.join(', ')}`)
-    lines.push(card.effect || 'Описание не заполнено.')
-    info.textContent = lines.join('\n\n')
+    info.textContent = [card.flavor, card.effect || 'Описание не заполнено.', card.note]
+      .filter(Boolean)
+      .join('\n\n')
     root.appendChild(info)
     return
   }
-
-  const assign = document.createElement('button')
-  assign.type = 'button'
-  assign.className = 'primary'
-  assign.textContent = currentChar()
-    ? `Сделать активным у «${currentChar().name || 'героя'}»`
-    : 'Назначить герою'
-  assign.style.marginBottom = '4px'
-  assign.addEventListener('click', () => {
-    const char = currentChar()
-    if (!char) return
-    char.equipment = card.id
-    scheduleSave()
-    renderSheet()
-    toast('Снаряжение назначено')
-  })
-  root.appendChild(assign)
 
   const row2 = document.createElement('div')
   row2.className = 'row2'
@@ -1629,35 +1816,76 @@ function renderCardEditor(card) {
   root.appendChild(row2)
 
   const artLabel = document.createElement('label')
-  artLabel.textContent = 'Иллюстрация'
-  const grid = document.createElement('div')
-  grid.className = 'art-grid'
-  for (const icon of ART_ICONS) {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = card.art === icon.id ? 'sel' : ''
+  artLabel.textContent = 'Изображение (своё)'
+  const artBox = document.createElement('div')
+  artBox.className = `art-upload ${card.art ? '' : 'empty'}`
+  artBox.title = 'Загрузить изображение'
+  if (card.art) {
     const img = document.createElement('img')
-    img.src = icon.file
-    img.alt = icon.title
-    button.appendChild(img)
-    button.title = icon.title
-    button.addEventListener('click', () => {
-      card.art = icon.id
+    img.src = card.art
+    img.alt = ''
+    artBox.appendChild(img)
+    const clear = document.createElement('button')
+    clear.type = 'button'
+    clear.className = 'art-clear'
+    clear.textContent = '×'
+    clear.title = 'Убрать изображение'
+    clear.addEventListener('click', (event) => {
+      event.stopPropagation()
+      card.art = ''
       scheduleSave()
       renderCardPreview(card)
-      renderSheet()
       renderCardEditor(card)
+      renderCardList()
     })
-    grid.appendChild(button)
+    artBox.appendChild(clear)
   }
-  const upload = document.createElement('button')
-  upload.type = 'button'
-  upload.className = 'ghost'
-  upload.textContent = 'Загрузить свою…'
-  upload.style.marginTop = '4px'
-  upload.addEventListener('click', () => pickCardArt(card))
-  artLabel.append(grid, upload)
+  artBox.addEventListener('click', () => pickCardArt(card))
+  artBox.addEventListener('dragover', (event) => {
+    event.preventDefault()
+    artBox.classList.add('drag')
+  })
+  artBox.addEventListener('dragleave', () => artBox.classList.remove('drag'))
+  artBox.addEventListener('drop', (event) => {
+    event.preventDefault()
+    artBox.classList.remove('drag')
+    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
+    if (file) applyCardArt(card, file)
+  })
+  artLabel.appendChild(artBox)
   root.appendChild(artLabel)
+
+  const assignLabel = document.createElement('label')
+  assignLabel.textContent = 'Выдать героям'
+  const assignBox = document.createElement('div')
+  assignBox.className = 'bonuses'
+  if (state.chars.length === 0) {
+    const note = document.createElement('span')
+    note.className = 'muted'
+    note.textContent = 'Сначала создайте героя.'
+    assignBox.appendChild(note)
+  }
+  for (const char of state.chars) {
+    const wrap = document.createElement('label')
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.checked = card.assignedTo.includes(char.id)
+    input.addEventListener('change', () => {
+      if (input.checked) {
+        if (!card.assignedTo.includes(char.id)) card.assignedTo.push(char.id)
+      } else {
+        card.assignedTo = card.assignedTo.filter((id) => id !== char.id)
+      }
+      scheduleSave()
+      toast(input.checked ? 'Карточка выдана' : 'Карточка убрана')
+    })
+    const span = document.createElement('span')
+    span.textContent = `${char.name || 'Без имени'} · ${char.kind === 'monster' ? 'монстр' : 'герой'}`
+    wrap.append(input, span)
+    assignBox.appendChild(wrap)
+  }
+  assignLabel.appendChild(assignBox)
+  root.appendChild(assignLabel)
 
   const flavorLabel = document.createElement('label')
   flavorLabel.textContent = 'Вкусный текст'
@@ -1699,31 +1927,6 @@ function renderCardEditor(card) {
   noteLabel.appendChild(noteInput)
   root.appendChild(noteLabel)
 
-  const bonusLabel = document.createElement('label')
-  bonusLabel.textContent = 'Бонусы к пулам'
-  const bonuses = document.createElement('div')
-  bonuses.className = 'bonuses'
-  for (const pool of POOLS) {
-    const wrap = document.createElement('label')
-    const input = document.createElement('input')
-    input.type = 'checkbox'
-    input.checked = Boolean(card.bonuses && card.bonuses[pool.id])
-    input.addEventListener('change', () => {
-      card.bonuses = card.bonuses || {}
-      if (input.checked) card.bonuses[pool.id] = 1
-      else delete card.bonuses[pool.id]
-      scheduleSave()
-      renderCardPreview(card)
-      renderSheet()
-    })
-    const span = document.createElement('span')
-    span.textContent = `${pool.label} +1`
-    wrap.append(input, span)
-    bonuses.appendChild(wrap)
-  }
-  bonusLabel.appendChild(bonuses)
-  root.appendChild(bonusLabel)
-
   const actions = document.createElement('div')
   actions.className = 'actions'
   const duplicate = document.createElement('button')
@@ -1746,11 +1949,9 @@ function renderCardEditor(card) {
   remove.addEventListener('click', () => {
     if (!window.confirm(`Удалить карточку «${card.title}»?`)) return
     state.cards = state.cards.filter((row) => row.id !== card.id)
-    for (const char of state.chars) if (char.equipment === card.id) char.equipment = null
     activeCardId = state.cards[0] ? state.cards[0].id : null
     scheduleSave()
     renderCards()
-    renderSheet()
   })
   actions.append(duplicate, remove)
   root.appendChild(actions)
@@ -1761,30 +1962,33 @@ function newCard() {
   const card = blankCard()
   state.cards.push(card)
   activeCardId = card.id
+  cardTab = 'items'
   scheduleSave()
   renderCards()
 }
 
-let cardArtTarget = null
-
 function pickCardArt(card) {
-  cardArtTarget = card
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/png,image/jpeg,image/webp'
+  input.style.display = 'none'
+  document.body.appendChild(input)
   input.addEventListener('change', () => {
     const file = input.files && input.files[0]
-    if (!file || !cardArtTarget) return
-    loadImage(file, (data) => {
-      cardArtTarget.art = data
-      scheduleSave()
-      renderCardPreview(cardArtTarget)
-      renderCardEditor(cardArtTarget)
-      renderCardList()
-      renderSheet()
-    })
+    if (file) applyCardArt(card, file)
+    input.remove()
   })
   input.click()
+}
+
+function applyCardArt(card, file) {
+  loadImage(file, (data) => {
+    card.art = data
+    scheduleSave()
+    renderCardPreview(card)
+    renderCardEditor(card)
+    renderCardList()
+  })
 }
 
 function loadImage(file, done) {
@@ -1914,10 +2118,18 @@ function bind() {
   })
   $('editBtn').addEventListener('click', openSettings)
   $('libraryBtn').addEventListener('click', openLibrary)
-  $('cardsBtn').addEventListener('click', () => openCards())
+  $('libraryItemsBtn').addEventListener('click', () => openCards())
+  $('cardsTabs').addEventListener('click', (event) => {
+    const tab = event.target && event.target.dataset ? event.target.dataset.tab : ''
+    if (tab !== 'items' && tab !== 'skills') return
+    cardTab = tab
+    renderCards()
+  })
   $('newCardBtn').addEventListener('click', newCard)
 
   $('settingsSave').addEventListener('click', saveSettings)
+  $('skillAdd').addEventListener('click', addSkillFromSettings)
+  $('itemAdd').addEventListener('click', addItemFromSettings)
   $('portraitPick').addEventListener('click', pickPortrait)
   $('portraitClear').addEventListener('click', () => {
     const char = settingsChar
@@ -2036,10 +2248,10 @@ function seedDemo() {
   const card = normalizeCard({
     title: 'Ржавый меч',
     kind: 'equipment',
-    art: 'melee',
+    art: '',
     flavor: 'Нашёл на дне высохшего колодца.',
-    effect: '+1 кубик к ближней атаке. Когда вы отправляете врага в Нокаут, можете сдвинуться на 1 клетку.',
-    bonuses: { melee: 1 }
+    effect: 'Оружие героя. Один раз за бой можно перебросить кубик атаки.',
+    assignedTo: []
   })
   const hero = normalizeChar({
     name: 'Костя',
@@ -2057,9 +2269,9 @@ function seedDemo() {
       { id: 'potion', count: 2 },
       { id: 'rope', count: 1 },
       { id: 'food', count: 1 }
-    ],
-    equipment: card.id
+    ]
   })
+  card.assignedTo = [hero.id]
   state = { version: 1, currentId: hero.id, chars: [hero], cards: [card] }
   writeSelect(hero.id)
 }
@@ -2115,7 +2327,12 @@ async function init() {
   }
 
   const panel = params.get('panel')
+  if (params.get('edit') && isGm()) {
+    editMode = true
+    renderAll()
+  }
   if (panel === 'cards') setTimeout(() => openCards(), 300)
+  if (panel === 'skills') setTimeout(() => openSkillsTab(), 300)
   if (panel === 'settings') setTimeout(() => openSettings(), 300)
   if (panel === 'library') setTimeout(() => openLibrary(), 300)
   if (panel === 'check') setTimeout(() => openCheck(), 300)
@@ -2130,6 +2347,10 @@ init().catch((error) => {
   const status = $('status')
   if (status) status.textContent = 'ошибка загрузки'
 })
+
+
+
+
 
 
 
