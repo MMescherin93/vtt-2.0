@@ -10,7 +10,8 @@
     <div class="app" id="app">
       <div class="stage" id="stage">
         <div class="sheet hero" id="sheet">
-          <input id="nameInput" class="name" maxlength="40" readonly aria-label="Имя" />
+          <input id="classInput" class="name class-name" maxlength="30" readonly aria-label="Класс" placeholder="Класс" />
+          <input id="nameInput" class="name hero-name" maxlength="40" readonly aria-label="Имя" placeholder="Имя героя" />
 
           <div class="pools" id="pools"></div>
           <div class="health" id="health"></div>
@@ -235,12 +236,22 @@
       <div class="dice-foot"><button type="button" class="primary" id="diceDone">Готово</button></div>
     </div>
 
+    <div class="popover hidden" id="invPopover">
+      <header class="pop-head">
+        <b id="invTitle">Добавить</b>
+        <button type="button" class="x" id="invClose">×</button>
+      </header>
+      <select id="invSelect"></select>
+      <button type="button" class="primary" id="invAdd">Добавить</button>
+    </div>
+
     <div class="toast hidden" id="toast"></div>
 
     <script src="../dice3d/dice-box-threejs.umd.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>
+
 
 
 

@@ -77,19 +77,21 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 .name {
   position: absolute;
   left: 36.8%;
-  top: 16.4%;
+  top: 15.7%;
   width: 36%;
-  height: 3.6%;
+  height: 4.6%;
   border: 0;
   outline: 0;
   background: transparent;
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: 700;
-  font-size: 22px;
+  font-size: 21px;
   color: var(--ink);
   text-align: center;
   letter-spacing: 0.2px;
 }
+.class-name { left: 36.4%; width: 16.6%; }
+.hero-name { left: 54.2%; width: 16.8%; }
 .name[readonly] { cursor: default; }
 .name:not([readonly]) {
   background: transparent;
@@ -292,12 +294,14 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   line-height: 1.28;
   min-height: 10px;
 }
-.block.attack { top: 30.6%; }
-.block.action { top: 45.1%; }
-.block.ability { top: 63.4%; }
+.block.attack { top: 30.6%; height: 8.6%; }
+.block.action { top: 45.1%; height: 12.3%; }
+.block.ability { top: 63.4%; height: 12.2%; }
+.block { overflow: hidden; }
 .block textarea {
   width: 100%;
-  height: 74px;
+  height: 100%;
+  min-height: 46px;
   resize: none;
   border: 1px dashed rgba(90, 72, 44, 0.4);
   border-radius: 6px;
@@ -307,20 +311,17 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   padding: 4px 6px;
   outline: none;
 }
-.block.attack textarea,
-.block.action textarea { height: 62px; }
 .block .placeholder { color: rgba(70, 55, 30, 0.38); }
 
 /* Инвентарь */
 .inventory {
   position: absolute;
   left: 62.4%;
-  top: 78.2%;
-  width: 30.6%;
-  display: grid;
-  grid-template-columns: repeat(8, 36px);
+  top: 77.9%;
+  width: 30.8%;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  align-content: flex-start;
   max-height: 16%;
   overflow: hidden;
 }
@@ -329,9 +330,10 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   outline-offset: 3px;
   border-radius: 8px;
 }
+.inv-line { display: flex; gap: 4px; align-items: center; min-height: 34px; }
 .slot {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   border: 1.5px dashed rgba(90, 72, 44, 0.45);
   background: rgba(255, 250, 235, 0.35);
@@ -341,8 +343,28 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   position: relative;
   cursor: pointer;
   padding: 0;
+  font: 700 10px/1 'Segoe UI', sans-serif;
+  color: #4a3d26;
 }
-.slot img { width: 30px; height: 30px; object-fit: contain; pointer-events: none; }
+.slot img { width: 28px; height: 28px; object-fit: contain; pointer-events: none; }
+.slot.potion {
+  border-color: rgba(106, 150, 86, 0.65);
+  background: rgba(219, 240, 205, 0.45);
+}
+.slot.potion.used {
+  border-color: rgba(120, 105, 80, 0.35);
+  background: rgba(255, 250, 235, 0.2);
+}
+.slot.potion.used img { filter: grayscale(1); opacity: 0.28; }
+.slot.add {
+  border-style: dashed;
+  background: rgba(255, 250, 235, 0.15);
+  font-size: 18px;
+  color: #8a7448;
+}
+.slot.add:hover { border-color: #c9a227; color: #5a4420; }
+.edit-only { display: none !important; }
+.sheet.editing .edit-only { display: flex !important; }
 .slot .count {
   position: absolute;
   right: -5px;
@@ -538,6 +560,41 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 }
 .menu button:hover { background: rgba(255, 255, 255, 0.08); }
 .menu button.danger { color: #e9a6a6; }
+
+.popover {
+  position: fixed;
+  z-index: 105;
+  width: 250px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #1c1f2a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pop-head b { font-size: 12px; color: #e7dcc3; }
+.pop-head .x {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cfc7b6;
+  cursor: pointer;
+}
+.popover select {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: #eee7d7;
+  padding: 0 8px;
+  font-size: 12.5px;
+  outline: none;
+}
 
 /* ------------------------------------------------------------------ */
 /* Модальные окна                                                     */

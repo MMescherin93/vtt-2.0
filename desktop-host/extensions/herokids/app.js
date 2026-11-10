@@ -41,6 +41,8 @@ const CARD_NOTES = {
 const CATALOG_BY_ID = new Map(CATALOG.map((item) => [item.id, item]))
 const SKILLS = CATALOG.filter((item) => item.category === 'skill')
 const ITEMS = CATALOG.filter((item) => item.category === 'item')
+/** Зелья всегда два на листе — в общий инвентарь их не добавляем. */
+const INVENTORY_ITEMS = ITEMS.filter((item) => item.id !== 'potion')
 const ABILITIES = CATALOG.filter((item) => item.category === 'ability')
 
 const $ = (id) => document.getElementById(id)
@@ -81,7 +83,8 @@ function blankChar(kind = 'hero') {
     action: '',
     ability: '',
     skills: [],
-    items: []
+    items: [],
+    potions: [true, true]
   }
 }
 
@@ -113,15 +116,20 @@ function normalizeChar(raw) {
     ? src.skills.filter((id, index, list) => CATALOG_BY_ID.get(id)?.category === 'skill' && list.indexOf(id) === index).slice(0, 10)
     : []
 
-  const items = Array.isArray(src.items)
-    ? src.items
-        .map((item) => ({
-          id: item && typeof item.id === 'string' ? item.id : '',
-          count: clamp(round(item && item.count) || 1, 1, 99)
-        }))
-        .filter((item) => CATALOG_BY_ID.get(item.id)?.category === 'item')
-        .slice(0, 20)
-    : []
+  const rawItems = Array.isArray(src.items) ? src.items : []
+  const potionRow = rawItems.find((item) => item && item.id === 'potion')
+  const potionCount = potionRow ? clamp(round(potionRow.count), 0, 2) : 2
+  const potions = Array.isArray(src.potions)
+    ? [Boolean(src.potions[0]), Boolean(src.potions[1])]
+    : [potionCount > 0, potionCount > 1]
+
+  const items = rawItems
+    .map((item) => ({
+      id: item && typeof item.id === 'string' ? item.id : '',
+      count: clamp(round(item && item.count) || 1, 1, 99)
+    }))
+    .filter((item) => item.id !== 'potion' && CATALOG_BY_ID.get(item.id)?.category === 'item')
+    .slice(0, 20)
 
   const portrait = typeof src.portrait === 'string' ? src.portrait : ''
   const safePortrait =
@@ -144,7 +152,8 @@ function normalizeChar(raw) {
     action: text(src.action, 400),
     ability: text(src.ability, 400),
     skills,
-    items
+    items,
+    potions
   }
 }
 
@@ -430,9 +439,11 @@ function renderSheet() {
   const char = currentChar()
   const sheet = $('sheet')
   const nameInput = $('nameInput')
+  const classInput = $('classInput')
   if (!char) {
     sheet.classList.add('monster')
     nameInput.value = ''
+    classInput.value = ''
     $('pools').innerHTML = ''
     $('health').innerHTML = ''
     $('inventory').innerHTML = ''
@@ -445,8 +456,11 @@ function renderSheet() {
   sheet.classList.toggle('monster', char.kind === 'monster')
   sheet.classList.toggle('editing', isGm() && editMode)
   nameInput.value = char.name
+  classInput.value = char.archetype
   nameInput.readOnly = !isGm()
+  classInput.readOnly = !isGm()
   nameInput.placeholder = char.kind === 'monster' ? 'Имя монстра' : 'Имя героя'
+  classInput.placeholder = char.kind === 'monster' ? 'Тип' : 'Класс'
 
   const portrait = $('portraitImg')
   const frame = $('portraitFrame')
@@ -557,67 +571,123 @@ function renderBlocks(char) {
   }
 }
 
+function makeInvSlot(className, icon, title) {
+  const slot = document.createElement('button')
+  slot.type = 'button'
+  slot.className = `slot ${className}`
+  slot.title = title
+  if (icon) {
+    const img = document.createElement('img')
+    img.src = icon
+    img.alt = ''
+    slot.appendChild(img)
+  }
+  return slot
+}
+
+function makeAddSlot(kind) {
+  const slot = document.createElement('button')
+  slot.type = 'button'
+  slot.className = 'slot add edit-only'
+  slot.textContent = '+'
+  slot.title = kind === 'item' ? 'Добавить предмет' : 'Добавить навык'
+  slot.addEventListener('click', (event) => {
+    event.stopPropagation()
+    openInvPopover(kind, slot)
+  })
+  return slot
+}
+
+function makeMoreSlot(count) {
+  const slot = document.createElement('button')
+  slot.type = 'button'
+  slot.className = 'slot'
+  slot.textContent = `+${count}`
+  slot.title = 'Показать всё'
+  slot.addEventListener('click', () => openSkillsTab())
+  return slot
+}
+
 function renderInventory(char) {
   const root = $('inventory')
   root.innerHTML = ''
   root.classList.toggle('editing', isGm() && editMode)
-  root.title = isGm() && editMode ? 'Нажмите, чтобы изменить навыки и предметы' : ''
+  root.title = isGm() && editMode ? 'Нажмите +, чтобы добавить предмет или навык' : ''
   if (char.kind === 'monster') return
 
-  const entries = []
-  for (const id of char.skills) {
-    const item = CATALOG_BY_ID.get(id)
-    if (item) entries.push({ kind: 'skill', item })
-  }
-  for (const row of char.items) {
-    const item = CATALOG_BY_ID.get(row.id)
-    if (item) entries.push({ kind: 'item', item, count: row.count })
+  const firstLine = document.createElement('div')
+  firstLine.className = 'inv-line'
+
+  for (let i = 0; i < 2; i += 1) {
+    const available = char.potions[i] !== false
+    const slot = makeInvSlot(
+      `potion ${available ? '' : 'used'}`,
+      'icons/item-potion.png',
+      available ? 'Зелье (в наличии) — нажмите, чтобы потратить' : 'Зелье потрачено — нажмите, чтобы вернуть'
+    )
+    slot.addEventListener('click', () => togglePotion(i))
+    firstLine.appendChild(slot)
   }
 
-  const maxVisible = 15
-  const shown = entries.length > 16 ? entries.slice(0, maxVisible) : entries
-  for (const entry of shown) {
-    const slot = document.createElement('button')
-    slot.type = 'button'
-    slot.className = 'slot'
-    const item = entry.item
-    slot.title =
-      entry.kind === 'skill'
-        ? `${item.title} — проверка (стр. ${item.page})`
-        : `${item.title} × ${entry.count}`
-    const img = document.createElement('img')
-    img.src = item.file
-    img.alt = item.title
-    slot.appendChild(img)
-    if (entry.kind === 'item' && entry.count > 1) {
+  const canAdd = isGm() && editMode
+  const maxItems = canAdd ? 4 : 5
+  const showItems = char.items.length > maxItems ? char.items.slice(0, maxItems - 1) : char.items
+  for (const entry of showItems) {
+    const item = CATALOG_BY_ID.get(entry.id)
+    if (!item) continue
+    const slot = makeInvSlot('', item.file, `${item.title} × ${entry.count}`)
+    if (entry.count > 1) {
       const badge = document.createElement('span')
       badge.className = 'count'
       badge.textContent = String(entry.count)
       slot.appendChild(badge)
     }
+    slot.addEventListener('click', () => openItem(entry.id))
+    firstLine.appendChild(slot)
+  }
+  if (char.items.length > showItems.length) {
+    firstLine.appendChild(makeMoreSlot(char.items.length - showItems.length))
+  }
+  if (canAdd) firstLine.appendChild(makeAddSlot('item'))
+
+  const secondLine = document.createElement('div')
+  secondLine.className = 'inv-line'
+  const maxSkills = canAdd ? 7 : 8
+  const showSkills = char.skills.length > maxSkills ? char.skills.slice(0, maxSkills - 1) : char.skills
+  for (const id of showSkills) {
+    const skill = CATALOG_BY_ID.get(id)
+    if (!skill) continue
+    const slot = makeInvSlot('', skill.file, `${skill.title} — проверка (стр. ${skill.page})`)
     slot.addEventListener('click', () => {
       if (isGm() && editMode) {
         openSettings()
         return
       }
-      if (entry.kind === 'skill') openCheck({ skill: item })
-      else openItem(item.id)
+      openCheck({ skill })
     })
-    root.appendChild(slot)
+    secondLine.appendChild(slot)
   }
+  if (char.skills.length > showSkills.length) {
+    secondLine.appendChild(makeMoreSlot(char.skills.length - showSkills.length))
+  }
+  if (canAdd) secondLine.appendChild(makeAddSlot('skill'))
 
-  if (entries.length > shown.length) {
-    const more = document.createElement('button')
-    more.type = 'button'
-    more.className = 'slot'
-    more.title = 'Показать всё'
-    more.textContent = `+${entries.length - shown.length}`
-    more.addEventListener('click', () => {
-      if (isGm() && editMode) openSettings()
-      else openSkillsTab()
-    })
-    root.appendChild(more)
+  root.append(firstLine, secondLine)
+}
+
+function togglePotion(index) {
+  const char = currentChar()
+  if (!char) return
+  if (!isGm()) {
+    postChat(`🎒 Hero Kids · ${char.name || 'Герой'} · использует зелье`)
+    toast('Зелье отметит Мастер')
+    return
   }
+  char.potions[index] = char.potions[index] === false
+  scheduleSave()
+  renderInventory(char)
+  const left = char.potions.filter(Boolean).length
+  postChat(`🧪 Hero Kids · ${char.name || 'Герой'} · зелья: ${left}/2`)
 }
 
 function renderSheetStatus() {
@@ -795,7 +865,7 @@ function renderSettingsInventory() {
   itemPlaceholder.value = ''
   itemPlaceholder.textContent = '— выбрать предмет —'
   itemSelect.appendChild(itemPlaceholder)
-  for (const item of ITEMS) {
+  for (const item of INVENTORY_ITEMS) {
     const option = document.createElement('option')
     option.value = item.id
     option.textContent = item.title
@@ -921,7 +991,7 @@ function addItemFromSettings() {
   const id = $('itemSelect').value
   if (!char || !isGm() || !id) return
   const item = CATALOG_BY_ID.get(id)
-  if (!item || item.category !== 'item') return
+  if (!item || item.category !== 'item' || item.id === 'potion') return
   const row = char.items.find((entry) => entry.id === id)
   if (row) row.count = clamp(row.count + 1, 1, 99)
   else {
@@ -934,6 +1004,77 @@ function addItemFromSettings() {
   scheduleSave()
   renderSettingsInventory()
   renderSheet()
+}
+
+/* ------------------------------------------------------------------ */
+/* Быстрое добавление с карточки                                      */
+/* ------------------------------------------------------------------ */
+
+let invMode = 'item'
+
+function openInvPopover(kind, anchor) {
+  const char = currentChar()
+  if (!char || !isGm()) return
+  invMode = kind === 'skill' ? 'skill' : 'item'
+  const select = $('invSelect')
+  select.innerHTML = ''
+  const source = invMode === 'item' ? INVENTORY_ITEMS : SKILLS
+  let count = 0
+  for (const item of source) {
+    if (invMode === 'skill' && char.skills.includes(item.id)) continue
+    const option = document.createElement('option')
+    option.value = item.id
+    option.textContent = item.title
+    select.appendChild(option)
+    count += 1
+  }
+  if (count === 0) {
+    const option = document.createElement('option')
+    option.value = ''
+    option.textContent = invMode === 'item' ? 'Все предметы добавлены' : 'Все навыки добавлены'
+    select.appendChild(option)
+  }
+  $('invTitle').textContent = invMode === 'item' ? 'Добавить предмет' : 'Добавить навык'
+  $('invPopover').classList.remove('hidden')
+  const rect = anchor.getBoundingClientRect()
+  const width = 250
+  const height = 140
+  const left = Math.min(window.innerWidth - width - 10, Math.max(8, rect.left))
+  const top = Math.min(window.innerHeight - height - 10, rect.bottom + 6)
+  $('invPopover').style.left = `${left}px`
+  $('invPopover').style.top = `${top}px`
+}
+
+function closeInvPopover() {
+  $('invPopover').classList.add('hidden')
+}
+
+function addFromInvPopover() {
+  const char = currentChar()
+  const id = $('invSelect').value
+  if (!char || !id || !isGm()) return
+  const item = CATALOG_BY_ID.get(id)
+  if (!item) return
+  if (invMode === 'item') {
+    const row = char.items.find((entry) => entry.id === id)
+    if (row) row.count = clamp(row.count + 1, 1, 99)
+    else {
+      if (char.items.length >= 20) {
+        toast('Слишком много предметов')
+        return
+      }
+      char.items.push({ id, count: 1 })
+    }
+  } else {
+    if (char.skills.length >= 10) {
+      toast('У героя уже 10 навыков')
+      return
+    }
+    if (!char.skills.includes(id)) char.skills.push(id)
+  }
+  scheduleSave()
+  renderInventory(char)
+  closeInvPopover()
 }
 
 function saveSettings() {
@@ -1090,7 +1231,7 @@ function renderLibrary() {
 
   const grid = $('libGrid')
   grid.innerHTML = ''
-  const source = libTab === 'skill' ? SKILLS : libTab === 'item' ? ITEMS : ABILITIES
+  const source = libTab === 'skill' ? SKILLS : libTab === 'item' ? INVENTORY_ITEMS : ABILITIES
   const query = libSearch.trim().toLowerCase()
   const char = currentChar()
   const filtered = source.filter((item) => {
@@ -1135,7 +1276,7 @@ function addFromLibrary(item) {
       char.skills.push(item.id)
     }
     toast(`Навык «${item.title}» добавлен`)
-  } else if (item.category === 'item') {
+  } else if (item.category === 'item' && item.id !== 'potion') {
     const entry = char.items.find((row) => row.id === item.id)
     if (entry) {
       entry.count = clamp(entry.count + 1, 1, 99)
@@ -2170,6 +2311,15 @@ function bind() {
     scheduleSave()
   })
 
+  $('classInput').addEventListener('input', () => {
+    const char = currentChar()
+    if (!char || !isGm()) return
+    char.archetype = text($('classInput').value, 30)
+    const option = $('charSelect').selectedOptions[0]
+    if (option) option.textContent = `${char.name || 'Без имени'} · ${char.archetype || KIND_LABELS[char.kind]}`
+    scheduleSave()
+  })
+
   $('checkBonus').addEventListener('change', () => {
     checkBonus = $('checkBonus').checked
     renderCheck()
@@ -2179,6 +2329,8 @@ function bind() {
   $('itemMinus').addEventListener('click', () => changeItem(-1))
   $('itemRemove').addEventListener('click', removeItem)
   $('itemUse').addEventListener('click', useItem)
+  $('invClose').addEventListener('click', closeInvPopover)
+  $('invAdd').addEventListener('click', addFromInvPopover)
 
   $('libSearch').addEventListener('input', () => {
     libSearch = $('libSearch').value
@@ -2208,11 +2360,19 @@ function bind() {
     if (!event.target.closest('.menu') && !event.target.closest('#newBtn') && !event.target.closest('#moreBtn')) {
       closeMenus()
     }
+    if (
+      !$('invPopover').classList.contains('hidden') &&
+      !event.target.closest('#invPopover') &&
+      !event.target.closest('.slot.add')
+    ) {
+      closeInvPopover()
+    }
   })
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return
     closeMenus()
+    closeInvPopover()
     if (!$('diceOverlay').classList.contains('hidden')) closeDiceOverlay()
     for (const id of ['settingsModal', 'libraryModal', 'cardsModal', 'checkModal', 'itemModal']) {
       const modal = $(id)
@@ -2340,6 +2500,21 @@ async function init() {
   if (autoRoll && POOL_BY_ID[autoRoll]) {
     setTimeout(() => rollPool(autoRoll), 900)
   }
+  const inv = params.get('inv')
+  if (inv === 'item' || inv === 'skill') {
+    setTimeout(() => {
+      const rect = $('inventory').getBoundingClientRect()
+      openInvPopover(inv, { getBoundingClientRect: () => rect })
+    }, 500)
+  }
+  if (params.get('used')) {
+    setTimeout(() => {
+      const char = currentChar()
+      if (!char) return
+      char.potions[0] = false
+      renderInventory(char)
+    }, 300)
+  }
 }
 
 init().catch((error) => {
@@ -2347,6 +2522,9 @@ init().catch((error) => {
   const status = $('status')
   if (status) status.textContent = 'ошибка загрузки'
 })
+
+
+
 
 
 
