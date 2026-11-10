@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
@@ -10,8 +10,11 @@
     <div class="app" id="app">
       <div class="stage" id="stage">
         <div class="sheet hero" id="sheet">
-          <input id="classInput" class="name class-name" maxlength="30" readonly aria-label="Класс" placeholder="Класс" />
-          <input id="nameInput" class="name hero-name" maxlength="40" readonly aria-label="Имя" placeholder="Имя героя" />
+          <div class="name-row">
+            <input id="classInput" class="name class-name" maxlength="30" readonly aria-label="Класс" placeholder="Класс" />
+            <span class="name-colon" aria-hidden="true">:</span>
+            <input id="nameInput" class="name hero-name" maxlength="40" readonly aria-label="Имя" placeholder="Имя героя" />
+          </div>
 
           <div class="pools" id="pools"></div>
           <div class="health" id="health"></div>
@@ -245,6 +248,7 @@
     <script type="module" src="app.js"></script>
   </body>
 </html>
+
 
 
 

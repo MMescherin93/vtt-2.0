@@ -1,4 +1,4 @@
-﻿/* Hero Kids — лист персонажа и карточки снаряжения */
+/* Hero Kids — лист персонажа и карточки снаряжения */
 
 :root {
   --ink: #241d12;
@@ -90,8 +90,44 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   text-align: center;
   letter-spacing: 0.2px;
 }
-.class-name { left: 34.0%; width: 16.4%; }
-.hero-name { left: 51.0%; width: 16.4%; }
+.name-row {
+  position: absolute;
+  left: 34.0%;
+  top: 19.9%;
+  width: 34.0%;
+  height: 4.4%;
+  display: flex;
+  align-items: center;
+  z-index: 12;
+}
+.name-row .name {
+  position: static;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: 100%;
+  text-align: left;
+  padding: 0 2px;
+}
+.name-row .class-name {
+  flex: 0 0 auto;
+  field-sizing: content;
+  min-width: 1ch;
+  max-width: 16%;
+}
+.name-colon {
+  flex: 0 0 auto;
+  padding: 0 5px 0 1px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--ink);
+  pointer-events: none;
+}
+.name-row .hero-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .name[readonly] { cursor: default; }
 .name:not([readonly]) {
   background: transparent;
@@ -115,6 +151,10 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 .sheet.editing .name:not([readonly]) {
   border-color: rgba(138, 106, 26, 0.55);
   background: rgba(255, 252, 240, 0.35);
+}
+.name-row input.name {
+  top: auto;
+  height: 100%;
 }
 
 /* Кубики пулов */
@@ -1343,6 +1383,8 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   .card-preview-wrap { width: 340px; height: 477px; }
   .item-card { transform: scale(0.805); }
 }
+
+
 
 
 
