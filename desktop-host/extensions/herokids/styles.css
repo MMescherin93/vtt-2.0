@@ -1,6 +1,7 @@
 /* Hero Kids — лист персонажа и карточки снаряжения */
 
 :root {
+  color-scheme: dark;
   --ink: #241d12;
   --paper: #efe3c8;
   --gold: #d9b34a;
@@ -23,6 +24,16 @@ html, body {
 body { overflow-x: hidden; }
 
 button, input, select, textarea { font-family: inherit; }
+
+select {
+  color-scheme: dark;
+  background-color: #1c1f2a;
+  color: #eee7d7;
+}
+select option {
+  background-color: #1c1f2a;
+  color: #eee7d7;
+}
 
 .hidden { display: none !important; }
 
@@ -661,6 +672,7 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-grid .name-field { grid-column: 1 / -1; }
 .form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .form-grid input,
 .form-grid select,

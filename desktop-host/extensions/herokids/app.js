@@ -2356,6 +2356,10 @@ async function init() {
   if (panel === 'settings') setTimeout(() => openSettings(), 300)
   if (panel === 'library') setTimeout(() => openLibrary(), 300)
   if (panel === 'check') setTimeout(() => openCheck(), 300)
+  const newKind = params.get('new')
+  if (newKind === 'hero' || newKind === 'monster') {
+    setTimeout(() => addChar(newKind), 300)
+  }
   const autoRoll = params.get('roll')
   if (autoRoll && POOL_BY_ID[autoRoll]) {
     setTimeout(() => rollPool(autoRoll), 900)
