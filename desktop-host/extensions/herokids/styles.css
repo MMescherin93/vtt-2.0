@@ -1,4 +1,4 @@
-/* Hero Kids — лист персонажа и карточки снаряжения */
+﻿/* Hero Kids — лист персонажа и карточки снаряжения */
 
 :root {
   --ink: #241d12;
@@ -77,7 +77,7 @@ body:not(.is-gm) .gmOnly { display: none !important; }
 .name {
   position: absolute;
   left: 36.8%;
-  top: 19.0%;
+  top: 19.9%;
   width: 36%;
   height: 4.4%;
   border: 0;
@@ -90,8 +90,8 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   text-align: center;
   letter-spacing: 0.2px;
 }
-.class-name { left: 36.4%; width: 16.6%; }
-.hero-name { left: 54.2%; width: 16.8%; }
+.class-name { left: 34.0%; width: 16.4%; }
+.hero-name { left: 51.0%; width: 16.4%; }
 .name[readonly] { cursor: default; }
 .name:not([readonly]) {
   background: transparent;
@@ -101,7 +101,7 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   z-index: 12;
   pointer-events: auto;
   height: 4.4%;
-  top: 19.0%;
+  top: 19.9%;
 }
 .name:not([readonly]):hover {
   border-color: rgba(138, 106, 26, 0.45);
@@ -1343,6 +1343,7 @@ body:not(.is-gm) .gmOnly { display: none !important; }
   .card-preview-wrap { width: 340px; height: 477px; }
   .item-card { transform: scale(0.805); }
 }
+
 
 
 
