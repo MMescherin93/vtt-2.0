@@ -418,19 +418,21 @@ function renderAll() {
   if (modeBtn) modeBtn.classList.toggle('active', isGm() && editMode)
   const pill = $('rolePill')
   if (pill) pill.textContent = isGm() ? 'Мастер' : 'Игрок'
-  const hint = $('hintText')
-  const char = currentChar()
-  if (hint) {
-    if (char && char.damage >= char.healthMax) {
-      hint.textContent = 'Нокаут — герой не может действовать, пока его не вылечат'
-    } else {
-      hint.textContent = isGm()
-        ? 'Мастер: создаёт листы, отмечает урон, выбирает навыки и предметы'
-        : 'поля только для чтения · доступны броски, проверки и предметы'
-    }
-  }
+  renderHint(currentChar())
   renderSheet()
   renderDock()
+}
+
+function renderHint(char) {
+  const hint = $('hintText')
+  if (!hint) return
+  if (char && char.damage >= char.healthMax) {
+    hint.textContent = 'Нокаут — герой не может действовать, пока его не вылечат'
+  } else {
+    hint.textContent = isGm()
+      ? 'Мастер: создаёт листы, отмечает урон, выбирает навыки и предметы'
+      : 'поля только для чтения · доступны броски, проверки и предметы'
+  }
 }
 
 function renderSheet() {
@@ -487,7 +489,8 @@ function renderPools(char) {
       die.className = `die ${filled ? 'filled' : 'dim'}`
       for (let pip = 0; pip < 6; pip += 1) die.appendChild(document.createElement('i'))
       die.title = filled ? 'Кубик в пуле' : 'Кубик не выбран'
-      die.addEventListener('click', () => {
+      die.addEventListener('click', (event) => {
+        event.stopPropagation()
         if (isGm()) {
           const next = i + 1 === char.pools[pool.id] ? i : i + 1
           char.pools[pool.id] = next
@@ -519,12 +522,16 @@ function renderHealth(char) {
     label.textContent = labels[i]
     box.appendChild(label)
     if (isGm()) {
-      box.addEventListener('click', () => {
+      box.addEventListener('click', (event) => {
+        event.stopPropagation()
         const target = char.healthMax - i
         char.damage = target === char.damage ? target - 1 : target
         char.damage = clamp(char.damage, 0, char.healthMax)
         scheduleSave()
-        renderAll()
+        renderHealth(char)
+        renderSheetStatus()
+        renderHint(char)
+        renderDock()
       })
     }
     root.appendChild(box)
