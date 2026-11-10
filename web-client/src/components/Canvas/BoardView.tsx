@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react'
+import { useEffect } from 'react'
 import { BUILT_IN_EXTENSIONS, isExtensionVisible } from '@vtt/shared/plugins'
 import {
   Board,
@@ -87,8 +87,6 @@ export function BoardView() {
   const rootRollOpen = rootRollEnabled && (modulePanels['root-roll'] ?? false)
   const rootMovesEnabled = extensions['root-moves'] ?? false
   const rootMovesOpen = rootMovesEnabled && (modulePanels['root-moves'] ?? false)
-  const herokidsEnabled = extensions['herokids'] ?? false
-  const herokidsOpen = herokidsEnabled && (modulePanels['herokids'] ?? false)
 
   const dockModules = BUILT_IN_EXTENSIONS.filter(
     (definition) =>
@@ -338,24 +336,6 @@ export function BoardView() {
           onSendChat={sendChat}
           onClose={() => toggleModulePanel('root-moves', false)}
           storageKey="vtt.player.panel.root-moves"
-        />
-      )}
-
-      {herokidsOpen && (
-        <CharacterSheetFrame
-          title="Hero Kids — лист персонажа"
-          src={`${hostUrl}/extensions/herokids/index.html`}
-          extensionId="herokids"
-          role="player"
-          metaKey="com.herokids/state"
-          state={session.extensionState['herokids'] ?? null}
-          onChange={(next) => publishExtensionState('herokids', next)}
-          onChat={sendChat}
-          onClose={() => toggleModulePanel('herokids', false)}
-          width={Math.min(1240, window.innerWidth - 48)}
-          height={Math.min(960, window.innerHeight - 140)}
-          storageKey="vtt.player.panel.herokids"
-          defaultPosition={{ x: 40, y: 12 }}
         />
       )}
 

@@ -90,7 +90,6 @@
 - AZAG — `azag-sheet`;
 - «Запретные земли» — `forbidden-lands-sheet`;
 - «Агон» — `agon-sheet`;
-- «Корни» — `root-sheet`;
-- Hero Kids — `herokids` (лист героя и монстра).
+- «Корни» — `root-sheet`.
 
 Все они уже используют `CharacterSheetFrame`; новые листы обязаны делать так же.
