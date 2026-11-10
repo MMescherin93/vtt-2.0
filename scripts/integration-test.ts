@@ -335,6 +335,51 @@ async function main(): Promise<void> {
     '3D-кубики умеют отправлять результат в чат'
   )
 
+  const herokidsPage = await fetch(`http://localhost:${PORT}/extensions/herokids/index.html`)
+  const herokidsHtml = await herokidsPage.text()
+  check(
+    herokidsPage.status === 200 &&
+      herokidsHtml.includes('dice-box-threejs.umd.js') &&
+      herokidsHtml.includes('app.js'),
+    'страница Hero Kids доступна и подключает 3D-кубики'
+  )
+  const herokidsApp = await fetch(`http://localhost:${PORT}/extensions/herokids/app.js`)
+  const herokidsSource = await herokidsApp.text()
+  check(
+    herokidsApp.status === 200 &&
+      (herokidsApp.headers.get('content-type') ?? '').includes('javascript') &&
+      herokidsSource.includes("type: 'setMetadata'") &&
+      herokidsSource.includes("type: 'chat'"),
+    'модуль Hero Kids отдаётся как JS и умеет сохранять состояние и писать в чат'
+  )
+  const herokidsCatalog = await fetch(`http://localhost:${PORT}/extensions/herokids/catalog.js`)
+  check(
+    herokidsCatalog.status === 200 && (await herokidsCatalog.text()).includes('export const CATALOG'),
+    'каталог иконок Hero Kids доступен'
+  )
+  const herokidsIcon = await fetch(
+    `http://localhost:${PORT}/extensions/herokids/icons/stat-melee.png`
+  )
+  check(
+    herokidsIcon.status === 200 &&
+      (herokidsIcon.headers.get('content-type') ?? '').includes('image/png'),
+    'иконки Hero Kids доступны'
+  )
+
+  // В лист Hero Kids пишет только Мастер
+  let herokidsForbidden = false
+  const onHeroKidsForbidden = (): void => {
+    herokidsForbidden = true
+  }
+  client.once('extension:update', onHeroKidsForbidden)
+  client.emit('extension:update', {
+    extensionId: 'herokids',
+    state: { version: 1, currentId: 'h1', chars: [{ id: 'h1', name: 'Взлом' }], cards: [] }
+  })
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  client.off('extension:update', onHeroKidsForbidden)
+  check(!herokidsForbidden, 'игрок не может записать состояние Hero Kids')
+
   const azagUpdatePromise = watch<{ extensionId: string; state: unknown }>(
     client,
     'extension:update'

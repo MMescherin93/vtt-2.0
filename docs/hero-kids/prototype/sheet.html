@@ -1,0 +1,461 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hero Kids — лист героя (макет)</title>
+    <style>
+      :root {
+        --ink: #241d12;
+        --paper: #efe3c8;
+        --gold: #c9a227;
+        --dark: #14161f;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #0d0f16; }
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: #e7e2d6;
+        display: flex;
+        justify-content: center;
+        padding: 18px;
+      }
+      .app { width: 1123px; }
+
+      /* ------------------------------- карта ------------------------------- */
+      .sheet {
+        position: relative;
+        width: 1123px;
+        height: 792px;
+        background: url('../assets/card-hero-blank-clean.png') center / 100% 100% no-repeat;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      }
+      .sheet, .sheet * { user-select: none; }
+
+      .name {
+        position: absolute;
+        left: 37.4%;
+        top: 16.6%;
+        width: 34.5%;
+        height: 3.4%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-weight: 700;
+        font-size: 21px;
+        color: var(--ink);
+        letter-spacing: 0.2px;
+      }
+      .name::after { content: ''; }
+
+      /* кубики пула */
+      .pool { position: absolute; display: flex; gap: 6px; }
+      .pool.r1 { left: 13.1%; top: 22.9%; }
+      .pool.r2 { left: 13.1%; top: 36.2%; }
+      .pool.r3 { left: 13.1%; top: 49.5%; }
+      .pool.r4 { left: 13.1%; top: 62.8%; }
+
+      .die {
+        width: 74px;
+        height: 74px;
+        border-radius: 9px;
+        background: #fcf7ea;
+        border: 2px solid #2b2419;
+        box-shadow: 0 2px 0 rgba(43, 36, 25, 0.35), inset 0 0 12px rgba(160, 130, 80, 0.18);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 9px;
+        position: relative;
+      }
+      .die i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #211a11;
+        align-self: center;
+        justify-self: center;
+      }
+      .die i:nth-child(1) { grid-area: 1 / 1; }
+      .die i:nth-child(2) { grid-area: 1 / 3; }
+      .die i:nth-child(3) { grid-area: 2 / 1; }
+      .die i:nth-child(4) { grid-area: 2 / 3; }
+      .die i:nth-child(5) { grid-area: 3 / 1; }
+      .die i:nth-child(6) { grid-area: 3 / 3; }
+      .die.empty {
+        background: #f7f0df;
+        border-color: #b9ab8c;
+        box-shadow: inset 0 0 0 1px #d8cbaf;
+      }
+      .die.empty::before,
+      .die.empty::after {
+        content: '';
+        position: absolute;
+        left: 12%;
+        right: 12%;
+        top: 50%;
+        height: 1.6px;
+        background: #9c8f74;
+      }
+      .die.empty::before { transform: rotate(45deg); }
+      .die.empty::after { transform: rotate(-45deg); }
+
+      .die.rollable { cursor: pointer; }
+      .die.rollable::after {
+        content: '🎲';
+        position: absolute;
+        right: -7px;
+        top: -9px;
+        font-size: 13px;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+        opacity: 0.0;
+        transition: opacity 0.15s;
+      }
+      .pool:hover .die.rollable::after { opacity: 1; }
+      .die.rollable:hover { transform: translateY(-2px); }
+
+      /* здоровье */
+      .health { position: absolute; left: 13.3%; top: 77.6%; display: flex; gap: 6px; }
+      .hp {
+        width: 73px;
+        height: 64px;
+        position: relative;
+        border-radius: 6px;
+      }
+      .hp .label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 5px;
+        text-align: center;
+        font-family: Georgia, serif;
+        font-size: 11px;
+        color: #3a3122;
+        opacity: 0.85;
+      }
+      .hp.hurt::before,
+      .hp.hurt::after {
+        content: '';
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        top: 48%;
+        height: 5px;
+        border-radius: 3px;
+        background: #4a2f1c;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+      }
+      .hp.hurt::before { transform: rotate(38deg); }
+      .hp.hurt::after { transform: rotate(-38deg); }
+
+      /* правая колонка */
+      .block {
+        position: absolute;
+        left: 62.5%;
+        width: 29.6%;
+        font-family: Georgia, 'Times New Roman', serif;
+        color: var(--ink);
+        font-size: 13.2px;
+        line-height: 1.28;
+      }
+      .block b { letter-spacing: 0.1px; }
+      .block.attack { top: 30.6%; }
+      .block.action { top: 45.1%; }
+      .block.ability { top: 63.4%; }
+
+      .inventory {
+        position: absolute;
+        left: 62.4%;
+        top: 78.2%;
+        width: 30.2%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .slot {
+        width: 46px;
+        height: 46px;
+        border-radius: 8px;
+        border: 1.5px dashed rgba(90, 72, 44, 0.45);
+        background: rgba(255, 250, 235, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      .slot img { width: 38px; height: 38px; object-fit: contain; }
+      .slot .count {
+        position: absolute;
+        right: -4px;
+        bottom: -4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 3px;
+        border-radius: 8px;
+        background: #2b2419;
+        color: #f6eeda;
+        font: 700 10px/16px 'Segoe UI', sans-serif;
+        text-align: center;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      }
+
+      /* портрет в рамке — как вклеенная иллюстрация */
+      .portrait-frame {
+        position: absolute;
+        left: 38.2%;
+        top: 22.6%;
+        width: 23.2%;
+        height: 51.5%;
+        padding: 6px;
+        border-radius: 12px;
+        background: linear-gradient(160deg, rgba(255, 251, 238, 0.9), rgba(226, 210, 176, 0.55));
+        border: 2px solid rgba(88, 68, 38, 0.35);
+        box-shadow:
+          0 3px 7px rgba(60, 45, 20, 0.28),
+          inset 0 0 0 3px rgba(255, 250, 235, 0.5);
+        pointer-events: none;
+      }
+      .portrait-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 18%;
+        border-radius: 7px;
+      }
+
+      /* ------------------------------- док -------------------------------- */
+      .dock {
+        margin-top: 14px;
+        height: 92px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(30, 33, 44, 0.96), rgba(17, 19, 27, 0.98));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+      }
+      .who {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px 0 2px;
+        min-width: 190px;
+      }
+      .who .chev {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #cfc7b6;
+        font-size: 15px;
+      }
+      .who .nm { font-weight: 700; font-size: 15px; color: #f1ead9; line-height: 1.1; }
+      .who .cl { font-size: 11px; color: #8d8678; margin-top: 2px; }
+
+      .sep { width: 1px; height: 46px; background: rgba(255, 255, 255, 0.09); }
+
+      .rolls { display: flex; gap: 8px; flex: 1; }
+      .roll {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: #cfc7b6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        font: 600 11px/1.1 'Segoe UI', sans-serif;
+        cursor: pointer;
+        padding: 4px 2px;
+        border-radius: 12px;
+      }
+      .roll .coin {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #fbf3df, #e3d4b2 62%, #c9b58c);
+        border: 2px solid #7d6a45;
+        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .roll .coin img { width: 30px; height: 30px; }
+      .roll .num {
+        position: absolute;
+        margin-left: 34px;
+        margin-top: -34px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: #2a2115;
+        border: 1px solid #7d6a45;
+        color: #f5e9cd;
+        font: 700 11px/18px 'Segoe UI', sans-serif;
+        text-align: center;
+      }
+      .roll.off { opacity: 0.32; }
+      .roll.primary .coin { border-color: #e0b53d; box-shadow: 0 0 0 3px rgba(224, 181, 61, 0.18), 0 3px 0 rgba(0, 0, 0, 0.35); }
+      .roll:hover .coin { transform: translateY(-2px); }
+
+      .gm { display: flex; gap: 6px; align-items: center; }
+      .iconbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.05);
+        color: #ded7c7;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      .newbtn {
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(224, 181, 61, 0.45);
+        background: rgba(224, 181, 61, 0.15);
+        color: #f2dfad;
+        font: 600 12px 'Segoe UI', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      /* подсказка о режиме */
+      .hint {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 11.5px;
+        color: #7f7a6e;
+      }
+      .hint b { color: #cfc7b6; font-weight: 600; }
+      .pill {
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="sheet">
+        <!-- имя -->
+        <input class="name" value="Костя" aria-label="Имя героя" />
+
+        <!-- пулы кубиков: Сила / Ловкость / Интеллект / Броня -->
+        <div class="pool r1">
+          <div class="die rollable"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="die rollable"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="die empty"></div>
+        </div>
+        <div class="pool r2">
+          <div class="die empty"></div>
+          <div class="die empty"></div>
+          <div class="die empty"></div>
+        </div>
+        <div class="pool r3">
+          <div class="die empty"></div>
+          <div class="die empty"></div>
+          <div class="die empty"></div>
+        </div>
+        <div class="pool r4">
+          <div class="die rollable"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="die rollable"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="die empty"></div>
+        </div>
+
+        <!-- здоровье: 2 из 3 -->
+        <div class="health">
+          <div class="hp"><span class="label">Нокаут</span></div>
+          <div class="hp hurt"><span class="label">Рана</span></div>
+          <div class="hp hurt"><span class="label">Синяк</span></div>
+        </div>
+
+        <!-- правая колонка -->
+        <div class="block attack">
+          <b>Сокрушающий удар.</b> Атака по соседней цели. Если цель сбита с ног — +1 кубик.
+        </div>
+        <div class="block action">
+          <b>Вихрь ударов.</b> Разделите кубики ближней атаки между несколькими соседними целями.
+        </div>
+        <div class="block ability">
+          <b>Командная работа.</b> Все атаки против связанных боем целей проводятся с +1 кубиком.
+        </div>
+
+        <div class="inventory">
+          <div class="slot" title="Зелье"><img src="../assets/icons/item-potion.png" alt="" /><span class="count">2</span></div>
+          <div class="slot" title="Верёвка"><img src="../assets/icons/item-rope.png" alt="" /></div>
+          <div class="slot" title="Еда"><img src="../assets/icons/item-food.png" alt="" /></div>
+          <div class="slot" title="Атлетика"><img src="../assets/icons/skill-athletics.png" alt="" /></div>
+          <div class="slot" title="Восприятие"><img src="../assets/icons/skill-perception.png" alt="" /></div>
+          <div class="slot" title="Незаметность"><img src="../assets/icons/skill-stealth.png" alt="" /></div>
+        </div>
+
+        <div class="portrait-frame"><img src="../assets/portrait-warrior.png" alt="" /></div>
+      </div>
+
+      <!-- нижний док игрока -->
+      <div class="dock">
+        <div class="who">
+          <div class="chev">▾</div>
+          <div>
+            <div class="nm">Костя</div>
+            <div class="cl">Воин · лист героя</div>
+          </div>
+        </div>
+        <div class="sep"></div>
+
+        <div class="rolls">
+          <button class="roll primary" title="Бросить пул ближней атаки (Сила)">
+            <span class="coin"><img src="../assets/icons/stat-melee.png" alt="" /></span>
+            <span>Ближняя</span>
+            <span class="num">2</span>
+          </button>
+          <button class="roll off" title="Нет кубиков в пуле дальней атаки">
+            <span class="coin"><img src="../assets/icons/stat-ranged.png" alt="" /></span>
+            <span>Дальняя</span>
+            <span class="num">0</span>
+          </button>
+          <button class="roll off" title="Нет кубиков в пуле магии">
+            <span class="coin"><img src="../assets/icons/stat-magic.png" alt="" /></span>
+            <span>Магия</span>
+            <span class="num">0</span>
+          </button>
+          <button class="roll" title="Бросить пул брони">
+            <span class="coin"><img src="../assets/icons/stat-armor.png" alt="" /></span>
+            <span>Броня</span>
+            <span class="num">2</span>
+          </button>
+          <button class="roll" title="Проверка способности: 1 + пул + навык">
+            <span class="coin" style="font-size: 24px">🎯</span>
+            <span>Проверка</span>
+          </button>
+          <button class="roll" title="Инициатива: 1к6">
+            <span class="coin" style="font-size: 24px">🎲</span>
+            <span>Инициатива</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="hint">
+        <span class="pill">Игрок</span>
+        <span>поля только для чтения · доступны броски, проверки и предметы</span>
+        <span style="margin-left: auto">макет · данные из книги правил, стр. 11–14, 26</span>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+
