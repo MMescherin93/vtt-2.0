@@ -99,21 +99,15 @@
 
         <div class="section-label">Навыки и предметы</div>
         <div class="inv-editor">
-          <div class="inv-row">
-            <label for="skillSelect">Навык</label>
-            <div class="inv-add">
-              <select id="skillSelect"></select>
-              <button type="button" class="ghost" id="skillAdd">Добавить</button>
-            </div>
-            <div class="chips" id="skillChips"></div>
+          <div class="inv-field">
+            <div class="inv-field-head">Навык</div>
+            <div class="inv-preview empty" id="skillPreview"></div>
+            <select id="skillSelect"></select>
           </div>
-          <div class="inv-row">
-            <label for="itemSelect">Предмет</label>
-            <div class="inv-add">
-              <select id="itemSelect"></select>
-              <button type="button" class="ghost" id="itemAdd">Добавить</button>
-            </div>
-            <div class="chips" id="itemChips"></div>
+          <div class="inv-field">
+            <div class="inv-field-head">Предмет</div>
+            <div class="inv-preview empty" id="itemPreview"></div>
+            <select id="itemSelect"></select>
           </div>
         </div>
 
@@ -242,7 +236,7 @@
         <button type="button" class="x" id="invClose">×</button>
       </header>
       <select id="invSelect"></select>
-      <button type="button" class="primary" id="invAdd">Добавить</button>
+      <button type="button" class="primary" id="invAdd">Выбрать</button>
     </div>
 
     <div class="toast hidden" id="toast"></div>
@@ -251,6 +245,7 @@
     <script type="module" src="app.js"></script>
   </body>
 </html>
+
 
 
 

@@ -113,7 +113,7 @@ function normalizeChar(raw) {
   for (const pool of POOLS) pools[pool.id] = clamp(round(src.pools && src.pools[pool.id]), 0, 3)
 
   const skills = Array.isArray(src.skills)
-    ? src.skills.filter((id, index, list) => CATALOG_BY_ID.get(id)?.category === 'skill' && list.indexOf(id) === index).slice(0, 10)
+    ? src.skills.filter((id, index, list) => CATALOG_BY_ID.get(id)?.category === 'skill' && list.indexOf(id) === index).slice(0, 1)
     : []
 
   const rawItems = Array.isArray(src.items) ? src.items : []
@@ -129,7 +129,7 @@ function normalizeChar(raw) {
       count: clamp(round(item && item.count) || 1, 1, 99)
     }))
     .filter((item) => item.id !== 'potion' && CATALOG_BY_ID.get(item.id)?.category === 'item')
-    .slice(0, 20)
+    .slice(0, 1)
 
   const portrait = typeof src.portrait === 'string' ? src.portrait : ''
   const safePortrait =
@@ -613,11 +613,11 @@ function renderInventory(char) {
   const root = $('inventory')
   root.innerHTML = ''
   root.classList.toggle('editing', isGm() && editMode)
-  root.title = isGm() && editMode ? 'Нажмите +, чтобы добавить предмет или навык' : ''
+  root.title = isGm() && editMode ? 'Нажмите на поле, чтобы выбрать навык или предмет' : ''
   if (char.kind === 'monster') return
 
-  const firstLine = document.createElement('div')
-  firstLine.className = 'inv-line'
+  const row = document.createElement('div')
+  row.className = 'inv-line'
 
   for (let i = 0; i < 2; i += 1) {
     const available = char.potions[i] !== false
@@ -627,53 +627,43 @@ function renderInventory(char) {
       available ? 'Зелье (в наличии) — нажмите, чтобы потратить' : 'Зелье потрачено — нажмите, чтобы вернуть'
     )
     slot.addEventListener('click', () => togglePotion(i))
-    firstLine.appendChild(slot)
+    row.appendChild(slot)
   }
 
-  const canAdd = isGm() && editMode
-  const maxItems = canAdd ? 4 : 5
-  const showItems = char.items.length > maxItems ? char.items.slice(0, maxItems - 1) : char.items
-  for (const entry of showItems) {
-    const item = CATALOG_BY_ID.get(entry.id)
-    if (!item) continue
-    const slot = makeInvSlot('', item.file, `${item.title} × ${entry.count}`)
-    if (entry.count > 1) {
-      const badge = document.createElement('span')
-      badge.className = 'count'
-      badge.textContent = String(entry.count)
-      slot.appendChild(badge)
+  const item = char.items[0] ? CATALOG_BY_ID.get(char.items[0].id) : null
+  const itemSlot = makeInvSlot(
+    `item ${item ? '' : 'empty'}`,
+    item ? item.file : '',
+    item ? `${item.title} — заменить` : 'Выбрать предмет'
+  )
+  if (!item) itemSlot.textContent = isGm() ? '+' : '—'
+  itemSlot.addEventListener('click', () => {
+    if (isGm()) {
+      openInvPopover('item', itemSlot)
+      return
     }
-    slot.addEventListener('click', () => openItem(entry.id))
-    firstLine.appendChild(slot)
-  }
-  if (char.items.length > showItems.length) {
-    firstLine.appendChild(makeMoreSlot(char.items.length - showItems.length))
-  }
-  if (canAdd) firstLine.appendChild(makeAddSlot('item'))
+    if (item) openItem(item.id)
+  })
+  row.appendChild(itemSlot)
 
-  const secondLine = document.createElement('div')
-  secondLine.className = 'inv-line'
-  const maxSkills = canAdd ? 7 : 8
-  const showSkills = char.skills.length > maxSkills ? char.skills.slice(0, maxSkills - 1) : char.skills
-  for (const id of showSkills) {
-    const skill = CATALOG_BY_ID.get(id)
-    if (!skill) continue
-    const slot = makeInvSlot('', skill.file, `${skill.title} — проверка (стр. ${skill.page})`)
-    slot.addEventListener('click', () => {
-      if (isGm() && editMode) {
-        openSettings()
-        return
-      }
-      openCheck({ skill })
-    })
-    secondLine.appendChild(slot)
-  }
-  if (char.skills.length > showSkills.length) {
-    secondLine.appendChild(makeMoreSlot(char.skills.length - showSkills.length))
-  }
-  if (canAdd) secondLine.appendChild(makeAddSlot('skill'))
+  const skillId = char.kind === 'monster' ? '' : char.skills[0]
+  const skill = skillId ? CATALOG_BY_ID.get(skillId) : null
+  const skillSlot = makeInvSlot(
+    `skill ${skill ? '' : 'empty'}`,
+    skill ? skill.file : '',
+    skill ? `${skill.title} — заменить` : 'Выбрать навык'
+  )
+  if (!skill) skillSlot.textContent = isGm() ? '+' : '—'
+  skillSlot.addEventListener('click', () => {
+    if (isGm()) {
+      openInvPopover('skill', skillSlot)
+      return
+    }
+    if (skill) openCheck({ skill })
+  })
+  row.appendChild(skillSlot)
 
-  root.append(firstLine, secondLine)
+  root.appendChild(row)
 }
 
 function togglePotion(index) {
@@ -843,175 +833,78 @@ function renderBuildHint() {
   hint.classList.toggle('bad', cost !== 4)
 }
 
+function renderInvPreview(element, itemId) {
+  element.innerHTML = ''
+  const item = itemId ? CATALOG_BY_ID.get(itemId) : null
+  if (item) {
+    element.classList.remove('empty')
+    const img = document.createElement('img')
+    img.src = item.file
+    img.alt = item.title
+    element.appendChild(img)
+  } else {
+    element.classList.add('empty')
+  }
+}
+
 function renderSettingsInventory() {
   const char = settingsChar
   if (!char) return
 
   const skillSelect = $('skillSelect')
   skillSelect.innerHTML = ''
-  const skillPlaceholder = document.createElement('option')
-  skillPlaceholder.value = ''
-  skillPlaceholder.textContent = '— выбрать навык —'
-  skillSelect.appendChild(skillPlaceholder)
+  const noSkill = document.createElement('option')
+  noSkill.value = ''
+  noSkill.textContent = '— нет навыка —'
+  skillSelect.appendChild(noSkill)
   for (const skill of SKILLS) {
-    if (char.skills.includes(skill.id)) continue
     const option = document.createElement('option')
     option.value = skill.id
     option.textContent = skill.title
     skillSelect.appendChild(option)
   }
+  skillSelect.value = char.kind === 'monster' ? '' : char.skills[0] || ''
+  skillSelect.disabled = char.kind === 'monster'
 
   const itemSelect = $('itemSelect')
   itemSelect.innerHTML = ''
-  const itemPlaceholder = document.createElement('option')
-  itemPlaceholder.value = ''
-  itemPlaceholder.textContent = '— выбрать предмет —'
-  itemSelect.appendChild(itemPlaceholder)
+  const noItem = document.createElement('option')
+  noItem.value = ''
+  noItem.textContent = '— нет предмета —'
+  itemSelect.appendChild(noItem)
   for (const item of INVENTORY_ITEMS) {
     const option = document.createElement('option')
     option.value = item.id
     option.textContent = item.title
     itemSelect.appendChild(option)
   }
+  itemSelect.value = char.items[0] ? char.items[0].id : ''
 
-  const skillChips = $('skillChips')
-  skillChips.innerHTML = ''
-  if (char.kind === 'monster') {
-    const note = document.createElement('span')
-    note.className = 'muted'
-    note.textContent = 'У монстра нет навыков — только способности.'
-    skillChips.appendChild(note)
-  } else if (char.skills.length === 0) {
-    const note = document.createElement('span')
-    note.className = 'muted'
-    note.textContent = 'Навыки не выбраны.'
-    skillChips.appendChild(note)
-  }
-  for (const id of char.skills) {
-    const skill = CATALOG_BY_ID.get(id)
-    if (!skill) continue
-    skillChips.appendChild(makeChip(skill, null, () => {
-      char.skills = char.skills.filter((row) => row !== id)
-      scheduleSave()
-      renderSettingsInventory()
-      renderSheet()
-    }))
-  }
-
-  const itemChips = $('itemChips')
-  itemChips.innerHTML = ''
-  if (char.items.length === 0) {
-    const note = document.createElement('span')
-    note.className = 'muted'
-    note.textContent = 'Предметы не выбраны.'
-    itemChips.appendChild(note)
-  }
-  for (const row of char.items) {
-    const item = CATALOG_BY_ID.get(row.id)
-    if (!item) continue
-    const chip = makeChip(item, row.count, () => {
-      char.items = char.items.filter((entry) => entry.id !== row.id)
-      scheduleSave()
-      renderSettingsInventory()
-      renderSheet()
-    })
-    const minus = document.createElement('button')
-    minus.type = 'button'
-    minus.textContent = '−'
-    minus.title = 'Меньше'
-    minus.addEventListener('click', (event) => {
-      event.stopPropagation()
-      row.count = clamp(row.count - 1, 0, 99)
-      if (row.count === 0) char.items = char.items.filter((entry) => entry.id !== row.id)
-      scheduleSave()
-      renderSettingsInventory()
-      renderSheet()
-    })
-    const plus = document.createElement('button')
-    plus.type = 'button'
-    plus.textContent = '+'
-    plus.title = 'Больше'
-    plus.addEventListener('click', (event) => {
-      event.stopPropagation()
-      row.count = clamp(row.count + 1, 1, 99)
-      scheduleSave()
-      renderSettingsInventory()
-      renderSheet()
-    })
-    chip.insertBefore(minus, chip.lastChild)
-    chip.insertBefore(plus, chip.lastChild)
-    itemChips.appendChild(chip)
-  }
+  renderInvPreview($('skillPreview'), char.kind === 'monster' ? null : char.skills[0])
+  renderInvPreview($('itemPreview'), char.items[0] ? char.items[0].id : null)
 }
 
-function makeChip(item, count, onRemove) {
-  const chip = document.createElement('span')
-  chip.className = 'chip'
-  const img = document.createElement('img')
-  img.src = item.file
-  img.alt = ''
-  chip.appendChild(img)
-  const title = document.createElement('span')
-  title.textContent = item.title
-  chip.appendChild(title)
-  if (count) {
-    const badge = document.createElement('span')
-    badge.className = 'cnt'
-    badge.textContent = `×${count}`
-    chip.appendChild(badge)
-  }
-  const remove = document.createElement('button')
-  remove.type = 'button'
-  remove.textContent = '✕'
-  remove.title = 'Убрать'
-  remove.addEventListener('click', (event) => {
-    event.stopPropagation()
-    onRemove()
-  })
-  chip.appendChild(remove)
-  return chip
-}
-
-function addSkillFromSettings() {
+function setSkillFromSettings() {
   const char = settingsChar
+  if (!char || !isGm()) return
   const id = $('skillSelect').value
-  if (!char || !isGm() || !id) return
-  const skill = CATALOG_BY_ID.get(id)
-  if (!skill || skill.category !== 'skill') return
-  if (char.skills.length >= 10) {
-    toast('У героя уже 10 навыков')
-    return
-  }
-  if (!char.skills.includes(id)) char.skills.push(id)
+  char.skills = id ? [id] : []
   scheduleSave()
   renderSettingsInventory()
   renderSheet()
 }
 
-function addItemFromSettings() {
+function setItemFromSettings() {
   const char = settingsChar
+  if (!char || !isGm()) return
   const id = $('itemSelect').value
-  if (!char || !isGm() || !id) return
-  const item = CATALOG_BY_ID.get(id)
-  if (!item || item.category !== 'item' || item.id === 'potion') return
-  const row = char.items.find((entry) => entry.id === id)
-  if (row) row.count = clamp(row.count + 1, 1, 99)
-  else {
-    if (char.items.length >= 20) {
-      toast('Слишком много предметов')
-      return
-    }
-    char.items.push({ id, count: 1 })
-  }
+  char.items = id ? [{ id, count: 1 }] : []
   scheduleSave()
   renderSettingsInventory()
   renderSheet()
 }
 
-/* ------------------------------------------------------------------ */
-/* Быстрое добавление с карточки                                      */
-/* ------------------------------------------------------------------ */
-
+/* Выбор одного навыка или предмета прямо с карточки */
 let invMode = 'item'
 
 function openInvPopover(kind, anchor) {
@@ -1020,23 +913,31 @@ function openInvPopover(kind, anchor) {
   invMode = kind === 'skill' ? 'skill' : 'item'
   const select = $('invSelect')
   select.innerHTML = ''
-  const source = invMode === 'item' ? INVENTORY_ITEMS : SKILLS
-  let count = 0
-  for (const item of source) {
-    if (invMode === 'skill' && char.skills.includes(item.id)) continue
-    const option = document.createElement('option')
-    option.value = item.id
-    option.textContent = item.title
-    select.appendChild(option)
-    count += 1
+
+  const none = document.createElement('option')
+  none.value = ''
+  none.textContent = invMode === 'item' ? '— убрать предмет —' : '— убрать навык —'
+  select.appendChild(none)
+
+  if (invMode === 'item') {
+    for (const item of INVENTORY_ITEMS) {
+      const option = document.createElement('option')
+      option.value = item.id
+      option.textContent = item.title
+      select.appendChild(option)
+    }
+    select.value = char.items[0] ? char.items[0].id : ''
+  } else {
+    for (const skill of SKILLS) {
+      const option = document.createElement('option')
+      option.value = skill.id
+      option.textContent = skill.title
+      select.appendChild(option)
+    }
+    select.value = char.skills[0] || ''
   }
-  if (count === 0) {
-    const option = document.createElement('option')
-    option.value = ''
-    option.textContent = invMode === 'item' ? 'Все предметы добавлены' : 'Все навыки добавлены'
-    select.appendChild(option)
-  }
-  $('invTitle').textContent = invMode === 'item' ? 'Добавить предмет' : 'Добавить навык'
+
+  $('invTitle').textContent = invMode === 'item' ? 'Предмет' : 'Навык'
   $('invPopover').classList.remove('hidden')
   const rect = anchor.getBoundingClientRect()
   const width = 250
@@ -1054,28 +955,15 @@ function closeInvPopover() {
 function addFromInvPopover() {
   const char = currentChar()
   const id = $('invSelect').value
-  if (!char || !id || !isGm()) return
-  const item = CATALOG_BY_ID.get(id)
-  if (!item) return
+  if (!char || !isGm()) return
   if (invMode === 'item') {
-    const row = char.items.find((entry) => entry.id === id)
-    if (row) row.count = clamp(row.count + 1, 1, 99)
-    else {
-      if (char.items.length >= 20) {
-        toast('Слишком много предметов')
-        return
-      }
-      char.items.push({ id, count: 1 })
-    }
+    char.items = id ? [{ id, count: 1 }] : []
   } else {
-    if (char.skills.length >= 10) {
-      toast('У героя уже 10 навыков')
-      return
-    }
-    if (!char.skills.includes(id)) char.skills.push(id)
+    char.skills = id ? [id] : []
   }
   scheduleSave()
   renderInventory(char)
+  if (!$('settingsModal').classList.contains('hidden')) renderSettingsInventory()
   closeInvPopover()
 }
 
@@ -1271,26 +1159,11 @@ function addFromLibrary(item) {
     return
   }
   if (item.category === 'skill') {
-    if (!char.skills.includes(item.id)) {
-      if (char.skills.length >= 10) {
-        toast('У героя уже 10 навыков')
-        return
-      }
-      char.skills.push(item.id)
-    }
-    toast(`Навык «${item.title}» добавлен`)
+    char.skills = [item.id]
+    toast(`Навык «${item.title}» выбран`)
   } else if (item.category === 'item' && item.id !== 'potion') {
-    const entry = char.items.find((row) => row.id === item.id)
-    if (entry) {
-      entry.count = clamp(entry.count + 1, 1, 99)
-    } else {
-      if (char.items.length >= 20) {
-        toast('Слишком много предметов')
-        return
-      }
-      char.items.push({ id: item.id, count: 1 })
-    }
-    toast(`Предмет «${item.title}» добавлен`)
+    char.items = [{ id: item.id, count: 1 }]
+    toast(`Предмет «${item.title}» выбран`)
   } else if (item.category === 'ability') {
     const line = `${item.title}. ${item.description}`
     if (!char.ability.includes(item.title)) {
@@ -2277,8 +2150,9 @@ function bind() {
     $('setHealth').disabled = hero
     if (hero) $('setHealth').value = '3'
   })
-  $('skillAdd').addEventListener('click', addSkillFromSettings)
-  $('itemAdd').addEventListener('click', addItemFromSettings)
+  $('skillSelect').addEventListener('change', setSkillFromSettings)
+  $('itemSelect').addEventListener('change', setItemFromSettings)
+
   $('portraitPick').addEventListener('click', pickPortrait)
   $('portraitClear').addEventListener('click', () => {
     const char = settingsChar
@@ -2530,6 +2404,7 @@ init().catch((error) => {
   const status = $('status')
   if (status) status.textContent = 'ошибка загрузки'
 })
+
 
 
 
